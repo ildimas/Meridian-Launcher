@@ -1,14 +1,14 @@
-appId: 'helioslauncher'
-productName: 'Helios Launcher'
-artifactName: '${productName}-setup-${version}.${ext}'
+appId: 'customlauncher'
+productName: 'Custom Launcher'
+artifactName: 'CustomLauncher-setup-${version}.${ext}'
 
-copyright: 'Copyright © 2018-2026 Daniel Scalzi'
+copyright: 'Copyright © 2026 Custom Launcher. Based on Helios Launcher by Daniel Scalzi (MIT).'
 
 asar: true
 compression: 'maximum'
 
 files:
-  - '!{dist,.gitignore,.vscode,docs,dev-app-update.yml,.nvmrc,eslint.config.mjs}'
+  - '!{dist,.gitignore,.vscode,docs,dev-app-update.yml,.nvmrc,mise.toml,eslint.config.mjs,branding,PRODUCT.md,DESIGN.md,.impeccable}'
 
 extraResources:
   - 'libraries'
@@ -33,14 +33,22 @@ mac:
       arch:
         - 'x64'
         - 'arm64'
-  artifactName: '${productName}-setup-${version}-${arch}.${ext}'
+  artifactName: 'CustomLauncher-setup-${version}-${arch}.${ext}'
   category: 'public.app-category.games'
 
 # Linux Configuration
 linux: 
-  target: 'AppImage'
-  maintainer: 'Daniel Scalzi'
-  vendor: 'Daniel Scalzi'
+  target:
+    - target: 'AppImage'
+      arch: 'x64'
+    - target: 'pacman'
+      arch: 'x64'
+    - target: 'deb'
+      arch: 'x64'
+    - target: 'tar.gz'
+      arch: 'x64'
+  maintainer: 'Custom Launcher'
+  vendor: 'Custom Launcher'
   synopsis: 'Modded Minecraft Launcher'
   description: 'Custom launcher which allows users to join modded servers. All mods, configurations, and updates are handled automatically.'
   category: 'Game'

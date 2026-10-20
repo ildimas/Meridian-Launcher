@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+<defs>
+  <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#2b2633"/>
+    <stop offset="1" stop-color="#121016"/>
+  </linearGradient>
+</defs>
+<rect x="16" y="16" width="480" height="480" rx="112" fill="url(#tile)"/>
+<rect x="17.5" y="17.5" width="477" height="477" rx="110.5" fill="none" stroke="#ffffff" stroke-opacity="0.12" stroke-width="3"/>
+<g transform="translate(256 268)">
+  <polygon points="0,-196 -98,-86 -98,112 0,186" fill="#a07ae0"/>
+  <polygon points="0,-196 98,-86 98,112 0,186" fill="#5a2f8a"/>
+  <polygon points="0,-196 -98,-86 -30,-60" fill="#ece2ff"/>
+  <polygon points="0,-196 -30,-60 0,186 -98,112 -98,-86" fill="#c9b0f5" fill-opacity="0.55"/>
+  <polygon points="0,-196 98,-86 30,-60" fill="#7d4fbf"/>
+  <polygon points="-30,-60 30,-60 0,186" fill="#7d4fbf"/>
+  <polygon points="-30,-60 0,-196 30,-60" fill="#c9b0f5"/>
+</g>
+</svg>

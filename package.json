@@ -1,13 +1,13 @@
 {
-  "name": "helioslauncher",
+  "name": "customlauncher",
   "version": "2.2.1",
-  "productName": "Helios Launcher",
+  "productName": "Custom Launcher",
   "description": "Modded Minecraft Launcher",
-  "author": "Daniel Scalzi (https://github.com/dscalzi/)",
+  "author": "Dmitry Ilyushenia (https://github.com/ildimas)",
   "license": "UNLICENSED",
-  "homepage": "https://github.com/dscalzi/HeliosLauncher",
+  "homepage": "https://github.com/ildimas/Helios-Custom-Worlds",
   "bugs": {
-    "url": "https://github.com/dscalzi/HeliosLauncher/issues"
+    "url": "https://github.com/ildimas/Helios-Custom-Worlds/issues"
   },
   "private": true,
   "main": "index.js",
@@ -47,6 +47,6 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/dscalzi/HeliosLauncher.git"
+    "url": "git+https://github.com/ildimas/Helios-Custom-Worlds.git"
   }
 }

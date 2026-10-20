@@ -163,14 +163,34 @@ function updateSelectedServer(serv){
     }
     ConfigManager.setSelectedServer(serv != null ? serv.rawServer.id : null)
     ConfigManager.save()
-    server_selection_button.innerHTML = '&#8226; ' + (serv != null ? serv.rawServer.name : Lang.queryJS('landing.noSelection'))
+    server_selection_button.innerHTML = `<span class="serverSelectionName">${serv != null ? serv.rawServer.name : Lang.queryJS('landing.selectedServer.noSelection')}</span>`
+    updateServerHero(serv)
     if(getCurrentView() === VIEWS.settings){
         animateSettingsTabRefresh()
     }
     setLaunchEnabled(serv != null)
 }
 // Real text is set in uibinder.js on distributionIndexDone.
-server_selection_button.innerHTML = '&#8226; ' + Lang.queryJS('landing.selectedServer.loading')
+server_selection_button.innerHTML = `<span class="serverSelectionName">${Lang.queryJS('landing.selectedServer.loading')}</span>`
+
+// Large selected-server summary on the landing view.
+function updateServerHero(serv){
+    const name = document.getElementById('serverHeroName')
+    const version = document.getElementById('serverHeroVersion')
+    const revision = document.getElementById('serverHeroRevision')
+    const desc = document.getElementById('serverHeroDesc')
+    if(serv == null){
+        name.textContent = Lang.queryJS('landing.selectedServer.noSelection')
+        version.textContent = ''
+        revision.textContent = ''
+        desc.textContent = ''
+        return
+    }
+    name.textContent = serv.rawServer.name
+    version.textContent = Lang.queryJS('landing.serverHero.minecraftVersion', { version: serv.rawServer.minecraftVersion })
+    revision.textContent = Lang.queryJS('landing.serverHero.modpackRevision', { version: serv.rawServer.version })
+    desc.textContent = serv.rawServer.description || ''
+}
 server_selection_button.onclick = async e => {
     e.target.blur()
     await toggleServerSelection(true)
@@ -232,7 +252,9 @@ const refreshMojangStatuses = async function(){
     
     document.getElementById('mojangStatusEssentialContainer').innerHTML = tooltipEssentialHTML
     document.getElementById('mojangStatusNonEssentialContainer').innerHTML = tooltipNonEssentialHTML
-    document.getElementById('mojang_status_icon').style.color = MojangRestAPI.statusToHex(status)
+    const mojangStatusIcon = document.getElementById('mojang_status_icon')
+    mojangStatusIcon.style.color = MojangRestAPI.statusToHex(status)
+    mojangStatusIcon.setAttribute('data-label', Lang.queryJS(`landing.mojangStatusLabel.${status}`))
 }
 
 const refreshServerStatus = async (fade = false) => {
@@ -675,7 +697,7 @@ function slide_(up){
         lCLLeft.style.top = '-200vh'
         lCLCenter.style.top = '-200vh'
         lCLRight.style.top = '-200vh'
-        newsBtn.style.top = '130vh'
+        newsBtn.style.top = '200vh'
         newsContainer.style.top = '0px'
         //date.toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: 'numeric'})
         //landingContainer.style.background = 'rgba(29, 29, 29, 0.55)'
@@ -699,7 +721,7 @@ function slide_(up){
         lCLLeft.style.top = '0px'
         lCLCenter.style.top = '0px'
         lCLRight.style.top = '0px'
-        newsBtn.style.top = '10px'
+        newsBtn.style.top = ''
     }
 }
 
