@@ -6,14 +6,17 @@
             </div>
             <div id="settingsNavItemsContainer">
                 <div id="settingsNavItemsContent">
+                    <button class="settingsNavItem" rSc="settingsTabAppearance" id="settingsNavAppearance"><%- lang('settings.navAppearance') %></button>
                     <button class="settingsNavItem" rSc="settingsTabAccount" id="settingsNavAccount" selected><%- lang('settings.navAccount') %></button>
                     <button class="settingsNavItem" rSc="settingsTabMinecraft"><%- lang('settings.navMinecraft') %></button>
                     <button class="settingsNavItem" rSc="settingsTabMods"><%- lang('settings.navMods') %></button>
+                    <button class="settingsNavItem" rSc="settingsTabModpacks"><%- lang('settings.navModpacks') %></button>
                     <button class="settingsNavItem" rSc="settingsTabJava"><%- lang('settings.navJava') %></button>
                     <button class="settingsNavItem" rSc="settingsTabLauncher"><%- lang('settings.navLauncher') %></button>
+                    <button class="settingsNavItem" rSc="settingsTabLanguage" id="settingsNavLanguage"><%- lang('settings.navLanguage') %></button>
+                    <button class="settingsNavItem" rSc="settingsTabProxy"><%- lang('settings.navProxy') %></button>
                     <div class="settingsNavSpacer"></div>
-                    <button class="settingsNavItem" rSc="settingsTabAbout"><%- lang('settings.navAbout') %></button>
-                    <button class="settingsNavItem" rSc="settingsTabUpdate" id="settingsNavUpdate"><%- lang('settings.navUpdates') %></button>
+                    <button class="settingsNavItem" rSc="settingsTabAbout" id="settingsNavAbout"><%- lang('settings.navAbout') %></button>
                     <div id="settingsNavContentBottom">
                         <div class="settingsNavDivider"></div>
                         <button id="settingsNavDone"><%- lang('settings.navDone') %></button>
@@ -23,6 +26,52 @@
         </div>
     </div>
     <div id="settingsContainerRight">
+        <div id="settingsTabAppearance" class="settingsTab" style="display: none;">
+            <div class="settingsTabHeader">
+                <span class="settingsTabHeaderText"><%- lang('settings.appearanceHeaderText') %></span>
+                <span class="settingsTabHeaderDesc"><%- lang('settings.appearanceHeaderDesc') %></span>
+            </div>
+            <div class="apLayout">
+                <div class="apMain">
+                    <div class="apField">
+                        <div class="apFieldRow">
+                            <span class="settingsFieldTitle"><%- lang('settings.appearanceIntervalTitle') %></span>
+                            <div class="apSegment" id="apInterval">
+                                <button value="15"><%- lang('settings.appearanceInterval15') %></button>
+                                <button value="30"><%- lang('settings.appearanceInterval30') %></button>
+                                <button value="60"><%- lang('settings.appearanceInterval60') %></button>
+                                <button value="300"><%- lang('settings.appearanceInterval300') %></button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="apField">
+                        <div class="apFieldRow">
+                            <div class="settingsFieldLeft">
+                                <span class="settingsFieldTitle"><%- lang('settings.appearanceMotionTitle') %></span>
+                                <span class="settingsFieldDesc"><%- lang('settings.appearanceMotionDesc') %></span>
+                            </div>
+                            <label class="toggleSwitch">
+                                <input type="checkbox" id="apMotion">
+                                <span class="toggleSwitchSlider"></span>
+                            </label>
+                        </div>
+                    </div>
+                    <span class="apCaps"><%- lang('settings.appearancePacksTitle') %></span>
+                    <div class="apPackList" id="apPackList" role="list">
+                        <!-- One row per modpack. -->
+                    </div>
+                </div>
+                <div class="apPreview">
+                    <div class="apPreviewFrame" id="apPreviewFrame">
+                        <span class="apPreviewLabel" id="apPreviewLabel" hidden></span>
+                    </div>
+                    <div class="apPreviewFoot">
+                        <span class="apPreviewCaption" id="apPreviewCaption"></span>
+                        <span class="apDots" id="apPreviewDots"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
         <div id="settingsTabAccount" class="settingsTab">
             <div class="settingsTabHeader">
                 <span class="settingsTabHeaderText"><%- lang('settings.tabAccountHeaderText') %></span>
@@ -66,6 +115,24 @@
                 
                 <div class="settingsCurrentAccounts" id="settingsCurrentMojangAccounts">
                     <!-- Mojang auth accounts populated here. -->
+                </div>
+            </div>
+
+            <div class="settingsAuthAccountTypeContainer">
+                <div class="settingsAuthAccountTypeHeader">
+                    <div class="settingsAuthAccountTypeHeaderLeft">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M12 12a4 4 0 1 0 0-8a4 4 0 0 0 0 8z M4.5 20c1.4-3.3 4.2-5 7.5-5s6.1 1.7 7.5 5"/>
+                        </svg>
+                        <span><%- lang('settings.offlineAccount') %></span>
+                    </div>
+                    <div class="settingsAuthAccountTypeHeaderRight">
+                        <button class="settingsAddAuthAccount" id="settingsAddOfflineAccount"><%- lang('settings.addOfflineAccount') %></button>
+                    </div>
+                </div>
+
+                <div class="settingsCurrentAccounts" id="settingsCurrentOfflineAccounts">
+                    <!-- Offline accounts populated here. -->
                 </div>
             </div>
         </div>
@@ -147,24 +214,109 @@
                 </div>
                 <div id="settingsDropinModsContainer">
                     <div class="settingsModsHeader"><%- lang('settings.dropinMods') %></div>
-                    <button id="settingsDropinFileSystemButton"><%- lang('settings.addMods') %> <span id="settingsDropinRefreshNote"><%- lang('settings.dropinRefreshNote') %></span></button>
+                    <button id="settingsDropinFileSystemButton" class="settingsPackAddButton"><%- lang('settings.addMods') %> <span id="settingsDropinRefreshNote"><%- lang('settings.dropinRefreshNote') %></span></button>
                     <div id="settingsDropinModsContent">
                         
                     </div>
                 </div>
                 <div id="settingsShadersContainer">
                     <div class="settingsModsHeader"><%- lang('settings.shaderpacks') %></div>
-                    <div id="settingsShaderpackDesc"><%- lang('settings.shaderpackDesc') %></div>
-                    <div id="settingsShaderpackWrapper">
-                        <button id="settingsShaderpackButton"> + </button>
-                        <div class="settingsSelectContainer">
-                            <div class="settingsSelectSelected" id="settingsShadersSelected"><%- lang('settings.selectShaderpack') %></div>
-                            <div class="settingsSelectOptions" id="settingsShadersOptions" hidden>
+                    <div class="settingsPackDesc"><%- lang('settings.shaderpackDesc') %></div>
+                    <button id="settingsShaderpackButton" class="settingsPackAddButton"><%- lang('settings.addShaderpacks') %> <span class="settingsPackAddNote"><%- lang('settings.packDropNote') %></span></button>
+                    <div id="settingsShadersContent" class="settingsPackList">
 
-                            </div>
+                    </div>
+                </div>
+                <div id="settingsResourcepacksContainer">
+                    <div class="settingsModsHeader"><%- lang('settings.resourcepacks') %></div>
+                    <div class="settingsPackDesc"><%- lang('settings.resourcepackDesc') %></div>
+                    <button id="settingsResourcepackButton" class="settingsPackAddButton"><%- lang('settings.addResourcepacks') %> <span class="settingsPackAddNote"><%- lang('settings.packDropNote') %></span></button>
+                    <div id="settingsResourcepacksContent" class="settingsPackList">
+
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="settingsTabModpacks" class="settingsTab" style="display: none;">
+            <div class="settingsTabHeader">
+                <span class="settingsTabHeaderText"><%- lang('settings.modpacksHeaderText') %></span>
+                <span class="settingsTabHeaderDesc"><%- lang('settings.modpacksHeaderDesc') %></span>
+            </div>
+            <div id="mpContainer">
+                <div id="mpTask" hidden>
+                    <div class="mpTaskHead">
+                        <span id="mpTaskTitle"></span>
+                        <span id="mpTaskPercent"></span>
+                    </div>
+                    <div class="mpTaskBar"><span id="mpTaskFill"></span></div>
+                    <div class="mpTaskFoot">
+                        <span id="mpTaskDetail"></span>
+                        <button class="apLink" id="mpTaskAction" hidden></button>
+                    </div>
+                </div>
+
+                <div id="mpInstalledSection">
+                    <div class="settingsModsHeader"><%- lang('settings.modpacksInstalled') %></div>
+                    <div id="mpInstalled" class="settingsPackList" role="list"></div>
+                </div>
+
+                <div class="settingsModsHeader"><%- lang('settings.modpacksAdd') %></div>
+                <div id="mpAddGrid">
+                    <button id="mpImport" class="mpCard mpImport">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 19h14"/></svg>
+                        <span class="mpCardTitle"><%- lang('settings.modpacksImportTitle') %></span>
+                        <span class="mpCardDesc"><%- lang('settings.modpacksImportDesc') %></span>
+                    </button>
+                    <div class="mpCard" id="mpVersion">
+                        <span class="mpCardTitle"><%- lang('settings.modpacksVersionTitle') %></span>
+                        <div class="apSegment" id="mpLoader">
+                            <button value="vanilla" selected>Vanilla</button>
+                            <button value="fabric">Fabric</button>
+                            <button value="quilt">Quilt</button>
+                            <button value="forge">Forge</button>
+                            <button value="neoforge">NeoForge</button>
+                        </div>
+                        <div class="mpFormRow">
+                            <label class="mpField">
+                                <span><%- lang('settings.modpacksMinecraft') %></span>
+                                <select id="mpMinecraft" class="mpSelect"></select>
+                            </label>
+                            <label class="mpField" id="mpLoaderVersionField" hidden>
+                                <span><%- lang('settings.modpacksLoaderVersion') %></span>
+                                <select id="mpLoaderVersion" class="mpSelect"></select>
+                            </label>
+                        </div>
+                        <div class="mpFormRow">
+                            <label class="mpField mpFieldGrow">
+                                <span><%- lang('settings.modpacksName') %></span>
+                                <input type="text" id="mpName" spellcheck="false">
+                            </label>
+                            <button id="mpVersionInstall" class="mpButton"><%- lang('settings.modpacksInstall') %></button>
                         </div>
                     </div>
                 </div>
+
+                <div class="settingsModsHeader"><%- lang('settings.modpacksBrowse') %></div>
+                <div id="mpBrowseBar">
+                    <div class="apSegment" id="mpSource">
+                        <button value="modrinth" selected>Modrinth</button>
+                        <button value="curseforge">CurseForge</button>
+                    </div>
+                    <label id="mpSearch">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 18a7 7 0 1 0 0-14a7 7 0 0 0 0 14z M20 20l-4-4"/></svg>
+                        <input type="text" id="mpSearchInput" spellcheck="false" placeholder="<%- lang('settings.modpacksSearch') %>">
+                    </label>
+                </div>
+                <div id="mpCurseForgeKey" class="mpCard" hidden>
+                    <span class="mpCardTitle"><%- lang('settings.modpacksCfKeyTitle') %></span>
+                    <span class="mpCardDesc"><%- lang('settings.modpacksCfKeyDesc') %></span>
+                    <div class="mpFormRow">
+                        <input type="text" id="mpCurseForgeKeyInput" class="mpFieldGrow" spellcheck="false" placeholder="$2a$10$…">
+                        <button id="mpCurseForgeKeySave" class="mpButton"><%- lang('settings.modpacksCfKeySave') %></button>
+                    </div>
+                </div>
+                <div id="mpResults" class="settingsPackList" role="list"></div>
+                <button id="mpMore" class="mpButton mpButtonQuiet" hidden><%- lang('settings.modpacksMore') %></button>
             </div>
         </div>
         <div id="settingsTabJava" class="settingsTab" style="display: none;">
@@ -286,6 +438,18 @@
                     </label>
                 </div>
             </div>
+            <div class="settingsFieldContainer">
+                <div class="settingsFieldLeft">
+                    <span class="settingsFieldTitle"><%- lang('settings.hardwareAccelerationTitle') %></span>
+                    <span class="settingsFieldDesc"><%- lang('settings.hardwareAccelerationDesc') %></span>
+                </div>
+                <div class="settingsFieldRight">
+                    <label class="toggleSwitch">
+                        <input type="checkbox" cValue="HardwareAcceleration">
+                        <span class="toggleSwitchSlider"></span>
+                    </label>
+                </div>
+            </div>
             <div class="settingsFileSelContainer">
                 <div class="settingsFileSelContent">
                     <div class="settingsFieldTitle" id="settingsDataDirTitle"><%- lang('settings.dataDirectoryTitle') %></div>
@@ -304,6 +468,72 @@
                     </div>
                 </div>
                 <div class="settingsFileSelDesc"><%- lang('settings.dataDirectoryDesc') %></div>
+            </div>
+        </div>
+        <div id="settingsTabLanguage" class="settingsTab" style="display: none;">
+            <div class="settingsTabHeader">
+                <span class="settingsTabHeaderText"><%- lang('settings.languageHeaderText') %></span>
+                <span class="settingsTabHeaderDesc"><%- lang('settings.languageHeaderDesc') %></span>
+            </div>
+            <div id="langCurrent">
+                <img id="langCurrentFlag" class="langFlag" alt="">
+                <div id="langCurrentText">
+                    <div id="langCurrentTitle">
+                        <span id="langCurrentName"></span>
+                        <span id="langCurrentMeta"></span>
+                    </div>
+                    <div id="langCurrentStatus">
+                        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5"/></svg>
+                        <span id="langCurrentStatusText"><%- lang('settings.languageApplied') %></span>
+                    </div>
+                </div>
+            </div>
+            <div id="langOptions">
+                <div class="settingsFieldContainer">
+                    <div class="settingsFieldLeft">
+                        <span class="settingsFieldTitle"><%- lang('settings.languageSystemTitle') %></span>
+                        <span class="settingsFieldDesc" id="langSystemDesc"></span>
+                    </div>
+                    <label class="toggleSwitch">
+                        <input type="checkbox" id="langSystemToggle">
+                        <span class="toggleSwitchSlider"></span>
+                    </label>
+                </div>
+                <div class="settingsFieldContainer">
+                    <div class="settingsFieldLeft">
+                        <span class="settingsFieldTitle"><%- lang('settings.languageMinecraftTitle') %></span>
+                        <span class="settingsFieldDesc" id="langMinecraftDesc"></span>
+                    </div>
+                    <label class="toggleSwitch">
+                        <input type="checkbox" id="langMinecraftToggle">
+                        <span class="toggleSwitchSlider"></span>
+                    </label>
+                </div>
+            </div>
+            <div id="langAllHead">
+                <div class="settingsFieldLeft">
+                    <span class="apSectionTitle"><%- lang('settings.languageAllTitle') %></span>
+                    <span class="settingsFieldDesc"><%- lang('settings.languageAllDesc') %></span>
+                </div>
+                <label id="langSearch">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>
+                    <input type="search" id="langSearchInput" placeholder="<%- lang('settings.languageSearch') %>" spellcheck="false">
+                </label>
+            </div>
+            <div id="langList" role="radiogroup" aria-label="<%- lang('settings.languageAllTitle') %>"></div>
+            <div id="langEmpty"></div>
+            <div id="langFooter">
+                <span><%- lang('settings.languageFooter') %></span>
+                <a id="langHelpButton" href="<%- lang('settings.sourceGithubLink') %>/tree/master/app/assets/lang"><%- lang('settings.languageHelp') %></a>
+            </div>
+        </div>
+        <div id="settingsTabProxy" class="settingsTab" style="display: none;">
+            <div class="settingsTabHeader">
+                <span class="settingsTabHeaderText"><%- lang('settings.proxyTabHeaderText') %></span>
+                <span class="settingsTabHeaderDesc"><%- lang('settings.proxyTabHeaderDesc') %></span>
+            </div>
+            <div class="settingsProxyContainer">
+                <%- include('proxyForm', { formId: 'settingsProxyForm' }) %>
             </div>
         </div>
         <div id="settingsTabAbout" class="settingsTab" style="display: none;">
@@ -326,6 +556,10 @@
                                 <span id="settingsAboutCurrentVersionValue">0.0.1-alpha.18</span>
                             </div>
                         </div>
+                        <div id="settingsUpdateStatus">
+                            <span id="settingsUpdateTitle"><!-- You Are Running the Latest Version --></span>
+                            <button id="settingsUpdateActionButton"><%- lang('settings.checkForUpdates') %></button>
+                        </div>
                     </div>
                 </div>
                 <div id="settingsAboutButtons">
@@ -347,47 +581,40 @@
                     </div>
                 </div>
                 <div class="settingsChangelogActions">
-                    <a class="settingsChangelogButton settingsAboutButton" href="#"><%- lang('settings.viewReleaseNotes') %></a>
+                    <a class="settingsChangelogButton settingsAboutButton" href="<%- lang('settings.sourceGithubLink') %>/releases"><%- lang('settings.viewReleaseNotes') %></a>
                 </div>
             </div>
         </div>
-        <div id="settingsTabUpdate" class="settingsTab" style="display: none;">
-            <div class="settingsTabHeader">
-                <span class="settingsTabHeaderText"><%- lang('settings.launcherUpdatesHeaderText') %></span>
-                <span class="settingsTabHeaderDesc"><%- lang('settings.launcherUpdatesHeaderDesc') %></span>
-            </div>
-            <div id="settingsUpdateStatusContainer">
-                <div id="settingsUpdateStatusContent">
-                    <div id="settingsUpdateStatusHeadline">
-                        <span id="settingsUpdateTitle"><!-- You Are Running the Latest Version --></span>
-                    </div>
-                    <div id="settingsUpdateVersion">
-                        <div id="settingsUpdateVersionCheck">&#10003;</div>
-                        <div id="settingsUpdateVersionDetails">
-                            <span id="settingsUpdateVersionTitle"><%- lang('settings.stableRelease') %></span>
-                            <div id="settingsUpdateVersionLine">
-                                <span id="settingsUpdateVersionText"><%- lang('settings.versionText') %> </span>
-                                <span id="settingsUpdateVersionValue">0.0.1-alpha.18</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div id="settingsUpdateActionContainer">
-                        <button id="settingsUpdateActionButton"><%- lang('settings.checkForUpdates') %></button>
-                    </div>
+        <div id="apDrawerScrim"></div>
+        <aside id="apDrawer" role="dialog" aria-modal="true" aria-labelledby="apDrawerName" aria-hidden="true">
+            <div class="apDrawerHead">
+                <span class="serverListTile" id="apDrawerTile"></span>
+                <div class="apDrawerTitle">
+                    <span id="apDrawerName"></span>
+                    <span id="apDrawerSub"></span>
                 </div>
+                <button class="apDrawerClose" id="apDrawerClose" aria-label="<%- lang('settings.appearanceDrawerClose') %>">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+                </button>
             </div>
-            <div class="settingsChangelogContainer">
-                <div class="settingsChangelogContent">
-                    <div class="settingsChangelogHeadline">
-                        <div class="settingsChangelogLabel"><%- lang('settings.whatsNew') %></div>
-                        <div class="settingsChangelogTitle"><%- lang('settings.updateReleaseNotes') %></div>
-                    </div>
-                    <div class="settingsChangelogText">
-                        <%- lang('settings.noReleaseNotes') %>
-                    </div>
+            <div class="apDrawerBody">
+                <div class="apGroupHead">
+                    <span class="apGroupTitle"><b id="apArtTitle"></b> <span id="apArtCount"></span></span>
+                    <button class="apLink" id="apArtAll"><%- lang('settings.appearanceShowAll') %></button>
                 </div>
+                <div class="apShotGrid" id="apArtGrid"></div>
+                <div class="apGroupHead">
+                    <span class="apGroupTitle"><b><%- lang('settings.appearanceShotsTitle') %></b> <span id="apShotCount"></span></span>
+                    <button class="apLink" id="apShotsFolder"><%- lang('settings.appearanceShotsFolder') %></button>
+                </div>
+                <div class="apShotGrid" id="apShotGrid"></div>
+                <span class="settingsFieldDesc" id="apShotEmpty" hidden><%- lang('settings.appearanceShotsEmpty') %></span>
             </div>
-        </div>
+            <div class="apDrawerFoot">
+                <button id="apDrawerDone"><%- lang('settings.appearanceDrawerDone') %></button>
+            </div>
+        </aside>
     </div>
     <script src="./assets/js/scripts/settings.js"></script>
+    <script src="./assets/js/scripts/modpacks.js"></script>
 </div>

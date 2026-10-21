@@ -6,43 +6,55 @@
                     <img id="image_seal" src="assets/images/logo.svg" alt=""/>
                     <div id="updateAvailableTooltip"><%- lang('landing.updateAvailableTooltip') %></div>
                 </div>
-                <div id="brandText">
-                    <span id="brandName"><%= lang('app.title') %></span>
-                    <span id="brandTagline"><%- lang('landing.brandTagline') %></span>
+                <span id="brandName"><%= lang('app.title') %></span>
+                <div id="mojangStatusWrapper" tabindex="0" aria-describedby="mojangStatusTooltip">
+                    <span id="mojang_status_icon" data-label="<%- lang('landing.mojangStatusChecking') %>"></span>
+                    <div id="mojangStatusTooltip" role="tooltip">
+                        <div id="mojangStatusTooltipHead">
+                            <span id="mojangStatusTooltipTitle"><%- lang('landing.mojangStatusTooltipTitle') %></span>
+                            <span id="mojangStatusTooltipState"><%- lang('landing.mojangStatusChecking') %></span>
+                        </div>
+                        <div id="mojangStatusTooltipDesc"><%- lang('landing.mojangStatusTooltipDesc') %></div>
+                        <div id="mojangStatusEssentialContainer">
+                            <!-- Essential Mojang services are populated here. -->
+                        </div>
+                        <div id="mojangStatusNEContainer">
+                            <div class="mojangStatusNEBar"></div>
+                            <div id="mojangStatusNETitle"><%- lang('landing.mojangStatusNETitle') %></div>
+                            <div class="mojangStatusNEBar"></div>
+                        </div>
+                        <div id="mojangStatusNonEssentialContainer">
+                            <!-- Non Essential Mojang services are populated here. -->
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </div>
-        <div id="content">
-            <div id="serverHero">
-                <span id="serverHeroLabel"><%- lang('landing.serverHeroLabel') %></span>
-                <span id="serverHeroName"><%- lang('landing.serverHeroLoading') %></span>
-                <div id="serverHeroMeta">
-                    <span class="heroChip" id="serverHeroVersion"></span>
-                    <span class="heroChip" id="serverHeroRevision"></span>
-                </div>
-                <span id="serverHeroDesc"></span>
             </div>
         </div>
         <div id="right">
             <div id="rightContainer">
-                <div id="user_content">
-                    <span id="user_text"><%- lang('landing.usernamePlaceholder') %></span>
-                    <div id="avatarContainer">
-                        <button id="avatarOverlay"><%- lang('landing.usernameEditButton') %></button>
+                <div id="topBar">
+                    <button id="newsButton" class="topButton" aria-pressed="false">
+                        <svg class="topButtonIcon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14v14H5z M8 9h8 M8 12h8 M8 15h5"/></svg>
+                        <span id="newsButtonText"><%- lang('landing.newsButton') %></span>
+                        <span id="newsButtonAlert" style="display: none;"></span>
+                    </button>
+                    <button class="topButton topButtonSquare" id="settingsMediaButton" aria-label="<%- lang('landing.settingsTooltip') %>">
+                        <svg id="settingsSVG" class="topButtonIcon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15a3 3 0 1 0 0-6a3 3 0 0 0 0 6z"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+                        <span id="settingsTooltip"><%- lang('landing.settingsTooltip') %></span>
+                    </button>
+                    <div id="user_content">
+                        <div id="avatarContainer">
+                            <button id="avatarOverlay"><%- lang('landing.usernameEditButton') %></button>
+                        </div>
+                        <span id="user_text"><%- lang('landing.usernamePlaceholder') %></span>
                     </div>
                 </div>
+                <!-- Every gallery wallpaper is credited to the player who took it. -->
+                <button id="wallpaperCredit" hidden>
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l1.5-2h7L17 8h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
+                    <span><%- lang('landing.wallpaperCreditBy') %> <span class="wallpaperCreditAuthor"></span></span>
+                </button>
                 <div id="mediaContent">
-                    <div id="internalMedia">
-                        <div class="mediaContainer" id="settingsMediaContainer">
-                            <button class="mediaButton" id="settingsMediaButton" aria-label="<%- lang('landing.settingsTooltip') %>">
-                                <svg id="settingsSVG" class="mediaSVG" viewBox="0 0 141.36 137.43">
-                                    <path d="M70.70475616319865,83.36934004916053 a15.320781354859122,15.320781354859122 0 1 1 14.454501310561755,-15.296030496450625 A14.850515045097694,14.850515045097694 0 0 1 70.70475616319865,83.36934004916053 M123.25082856443602,55.425620905968366 h-12.375429204248078 A45.54157947163293,45.54157947163293 0 0 0 107.21227231573047,46.243052436416285 l8.613298726156664,-9.108315894326587 a9.727087354538993,9.727087354538993 0 0 0 0,-13.167456673319956 l-3.465120177189462,-3.6631270444574313 a8.489544434114185,8.489544434114185 0 0 0 -12.375429204248078,0 l-8.613298726156664,9.108315894326587 A40.442902639482725,40.442902639482725 0 0 0 81.99114759747292,25.427580514871032 V12.532383284044531 a9.108315894326587,9.108315894326587 0 0 0 -8.811305593424633,-9.306322761594556 h-4.950171681699231 a9.108315894326587,9.108315894326587 0 0 0 -8.811305593424633,9.306322761594556 v12.895197230826497 a40.17064319698927,40.17064319698927 0 0 0 -9.331073620003052,4.0591407789933704 l-8.613298726156664,-9.108315894326587 a8.489544434114185,8.489544434114185 0 0 0 -12.375429204248078,0 L25.58394128451018,23.967279868769744 a9.727087354538993,9.727087354538993 0 0 0 0,13.167456673319956 L34.19724001066683,46.243052436416285 a45.07131316187151,45.07131316187151 0 0 0 -3.6631270444574313,9.083565035918088 h-12.375429204248078 a9.083565035918088,9.083565035918088 0 0 0 -8.811305593424633,9.306322761594556 v5.197680265784193 a9.108315894326587,9.108315894326587 0 0 0 8.811305593424633,9.306322761594556 h11.979415469712139 a45.69008462208391,45.69008462208391 0 0 0 4.0591407789933704,10.642869115653347 l-8.613298726156664,9.108315894326587 a9.727087354538993,9.727087354538993 0 0 0 0,13.167456673319956 l3.465120177189462,3.6631270444574313 a8.489544434114185,8.489544434114185 0 0 0 12.375429204248078,0 l8.613298726156664,-9.108315894326587 a40.49240435629971,40.49240435629971 0 0 0 9.331073620003052,4.0591407789933704 v12.895197230826497 a9.083565035918088,9.083565035918088 0 0 0 8.811305593424633,9.306322761594556 h4.950171681699231 A9.083565035918088,9.083565035918088 0 0 0 81.99114759747292,123.68848839660077 V110.79329116577425 a40.78941465720167,40.78941465720167 0 0 0 9.331073620003052,-4.0591407789933704 l8.613298726156664,9.108315894326587 a8.489544434114185,8.489544434114185 0 0 0 12.375429204248078,0 l3.465120177189462,-3.6631270444574313 a9.727087354538993,9.727087354538993 0 0 0 0,-13.167456673319956 l-8.613298726156664,-9.108315894326587 a45.665333763675406,45.665333763675406 0 0 0 4.034389920584874,-10.642869115653347 h12.004166328120636 a9.108315894326587,9.108315894326587 0 0 0 8.811305593424633,-9.306322761594556 v-5.197680265784193 a9.083565035918088,9.083565035918088 0 0 0 -8.811305593424633,-9.306322761594556 " id="svg_3" class=""/>
-                                </svg>
-                                <div id="settingsTooltip"><%- lang('landing.settingsTooltip') %></div>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="mediaDivider"></div>
                     <div id="externalMedia">
                         <div class="mediaContainer">
                             <a href="<%- lang('landing.mediaGitHubURL') %>" class="mediaURL" id="linkURL">
@@ -106,74 +118,95 @@
             </div>
         </div>
     </div>
-    <div id="lower">
-        <div id="left">
-            <div class="bot_wrapper">
-                <div id="content">
-                    <div id="server_status_wrapper">
-                        <span class="bot_label" id="landingPlayerLabel"><%- lang('landing.serverStatus') %></span>
-                        <span id="player_count"><%- lang('landing.serverStatusPlaceholder') %></span>
-                    </div>
-                    <div class="bot_divider"></div>
-                    <div id="mojangStatusWrapper">
-                        <span class="bot_label"><%- lang('landing.mojangStatus') %></span>
-                        <span id="mojang_status_icon" data-label="<%- lang('landing.mojangStatusChecking') %>"></span>
-                        <div id="mojangStatusTooltip">
-                            <div id="mojangStatusTooltipTitle"><%- lang('landing.mojangStatusTooltipTitle') %></div>
-                            <div id="mojangStatusEssentialContainer">
-                                <!-- Essential Mojang services are populated here. -->
-                            </div>
-                            <div id="mojangStatusNEContainer">
-                                <div class="mojangStatusNEBar"></div>
-                                <div id="mojangStatusNETitle"><%- lang('landing.mojangStatusNETitle') %></div>
-                                <div class="mojangStatusNEBar"></div>
-                            </div>
-                            <div id="mojangStatusNonEssentialContainer">
-                                <!-- Non Essential Mojang services are populated here. -->
-                            </div>
-                        </div>
-                    </div>
-                </div>
+    <div id="heroBlock">
+        <div id="serverHero">
+            <span id="serverHeroLabel"><%- lang('landing.serverHeroLabel') %></span>
+            <span id="serverHeroName"><%- lang('landing.serverHeroLoading') %></span>
+            <div id="serverHeroMeta">
+                <span class="heroChip" id="serverHeroVersion"></span>
+                <span class="heroChip" id="serverHeroLoader"></span>
+                <span class="heroChip" id="serverHeroRevision"></span>
+                <span class="heroChip" id="serverHeroRunning" hidden><%- lang('landing.gameRunning') %></span>
             </div>
         </div>
-        <div id="center">
-            <div class="bot_wrapper">
-                <div id="content">
-                    <button id="newsButton">
-                        <!--<img src="assets/images/icons/arrow.svg" id="newsButtonSVG"/>-->
-                        <div id="newsButtonAlert" style="display: none;"></div>
-                        <svg id="newsButtonSVG" viewBox="0 0 24.87 13.97">
-                            <defs>
-                                <style>.arrowLine{fill:none;stroke:#FFF;stroke-width:2px;}</style>
-                            </defs>
-                            <polyline class="arrowLine" points="0.71 13.26 12.56 1.41 24.16 13.02"/>
-                        </svg>
-                        &#10;<span id="newsButtonText"><%- lang('landing.newsButton') %></span>
-                    </button>
-                </div>
-            </div>
-        </div>
-        <div id="right">
-            <div class="bot_wrapper">
-                <div id="launch_content">
-                    <button id="launch_button"><%- lang('landing.launchButton') %></button>
-                    <div class="bot_divider"></div>
-                    <button id="server_selection_button" class="bot_label"><%- lang('landing.launchButtonPlaceholder') %></button>
-                </div>
-                <div id="launch_details">
-                    <div id="launch_details_left">
-                        <span id="launch_progress_label">0%</span>
-                        <div class="bot_divider"></div>
-                    </div>
-                    <div id="launch_details_right">
-                        <progress id="launch_progress" value="22" max="100"></progress>
-                        <span id="launch_details_text" class="bot_label"><%- lang('landing.launchDetails') %></span>
-                    </div>
+        <div id="heroFooter">
+            <div id="statusCard">
+                <div id="server_status_wrapper">
+                    <span id="player_count"><%- lang('landing.serverStatusPlaceholder') %></span>
                 </div>
             </div>
         </div>
     </div>
-    <div id="newsContainer">
+    <div id="serverDial" tabindex="0" role="listbox" aria-label="<%- lang('landing.serverDialLabel') %>">
+        <svg id="serverDialRing" viewBox="0 0 520 180" aria-hidden="true">
+            <circle cx="260" cy="372" r="300"/>
+            <g id="serverDialTicks">
+                <path id="serverDialTicksMinor"/>
+                <path id="serverDialTicksMajor"/>
+            </g>
+        </svg>
+        <div id="serverDialTiles">
+            <!-- Server tiles are populated here. -->
+        </div>
+        <div id="serverDialNav">
+            <button id="serverDialPrev" class="serverDialArrow" tabindex="-1" aria-label="<%- lang('landing.serverDialPrev') %>">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+            </button>
+            <div id="serverDialCaption">
+                <span id="serverDialName"></span>
+                <span id="serverDialPos"></span>
+            </div>
+            <button id="serverDialNext" class="serverDialArrow" tabindex="-1" aria-label="<%- lang('landing.serverDialNext') %>">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+            </button>
+        </div>
+    </div>
+    <div id="launchArea">
+        <div id="serverPicker">
+            <button id="server_select" aria-haspopup="listbox" aria-expanded="false" aria-label="<%- lang('landing.serverPickerLabel') %>">
+                <span id="serverPickerTile" class="serverListTile"></span>
+                <span class="serverListText">
+                    <span id="serverPickerName" class="serverListName"><%- lang('landing.launchButtonPlaceholder') %></span>
+                    <span id="serverPickerMeta" class="serverListMeta"></span>
+                </span>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg>
+            </button>
+            <div id="serverMenu" role="listbox" tabindex="-1" aria-label="<%- lang('landing.serverDialLabel') %>">
+                <div class="serverMenuHeading"><%- lang('landing.serverMenuHeading') %></div>
+                <div id="serverMenuList">
+                    <!-- Server rows are populated here. -->
+                </div>
+            </div>
+        </div>
+        <button id="launch_button">
+            <span id="launch_content">
+                <span class="launchLabel" id="launchButtonLabel"><%- lang('landing.launchButton') %></span>
+            </span>
+            <span id="launch_details">
+                <span class="launchLabel"><%- lang('landing.launchingButton') %></span>
+                <span class="launchSub" id="launch_progress_label">0%</span>
+            </span>
+            <!-- Launch progress, drawn around the pill (see setLaunchPercentage). -->
+            <svg id="launch_progress" aria-hidden="true">
+                <path class="launchRingTrack"/>
+                <path class="launchRingFill" pathLength="100"/>
+            </svg>
+        </button>
+        <!-- What the launch is doing, under the picker and the button. -->
+        <div id="launchStatus" role="status" aria-live="polite">
+            <span id="launch_details_text"><%- lang('landing.launchDetails') %></span>
+        </div>
+    </div>
+    <aside id="newsContainer" aria-label="<%- lang('landing.newsDrawerTitle') %>">
+        <div id="newsHeader">
+            <div id="newsHeaderText">
+                <h2><%- lang('landing.newsDrawerTitle') %></h2>
+                <span><%- lang('landing.newsDrawerDesc') %></span>
+            </div>
+            <button id="newsClose" aria-label="<%- lang('landing.newsClose') %>">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
+        </div>
         <div id="newsContent" article="-1" style="display: none;">
             <div id="newsStatusContainer">
                 <div id="newsStatusContent">
@@ -230,6 +263,6 @@
                 <span id="nENoneSpan" class="newsErrorContent"><%- lang('landing.newsErrorNoneSpan') %></span>
             </div>
         </div>
-    </div>
+    </aside>
     <script src="./assets/js/scripts/landing.js"></script>
 </div>

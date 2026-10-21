@@ -31,7 +31,7 @@ Private, curated: it lists only this group's 1–3 servers, defined by a self-ho
 - Keep all upstream functionality: Microsoft auth, server selection, launch progress, Java management, settings, auto-update, news (RSS), social links, Mojang/Microsoft service status, server player count.
 - DOM IDs are bound by `app/assets/js/scripts/*.js`; restyling must preserve IDs and structure the scripts query.
 - Strings live in `app/assets/lang/*.toml`.
-- Undecided: launcher/network name (placeholder "Custom Launcher"), logo, accent color, background art.
+- Name: Meridian. Logo: compass rose on a navy tile (`branding/logo.svg`). Palette: navy #004477, face #0a508a, mid #6a9ccd, light #b9d3ec, text-on-dark #7db4e6, night ground #021a30. Type: Inter.
 
 ## Brand Commitments
 

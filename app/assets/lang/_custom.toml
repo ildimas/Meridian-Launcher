@@ -3,7 +3,7 @@
 # Everything brand-specific lives here. Social links left as "#" are hidden.
 
 [ejs.app]
-title = "Custom Launcher"
+title = "Meridian"
 
 [ejs.landing]
 brandTagline = "Modded servers"

@@ -7,7 +7,7 @@ const logger = LoggerUtil.getLogger('ConfigManager')
 
 const sysRoot = process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Application Support' : process.env.HOME)
 
-const dataPath = path.join(sysRoot, '.customlauncher')
+const dataPath = path.join(sysRoot, '.meridian')
 
 const launcherDir = require('@electron/remote').app.getPath('userData')
 
@@ -86,7 +86,32 @@ const DEFAULT_CONFIG = {
         },
         launcher: {
             allowPrerelease: false,
-            dataDirectory: dataPath
+            hardwareAcceleration: true, // Read by the main process at startup.
+            dataDirectory: dataPath,
+            proxy: {
+                enabled: false,
+                type: 'http', // http | socks5
+                host: '',
+                port: '',
+                username: '',
+                password: '',
+                useForGame: false // Minecraft itself connects directly unless enabled.
+            },
+            appearance: {
+                interval: 30, // Seconds each picture stays.
+                motion: true,
+                serverPicker: 'dial', // dial | dropdown
+                // Per server id: { hidden: [picture keys left out], added: [picture paths] }.
+                packs: {}
+            },
+            language: {
+                system: true, // Follow the operating system; language and country are ignored then.
+                language: null, // A language id from LangLoader.LANGUAGES, e.g. 'ru'.
+                country: null, // One of that language's countries, e.g. 'RU'.
+                minecraft: true // Also set this language in the game's options.txt on launch.
+            },
+            zoom: 1, // Interface scale, changed with Ctrl + and Ctrl -.
+            curseForgeApiKey: '' // For CurseForge search and installs on the Modpacks tab.
         }
     },
     newsCache: {
@@ -343,6 +368,27 @@ exports.addMojangAuthAccount = function(uuid, accessToken, username, displayName
         type: 'mojang',
         accessToken,
         username: username.trim(),
+        uuid: uuid.trim(),
+        displayName: displayName.trim()
+    }
+    return config.authenticationDatabase[uuid]
+}
+
+/**
+ * Adds an offline account (no authentication). Offline accounts only work on
+ * servers running with online-mode=false.
+ * 
+ * @param {string} uuid The offline UUID derived from the name.
+ * @param {string} displayName The in game name.
+ * 
+ * @returns {Object} The account object created by this action.
+ */
+exports.addOfflineAuthAccount = function(uuid, displayName){
+    config.selectedAccount = uuid
+    config.authenticationDatabase[uuid] = {
+        type: 'offline',
+        accessToken: '0',
+        username: displayName.trim(),
         uuid: uuid.trim(),
         displayName: displayName.trim()
     }
@@ -774,6 +820,25 @@ exports.setLaunchDetached = function(launchDetached){
 // Launcher Settings
 
 /**
+ * Check whether the launcher draws with the GPU.
+ *
+ * @param {boolean} def Optional. If true, the default value will be returned.
+ * @returns {boolean} Whether hardware acceleration is on.
+ */
+exports.getHardwareAcceleration = function(def = false){
+    return !def ? config.settings.launcher.hardwareAcceleration : DEFAULT_CONFIG.settings.launcher.hardwareAcceleration
+}
+
+/**
+ * Change whether the launcher draws with the GPU. Applies after a restart.
+ *
+ * @param {boolean} hardwareAcceleration Whether to use the GPU.
+ */
+exports.setHardwareAcceleration = function(hardwareAcceleration){
+    config.settings.launcher.hardwareAcceleration = hardwareAcceleration
+}
+
+/**
  * Check if the launcher should download prerelease versions.
  * 
  * @param {boolean} def Optional. If true, the default value will be returned.
@@ -790,4 +855,100 @@ exports.getAllowPrerelease = function(def = false){
  */
 exports.setAllowPrerelease = function(allowPrerelease){
     config.settings.launcher.allowPrerelease = allowPrerelease
+}
+
+/**
+ * Retrieve the proxy configuration used for all launcher network traffic.
+ * 
+ * @param {boolean} def Optional. If true, the default value will be returned.
+ * @returns {Object} The proxy configuration (enabled, type, host, port, username, password).
+ */
+exports.getProxy = function(def = false){
+    return Object.assign({}, !def ? config.settings.launcher.proxy : DEFAULT_CONFIG.settings.launcher.proxy)
+}
+
+/**
+ * Change the proxy configuration used for all launcher network traffic.
+ * 
+ * @param {Object} proxy The new proxy configuration.
+ */
+exports.setProxy = function(proxy){
+    config.settings.launcher.proxy = Object.assign({}, DEFAULT_CONFIG.settings.launcher.proxy, proxy)
+}
+
+/**
+ * Retrieve the launcher appearance (rotation, motion, per-modpack picks and
+ * server picker).
+ * 
+ * @param {boolean} def Optional. If true, the default value will be returned.
+ * @returns {Object} A copy of the appearance settings.
+ */
+exports.getAppearance = function(def = false){
+    return JSON.parse(JSON.stringify(!def ? config.settings.launcher.appearance : DEFAULT_CONFIG.settings.launcher.appearance))
+}
+
+/**
+ * Change the launcher appearance. Only the given keys are replaced.
+ * 
+ * @param {Object} appearance The appearance keys to change.
+ */
+exports.setAppearance = function(appearance){
+    config.settings.launcher.appearance = Object.assign(exports.getAppearance(), appearance)
+}
+
+/**
+ * Retrieve the CurseForge API key used by the Modpacks tab.
+ *
+ * @returns {string} The key, or an empty string when none is set.
+ */
+exports.getCurseForgeApiKey = function(){
+    return config.settings.launcher.curseForgeApiKey || ''
+}
+
+/**
+ * Change the CurseForge API key used by the Modpacks tab.
+ *
+ * @param {string} key The key; empty to remove it.
+ */
+exports.setCurseForgeApiKey = function(key){
+    config.settings.launcher.curseForgeApiKey = String(key || '').trim()
+}
+
+/**
+ * Retrieve the interface language selection.
+ * 
+ * @param {boolean} def Optional. If true, the default value will be returned.
+ * @returns {Object} The selection (system, language, country, minecraft).
+ */
+exports.getLanguage = function(def = false){
+    return Object.assign({}, DEFAULT_CONFIG.settings.launcher.language, !def ? config.settings.launcher.language : null)
+}
+
+/**
+ * Change the interface language selection. Only the given keys are replaced.
+ * 
+ * @param {Object} language The selection keys to change.
+ */
+exports.setLanguage = function(language){
+    config.settings.launcher.language = Object.assign(exports.getLanguage(), language)
+}
+
+/**
+ * Retrieve the interface scale.
+ * 
+ * @param {boolean} def Optional. If true, the default value will be returned.
+ * @returns {number} The zoom factor, 1 being 100%.
+ */
+exports.getZoom = function(def = false){
+    const zoom = !def ? config.settings.launcher.zoom : null
+    return typeof zoom === 'number' && zoom > 0 ? zoom : DEFAULT_CONFIG.settings.launcher.zoom
+}
+
+/**
+ * Change the interface scale.
+ * 
+ * @param {number} zoom The zoom factor, 1 being 100%.
+ */
+exports.setZoom = function(zoom){
+    config.settings.launcher.zoom = zoom
 }

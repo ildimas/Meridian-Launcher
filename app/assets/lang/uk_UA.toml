@@ -1,0 +1,488 @@
+# Українська (Україна). Community translation.
+# Lines missing here fall back to en_US.toml.
+
+[ejs.landing]
+wallpaperCreditBy = "від"
+updateAvailableTooltip = "Доступне оновлення"
+usernamePlaceholder = "Ім'я користувача"
+usernameEditButton = "Змінити"
+settingsTooltip = "Налаштування"
+serverStatusPlaceholder = "Не в мережі"
+mojangStatus = "Mojang"
+mojangStatusChecking = "Перевірка"
+mojangStatusTooltipTitle = "Сервіси Mojang"
+mojangStatusTooltipDesc = "Вхід, скіни та авторизація в мережевій грі. Якщо вони недоступні, увійти в акаунт або на сервер може не вдатися."
+mojangStatusNETitle = "Другорядні"
+newsButton = "Новини"
+launchButton = "ГРАТИ"
+gameRunning = "Запущено"
+launchButtonPlaceholder = "Сервер не вибрано"
+launchDetails = "Зачекайте…"
+newsNavigationStatus = "{currentPage} з {totalPages}"
+newsErrorLoadSpan = "Перевіряємо новини…"
+newsErrorFailedSpan = "Не вдалося завантажити новини"
+newsErrorRetryButton = "Повторити"
+brandTagline = "Сервери з модами"
+serverHeroLabel = "Вибраний сервер"
+serverHeroLoading = "Завантажуємо сервери…"
+newsErrorNoneSpan = "Новин немає"
+newsDrawerTitle = "Новини"
+newsDrawerDesc = "Оголошення команди"
+newsClose = "Закрити новини"
+launchingButton = "ЗАПУСК"
+serverPickerLabel = "Сервер"
+serverDialLabel = "Сервери"
+serverMenuHeading = "Збірки серверів"
+serverDialPrev = "Попередній сервер"
+serverDialNext = "Наступний сервер"
+
+[ejs.login]
+loginCancelText = "Скасувати"
+loginSubheader = "ВХІД У MINECRAFT"
+loginEmailError = "* Неправильне значення"
+loginEmailPlaceholder = "ПОШТА АБО ІМ'Я КОРИСТУВАЧА"
+loginPasswordError = "* Обов'язково"
+loginPasswordPlaceholder = "ПАРОЛЬ"
+loginForgotPasswordText = "забули пароль?"
+loginRememberMeText = "запам'ятати мене"
+loginButtonText = "УВІЙТИ"
+loginNeedAccountText = "Немає акаунта?"
+loginPasswordDisclaimer1 = "Пароль надсилається безпосередньо в Mojang і ніде не зберігається."
+loginPasswordDisclaimer2 = "{appName} не пов'язаний з Mojang AB."
+
+[ejs.loginOptions]
+loginOptionsTitle = "Спосіб входу"
+loginWithMicrosoft = "Увійти через Microsoft"
+loginWithMojang = "Увійти через Mojang"
+or = "або"
+playOffline = "Грати без входу"
+offlineNameLabel = "Ім'я гравця"
+offlineNamePlaceholder = "Steve"
+offlineContinue = "Продовжити"
+offlineHint = "3–16 латинських літер, цифр або _. Працює на серверах із вимкненим online-mode; для офіційних серверів і скінів потрібен акаунт Microsoft."
+proxyButton = "Налаштування проксі"
+cancelButton = "Скасувати"
+
+[ejs.proxy]
+enableTitle = "Використовувати проксі-сервер"
+enableDesc = "Спрямовувати трафік лаунчера через проксі: вхід у Microsoft і Mojang, завантаження збірок і Java, оновлення."
+gameTitle = "Використовувати проксі для Minecraft"
+gameDesc = "Типово вимкнено: гра підключається до серверів напряму. Якщо увімкнути, гра надсилає запити входу та скінів через проксі (лише SOCKS5)."
+hostPlaceholder = "Адреса"
+portPlaceholder = "Порт"
+usernamePlaceholder = "Логін (необов'язково)"
+passwordPlaceholder = "Пароль (необов'язково)"
+testButton = "Перевірити"
+saveButton = "Зберегти"
+
+[ejs.overlay]
+serverSelectHeader = "Доступні сервери"
+serverSelectConfirm = "Вибрати"
+serverSelectCancel = "Скасувати"
+accountSelectHeader = "Виберіть акаунт"
+accountSelectConfirm = "Вибрати"
+accountSelectCancel = "Скасувати"
+
+[ejs.settings]
+navHeaderText = "Налаштування"
+navAppearance = "Оформлення"
+appearanceHeaderText = "Оформлення"
+appearanceHeaderDesc = "Що показується за лаунчером"
+appearanceBackgroundTitle = "Тло"
+appearanceSourcePack = "Арт збірки"
+appearanceSourceMix = "Упереміш"
+appearanceSourceShots = "Мої скриншоти"
+appearanceIntervalTitle = "Змінювати кожні"
+appearanceInterval15 = "15 с"
+appearanceInterval30 = "30 с"
+appearanceInterval60 = "1 хв"
+appearanceInterval300 = "5 хв"
+appearanceMotionTitle = "Рух"
+appearanceMotionDesc = "Повільний дрейф кожного зображення"
+appearancePacksTitle = "Збірки"
+appearanceThisPack = "Ця збірка показує"
+appearanceThisPackDefault = "Типово"
+appearanceThisPackMine = "Моє"
+appearanceShowAll = "Показати всі"
+appearanceEdit = "Змінити"
+appearanceShotsTitle = "Мої скриншоти"
+appearanceShotsFolder = "Відкрити теку"
+appearanceShotsEmpty = "Поки немає. Натисніть F2 у грі"
+appearanceDrawerClose = "Закрити"
+appearanceDrawerDone = "Готово"
+navAccount = "Акаунт"
+navMinecraft = "Minecraft"
+navMods = "Моди"
+navJava = "Java"
+navLauncher = "Лаунчер"
+navLanguage = "Мова"
+navProxy = "Проксі"
+navAbout = "Про програму"
+navDone = "Готово"
+tabAccountHeaderText = "Акаунти"
+tabAccountHeaderDesc = "Додавайте нові акаунти та керуйте наявними."
+microsoftAccount = "Microsoft"
+offlineAccount = "Офлайн"
+addOfflineAccount = "+ Додати офлайн-акаунт"
+addMicrosoftAccount = "+ Додати акаунт Microsoft"
+mojangAccount = "Mojang"
+addMojangAccount = "+ Додати акаунт Mojang"
+minecraftTabHeaderText = "Налаштування Minecraft"
+minecraftTabHeaderDesc = "Параметри запуску гри."
+gameResolutionTitle = "Роздільність гри"
+launchFullscreenTitle = "Запускати в повноекранному режимі."
+autoConnectTitle = "Одразу підключатися до сервера під час запуску."
+launchDetachedTitle = "Запускати гру окремо від лаунчера."
+launchDetachedDesc = "Якщо гра не відокремлена, закриття лаунчера закриє і її."
+tabModsHeaderText = "Моди"
+tabModsHeaderDesc = "Вмикайте та вимикайте моди."
+switchServerButton = "Змінити"
+requiredMods = "Обов'язкові моди"
+optionalMods = "Необов'язкові моди"
+dropinMods = "Власні моди"
+addMods = "Додати моди"
+dropinRefreshNote = "(F5 — оновити)"
+shaderpacks = "Шейдери"
+shaderpackDesc = "Увімкнути можна лише один набір шейдерів. Для шейдерів у збірці потрібен Iris або OptiFine, а плавно вони працюють лише на потужних комп'ютерах."
+addShaderpacks = "Додати шейдери"
+resourcepacks = "Ресурспаки"
+resourcepackDesc = "Увімкнені тут ресурспаки застосуються під час наступного запуску гри."
+addResourcepacks = "Додати ресурспаки"
+packDropNote = "(перетягніть сюди .zip, F5 — оновити)"
+tabJavaHeaderText = "Налаштування Java"
+tabJavaHeaderDesc = "Налаштування Java (для досвідчених)."
+memoryTitle = "Пам'ять"
+maxRAM = "Максимум ОЗП"
+minRAM = "Мінімум ОЗП"
+memoryDesc = "Рекомендований мінімум — 3 ГБ. Однакові мінімум і максимум можуть зменшити підгальмовування."
+memoryTotalTitle = "Усього"
+memoryAvailableTitle = "Вільно"
+javaExecutableTitle = "Виконуваний файл Java"
+javaExecSelDialogTitle = "Виберіть виконуваний файл Java"
+javaExecSelButtonText = "Вибрати файл"
+javaExecDesc = "Java перевіряється перед запуском гри."
+javaPathDesc = "Шлях має закінчуватися на <strong>{pathSuffix}</strong>."
+jvmOptsTitle = "Додаткові параметри JVM"
+jvmOptsDesc = "Параметри, які передаються JVM під час запуску. <em>-Xms</em> і <em>-Xmx</em> вказувати не потрібно."
+launcherTabHeaderText = "Налаштування лаунчера"
+launcherTabHeaderDesc = "Параметри самого лаунчера."
+proxyTabHeaderText = "Налаштування проксі"
+proxyTabHeaderDesc = "Коли проксі увімкнено, завантаження йдуть через нього, інакше напряму. Minecraft завжди підключається напряму, якщо не ввімкнути параметр нижче."
+allowPrereleaseTitle = "Отримувати попередні версії."
+allowPrereleaseDesc = "Попередні версії містять нові функції, які можуть бути не до кінця перевірені.<br>Завжди ввімкнено, якщо ви вже використовуєте попередню версію."
+dataDirectoryTitle = "Тека даних"
+selectDataDirectory = "Виберіть теку даних"
+chooseFolder = "Вибрати теку"
+dataDirectoryDesc = "Усі файли гри та локальні встановлення Java зберігаються в теці даних.<br>Скриншоти та збереження світів зберігаються в теці екземпляра відповідного сервера."
+aboutTabHeaderText = "Про програму й оновлення"
+aboutTabHeaderDesc = "Версія, оновлення лаунчера та список змін."
+stableRelease = "Стабільна версія"
+versionText = "Версія "
+sourceGithub = "Вихідний код (GitHub)"
+support = "Підтримка"
+devToolsConsole = "Консоль DevTools"
+releaseNotes = "Що нового"
+changelog = "Список змін"
+noReleaseNotes = "Опису змін немає"
+viewReleaseNotes = "Відкрити список змін на GitHub"
+checkForUpdates = "Перевірити оновлення"
+languageHeaderText = "Мова"
+languageHeaderDesc = "Мова інтерфейсу та країна для формату дат і чисел"
+languageApplied = "Застосовується одразу, перезапуск не потрібен"
+languageSystemTitle = "Мова системи"
+languageMinecraftTitle = "Та сама мова в Minecraft"
+languageAllTitle = "Усі мови"
+languageAllDesc = "Країна визначає написання, формат дат і чисел"
+languageSearch = "Пошук мови або країни"
+languageFooter = "Неперекладені рядки показуються англійською."
+languageHelp = "Допомогти з перекладом"
+
+[ejs.waiting]
+waitingText = "Очікуємо Microsoft…"
+
+[ejs.welcome]
+continueButton = "ПРОДОВЖИТИ"
+welcomeHeader = "Ласкаво просимо"
+welcomeDescription = "Лаунчер сам підготує все, що потрібно нашим серверам: потрібну версію Minecraft, завантажувач модів, усі моди й налаштування. Коли збірка оновлюється, оновлюється і він, тож вручну морочитися з модами не доведеться."
+welcomeDescCTA = "Увійдіть один раз, виберіть сервер і натисніть «Грати»."
+
+
+[js.discord]
+waiting = "Очікування клієнта…"
+state = "Сервер: {shortId}"
+
+[js.index]
+microsoftLoginTitle = "Вхід у Microsoft"
+microsoftLogoutTitle = "Вихід із Microsoft"
+
+[js.login]
+login = "УВІЙТИ"
+loggingIn = "ВХОДИМО"
+success = "ГОТОВО"
+tryAgain = "Повторити"
+
+[js.login.error]
+invalidValue = "* Неправильне значення"
+requiredValue = "* Обов'язково"
+
+[js.login.error.unknown]
+title = "Невідома помилка під час входу"
+desc = "Сталася невідома помилка. Подробиці в консолі."
+
+[js.landing.launch]
+pleaseWait = "Зачекайте…"
+failureTitle = "Помилка під час запуску"
+failureText = "Подробиці в консолі (CTRL + Shift + i)."
+okay = "Гаразд"
+
+[js.landing.selectedAccount]
+noAccountSelected = "Акаунт не вибрано"
+
+[js.landing.selectedServer]
+noSelection = "Сервер не вибрано"
+loading = "Завантаження…"
+
+[js.landing.serverStatus]
+offline = "Не в мережі"
+playerCount = "Гравців: {online}/{max}"
+checking = "Перевірка"
+
+[js.landing.running]
+play = "ГРАТИ"
+download = "ЗАВАНТАЖИТИ"
+button = "ЗАПУЩЕНО"
+badge = "Запущено"
+
+[js.landing.serverHero]
+minecraftVersion = "MC {version}"
+modpackRevision = "Збірка v{version}"
+vanilla = "Ванілла"
+position = "{current} / {total}"
+
+[js.landing.mojang]
+aria = "Сервіси Mojang"
+
+[js.landing.mojangStatusLabel]
+green = "Працюють"
+yellow = "Збої"
+red = "Не працюють"
+grey = "Невідомо"
+
+[js.landing.systemScan]
+checking = "Перевіряємо систему…"
+noCompatibleJava = "Відповідну<br>Java не знайдено"
+installJavaMessage = "Для запуску Minecraft потрібна 64-бітна Java {major}. Встановити її?"
+installJava = "Встановити Java"
+installJavaManually = "Встановити вручну"
+javaDownloadPrepare = "Готуємо завантаження Java…"
+javaDownloadFailureTitle = "Помилка під час завантаження Java"
+javaDownloadFailureText = "Подробиці в консолі (CTRL + Shift + i)."
+javaRequired = "Для запуску<br>потрібна Java"
+javaRequiredMessage = 'Для запуску потрібна 64-бітна Java {major}.<br><br>Як встановити Java вручну, описано в <a href="https://github.com/dscalzi/HeliosLauncher/wiki/Java-Management#manually-installing-a-valid-version-of-java">посібнику з Java</a>.'
+javaRequiredDismiss = "Зрозуміло"
+javaRequiredCancel = "Назад"
+
+[js.landing.downloadJava]
+findJdkFailure = "Не вдалося знайти дистрибутив OpenJDK."
+javaDownloadCorruptedError = "У завантаженого JDK неправильна контрольна сума, файл може бути пошкоджено."
+extractingJava = "Розпакування Java"
+javaInstalled = "Java встановлено!"
+
+[js.landing.dlAsync]
+loadingServerInfo = "Завантажуємо дані сервера…"
+fatalError = "Критична помилка"
+unableToLoadDistributionIndex = "Не вдалося завантажити індекс дистрибутива. Подробиці в консолі (CTRL + Shift + i)."
+pleaseWait = "Зачекайте…"
+errorDuringLaunchTitle = "Помилка під час запуску"
+seeConsoleForDetails = "Подробиці в консолі (CTRL + Shift + i)."
+validatingFileIntegrity = "Перевіряємо цілісність файлів…"
+errorDuringFileVerificationTitle = "Помилка під час перевірки файлів"
+downloadingFiles = "Завантажуємо файли…"
+errorDuringFileDownloadTitle = "Помилка під час завантаження файлів"
+downloadTimedOutHint = "Сервер завантаження перестав відповідати. Якщо він заблокований або сповільнений у вашій мережі, вкажіть проксі в Налаштування &gt; Проксі та спробуйте знову."
+preparingToLaunch = "Готуємо запуск…"
+launchingGame = "Запускаємо гру…"
+launchWrapperNotDownloaded = "Головний файл, LaunchWrapper, завантажився з помилкою, тому гра не може запуститися.<br><br>Щоб це виправити, тимчасово вимкніть антивірус і запустіть гру знову.<br><br>Якщо маєте час, <a href=\"https://github.com/ildimas/Helios-Custom-Worlds/issues\">створіть issue</a> і напишіть, яким антивірусом користуєтеся. Ми зв'яжемося з його розробниками й спробуємо все владнати."
+doneEnjoyServer = "Готово. Приємної гри!"
+checkConsoleForDetails = "Подробиці в консолі (CTRL + Shift + i)."
+
+[js.landing.news]
+checking = "Перевіряємо новини"
+
+[js.landing.discord]
+loading = "Завантаження гри…"
+joining = "Пливемо до Вестеросу!"
+joined = "Досліджує королівство!"
+
+[js.proxy]
+invalidType = "Виберіть HTTP або SOCKS5."
+invalidHost = "Вкажіть адресу проксі."
+invalidPort = "Порт — число від 1 до 65535."
+testing = "Перевіряємо сервіси Microsoft і Mojang…"
+testOk = "Сервіси Microsoft і Mojang доступні."
+testFailed = "Не вдалося підключитися: {error}"
+saved = "Налаштування проксі збережено."
+socksAuthWarning = "Збережено. Вікно входу Microsoft не вміє авторизуватися на SOCKS5-проксі; використовуйте HTTP або проксі без пароля."
+
+[js.overlay]
+dismiss = "Закрити"
+
+[js.settings.appearance]
+sourcePackDesc = "Шпалери та скриншоти, що постачаються з кожною збіркою."
+sourceMixDesc = "Зображення збірки впереміш із вашими скриншотами по F2."
+sourceShotsDesc = "Лише ваші скриншоти по F2. Якщо їх немає, показуються зображення збірки."
+packCounts = "збірка: {art} · мої: {shots}"
+galleryCounts = "галерея: {art} · мої: {shots}"
+serverPack = "Збірка сервера"
+artTitle = "Зображення збірки"
+galleryTitle = "Галерея"
+count = "{count} з {total}"
+showLess = "Згорнути"
+labelPack = "Зображення збірки"
+labelGallery = "Галерея"
+labelShot = "Ваш скриншот"
+preview = "Попередній перегляд · {server}"
+
+[js.settings.fileSelectors]
+executables = "Виконувані файли"
+allFiles = "Усі файли"
+
+[js.settings.mstfLogin]
+errorTitle = "Щось пішло не так"
+errorMessage = "Не вдалося увійти через Microsoft. Спробуйте ще раз."
+okButton = "Гаразд"
+
+[js.settings.mstfLogout]
+errorTitle = "Щось пішло не так"
+errorMessage = "Не вдалося вийти з Microsoft. Спробуйте ще раз."
+okButton = "Гаразд"
+
+[js.settings.authAccountSelect]
+selectButton = "Вибрати акаунт"
+selectedButton = "Вибраний акаунт &#10004;"
+
+[js.settings.authAccountLogout]
+lastAccountWarningTitle = "Увага<br>Це ваш останній акаунт"
+lastAccountWarningMessage = "Щоб користуватися лаунчером, потрібно увійти хоча б в один акаунт. Після виходу доведеться увійти знову.<br><br>Точно вийти?"
+confirmButton = "Так, вийти"
+cancelButton = "Скасувати"
+
+[js.settings.authAccountPopulate]
+username = "Ім'я"
+uuid = "UUID"
+selectAccount = "Вибрати акаунт"
+selectedAccount = "Вибраний акаунт ✓"
+logout = "Вийти"
+
+[js.settings.dropinMods]
+removeButton = "Видалити"
+deleteFailedTitle = "Не вдалося видалити<br>мод {fullName}"
+deleteFailedMessage = "Переконайтеся, що файл не використовується, і спробуйте знову."
+failedToggleTitle = "Не вдалося перемкнути<br>один або кілька модів"
+okButton = "Гаразд"
+
+[js.settings.packs]
+noShaderpacks = "Шейдерів поки немає. Покладіть .zip у теку shaderpacks."
+noResourcepacks = "Ресурспаків поки немає. Покладіть .zip у теку resourcepacks."
+folder = "Тека"
+zip = "Zip"
+
+[js.settings.language]
+systemDesc = "Як в операційній системі. Визначено: {language}"
+minecraftDesc = "Усі збірки запустяться мовою {language} ({code}) під час наступного запуску"
+countries = "{count} країни"
+pending = "Застосується, коли Minecraft закриється"
+noResults = "Такої мови немає."
+inProgress = "У роботі"
+
+[js.settings.serverListing]
+mainServer = "Основний сервер"
+
+[js.settings.java]
+selectedJava = "Вибрано: Java {version} ({vendor})"
+invalidSelection = "Неправильний вибір"
+requiresJava = "Потрібна 64-бітна Java {major}."
+availableOptions = "Доступні параметри Java {major} (HotSpot VM)"
+
+[js.settings.about]
+preReleaseTitle = "Попередня версія"
+stableReleaseTitle = "Стабільна версія"
+releaseNotesFailed = "Не вдалося завантажити список змін."
+
+[js.settings.updates]
+newReleaseTitle = "Доступна версія {version}"
+newPreReleaseTitle = "Доступна попередня версія {version}"
+whatsNew = "Що нового у {version}"
+downloadingButton = "Завантаження…"
+downloadButton = 'Завантажити з GitHub<span style="font-size: 10px;color: gray;text-shadow: none !important;">Закрийте лаунчер і запустіть dmg, щоб оновитися.</span>'
+latestVersionTitle = "У вас остання версія"
+checkForUpdatesButton = "Перевірити оновлення"
+checkingForUpdatesButton = "Перевіряємо оновлення…"
+
+[js.settings.msftLogin]
+errorTitle = "Не вдалося увійти через Microsoft"
+errorMessage = "Не вдалося авторизувати ваш акаунт Microsoft. Спробуйте ще раз."
+okButton = "Гаразд"
+
+[js.uibinder.startup]
+fatalErrorTitle = "Критична помилка: не вдалося завантажити індекс дистрибутива"
+fatalErrorMessage = "Не вдалося підключитися до наших серверів, щоб завантажити індекс дистрибутива, а локальної копії немає. <br><br>Індекс дистрибутива містить актуальні дані про сервери, і без нього лаунчер не може запуститися. Перевірте підключення до інтернету та запустіть застосунок знову."
+closeButton = "Закрити"
+
+[js.uibinder.validateAccount]
+failedMessageTitle = "Не вдалося оновити вхід"
+failedMessage = "Не вдалося оновити вхід для <strong>{account}</strong>. Виберіть інший акаунт або увійдіть знову."
+failedMessageSelectAnotherAccount = "Не вдалося оновити вхід для <strong>{account}</strong>. Увійдіть знову."
+loginButton = "Увійти"
+selectAnotherAccountButton = "Вибрати інший акаунт"
+
+[js.uicore.autoUpdate]
+checkingForUpdateButton = "Перевіряємо оновлення…"
+installNowButton = "Встановити зараз"
+checkForUpdatesButton = "Перевірити оновлення"
+
+[js.auth.offline]
+invalidNameTitle = "Неприпустиме ім'я гравця"
+invalidNameDesc = "Використовуйте 3–16 символів: латинські літери, цифри або підкреслення."
+
+[js.auth.microsoft.error]
+noProfileTitle = "Помилка під час входу:<br>профіль не створено"
+noProfileDesc = "У вашого акаунта Microsoft ще немає профілю Minecraft. Якщо ви нещодавно купили гру або отримали її через Xbox Game Pass, створіть профіль на <a href=\"https://minecraft.net/\">Minecraft.net</a>.<br><br>Якщо ви ще не купили гру, це теж можна зробити на <a href=\"https://minecraft.net/\">Minecraft.net</a>."
+noXboxAccountTitle = "Помилка під час входу:<br>немає акаунта Xbox"
+noXboxAccountDesc = "До вашого акаунта Microsoft не прив'язано акаунт Xbox."
+xblBannedTitle = "Помилка під час входу:<br>Xbox Live недоступний"
+xblBannedDesc = "Ваш акаунт Microsoft зареєстровано в країні, де Xbox Live недоступний або заборонений."
+under18Title = "Помилка під час входу:<br>потрібен дозвіл батьків"
+under18Desc = "Акаунти користувачів, молодших за 18 років, має додати до сімейної групи дорослий."
+unknownTitle = "Невідома помилка під час входу"
+unknownDesc = "Сталася невідома помилка. Подробиці в консолі."
+
+[js.auth.mojang.error]
+methodNotAllowedTitle = "Внутрішня помилка:<br>метод не дозволено"
+methodNotAllowedDesc = "Метод не дозволено. Будь ласка, повідомте про цю помилку."
+notFoundTitle = "Внутрішня помилка:<br>не знайдено"
+notFoundDesc = "Адресу авторизації не знайдено. Будь ласка, повідомте про цю помилку."
+accountMigratedTitle = "Помилка під час входу:<br>акаунт перенесено"
+accountMigratedDesc = "Ви намагаєтеся увійти в перенесений акаунт. Спробуйте ще раз, вказавши пошту акаунта замість імені."
+invalidCredentialsTitle = "Помилка під час входу:<br>неправильні дані"
+invalidCredentialsDesc = "Пошту або пароль вказано неправильно. Спробуйте ще раз."
+tooManyAttemptsTitle = "Помилка під час входу:<br>забагато спроб"
+tooManyAttemptsDesc = "В цей акаунт нещодавно намагалися увійти забагато разів. Спробуйте пізніше."
+invalidTokenTitle = "Помилка під час входу:<br>недійсний токен"
+invalidTokenDesc = "Переданий токен доступу недійсний."
+tokenHasProfileTitle = "Помилка під час входу:<br>у токена вже є профіль"
+tokenHasProfileDesc = "Токену доступу вже призначено профіль. Вибір профілю поки не підтримується."
+credentialsMissingTitle = "Помилка під час входу:<br>немає даних для входу"
+credentialsMissingDesc = "Не вказано ім'я або пароль, або пароль коротший за 3 символи."
+invalidSaltVersionTitle = "Помилка під час входу:<br>неправильна версія солі"
+invalidSaltVersionDesc = "Неправильна версія солі."
+unsupportedMediaTypeTitle = "Внутрішня помилка:<br>непідтримуваний тип даних"
+unsupportedMediaTypeDesc = "Непідтримуваний тип даних. Будь ласка, повідомте про цю помилку."
+accountGoneTitle = "Помилка під час входу:<br>акаунт перенесено"
+accountGoneDesc = "Акаунт перенесено до Microsoft. Увійдіть через Microsoft."
+unreachableTitle = "Помилка під час входу:<br>сервер недоступний"
+unreachableDesc = "Не вдається зв'язатися із серверами авторизації. Переконайтеся, що вони працюють і ви підключені до інтернету."
+gameNotPurchasedTitle = "Помилка під час входу:<br>гру не куплено"
+gameNotPurchasedDesc = "На акаунті, в який ви входите, не куплено Minecraft. Купити гру можна на <a href=\"https://minecraft.net/\">Minecraft.net</a>"
+unknownErrorTitle = "Невідома помилка під час входу"
+unknownErrorDesc = "Сталася невідома помилка. Подробиці в консолі."

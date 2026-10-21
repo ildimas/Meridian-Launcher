@@ -2,7 +2,7 @@ const remoteMain = require('@electron/remote/main')
 remoteMain.initialize()
 
 // Requirements
-const { app, BrowserWindow, ipcMain, Menu, shell } = require('electron')
+const { app, BrowserWindow, ipcMain, Menu, session, shell } = require('electron')
 const autoUpdater                       = require('electron-updater').autoUpdater
 const ejse                              = require('ejs-electron')
 const fs                                = require('fs')
@@ -10,11 +10,38 @@ const isDev                             = require('./app/assets/js/isdev')
 const path                              = require('path')
 const semver                            = require('semver')
 const { pathToFileURL }                 = require('url')
-const { AZURE_CLIENT_ID, MSFT_OPCODE, MSFT_REPLY_TYPE, MSFT_ERROR, SHELL_OPCODE } = require('./app/assets/js/ipcconstants')
+const { AZURE_CLIENT_ID, MSFT_OPCODE, MSFT_REPLY_TYPE, MSFT_ERROR, PROXY_OPCODE, SHELL_OPCODE } = require('./app/assets/js/ipcconstants')
 const LangLoader                        = require('./app/assets/js/langloader')
 
+/**
+ * A launcher setting saved by the renderer, or undefined before the first save.
+ *
+ * @param {string} key The key under settings.launcher in config.json.
+ */
+function readLauncherSetting(key){
+    try {
+        const config = JSON.parse(fs.readFileSync(path.join(app.getPath('userData'), 'config.json'), 'utf8'))
+        return config.settings.launcher[key]
+    } catch {
+        return undefined
+    }
+}
+
+/**
+ * The language selection saved by the renderer, or null before the first save.
+ */
+function readLanguageSelection(){
+    return readLauncherSetting('language') || null
+}
+
 // Setup Lang
-LangLoader.setupLanguage()
+LangLoader.setupLanguage(readLanguageSelection())
+
+// The renderer changed the language: load it before the page reloads.
+ipcMain.on('languageChanged', (event, selection) => {
+    LangLoader.setupLanguage(selection)
+    event.returnValue = true
+})
 
 // Setup auto updater.
 function initAutoUpdater(event, data) {
@@ -104,9 +131,37 @@ ipcMain.handle(SHELL_OPCODE.TRASH_ITEM, async (event, ...args) => {
     }
 })
 
-// Disable hardware acceleration.
-// https://electronjs.org/docs/tutorial/offscreen-rendering
-app.disableHardwareAcceleration()
+// Proxy for Chromium traffic (Microsoft login window, auto updater).
+// Node traffic in the renderer is proxied separately, see proxymanager.js.
+let proxyCredentials = null
+ipcMain.handle(PROXY_OPCODE.SET, async (event, proxy) => {
+    if(proxy?.enabled && proxy.host && proxy.port){
+        await session.defaultSession.setProxy({
+            proxyRules: `${proxy.type === 'socks5' ? 'socks5' : 'http'}://${proxy.host}:${proxy.port}`,
+            proxyBypassRules: '<local>'
+        })
+        proxyCredentials = proxy.username ? { username: proxy.username, password: proxy.password || '' } : null
+    } else {
+        await session.defaultSession.setProxy({ mode: 'direct' })
+        proxyCredentials = null
+    }
+    await session.defaultSession.closeAllConnections()
+})
+
+// Answer proxy authentication challenges (HTTP proxies only, Chromium has no SOCKS5 auth).
+app.on('login', (event, webContents, details, authInfo, callback) => {
+    if(authInfo.isProxy && proxyCredentials != null){
+        event.preventDefault()
+        callback(proxyCredentials.username, proxyCredentials.password)
+    }
+})
+
+// The GPU composites the wallpaper drift, blurs and fades; without it every
+// animated frame is redrawn on the CPU. Players whose driver misbehaves can
+// turn it off (Settings > Launcher), which applies on the next start.
+if(readLauncherSetting('hardwareAcceleration') === false){
+    app.disableHardwareAcceleration()
+}
 
 
 const REDIRECT_URI_PREFIX = 'https://login.microsoftonline.com/common/oauth2/nativeclient?'
@@ -224,9 +279,15 @@ let win
 
 function createWindow() {
 
+    // System locales are only reliable once the app is ready.
+    LangLoader.setupLanguage(readLanguageSelection())
+
     win = new BrowserWindow({
-        width: 980,
-        height: 552,
+        width: 1280,
+        height: 720,
+        // Smaller than the layout: the page scales down to fit (see zoom.js).
+        minWidth: 640,
+        minHeight: 400,
         icon: getPlatformIcon('SealCircle'),
         frame: false,
         webPreferences: {
@@ -240,7 +301,8 @@ function createWindow() {
 
     const data = {
         bkid: Math.floor((Math.random() * fs.readdirSync(path.join(__dirname, 'app', 'assets', 'images', 'backgrounds')).length)),
-        lang: (str, placeHolders) => LangLoader.queryEJS(str, placeHolders)
+        lang: (str, placeHolders) => LangLoader.queryEJS(str, placeHolders),
+        langTag: () => LangLoader.getCurrent().tag
     }
     Object.entries(data).forEach(([key, val]) => ejse.data(key, val))
 

@@ -3,6 +3,7 @@
  */
 // Requirements
 const { URL }                 = require('url')
+const fs                      = require('fs-extra')
 const {
     MojangRestAPI,
     getServerStatus
@@ -10,7 +11,8 @@ const {
 const {
     RestResponseStatus,
     isDisplayableError,
-    validateLocalFile
+    validateLocalFile,
+    getVersionJarPath
 }                             = require('helios-core/common')
 const {
     FullRepair,
@@ -30,6 +32,7 @@ const {
 // Internal Requirements
 const DiscordWrapper          = require('./assets/js/discordwrapper')
 const ProcessBuilder          = require('./assets/js/processbuilder')
+const LocalPacks              = require('./assets/js/localpacks')
 
 // Launch Elements
 const launch_content          = document.getElementById('launch_content')
@@ -37,7 +40,7 @@ const launch_details          = document.getElementById('launch_details')
 const launch_progress         = document.getElementById('launch_progress')
 const launch_progress_label   = document.getElementById('launch_progress_label')
 const launch_details_text     = document.getElementById('launch_details_text')
-const server_selection_button = document.getElementById('server_selection_button')
+const server_select           = document.getElementById('server_select')
 const user_text               = document.getElementById('user_text')
 
 const loggerLanding = LoggerUtil.getLogger('Landing')
@@ -50,12 +53,24 @@ const loggerLanding = LoggerUtil.getLogger('Landing')
  * @param {boolean} loading True if the loading area should be shown, otherwise false.
  */
 function toggleLaunchArea(loading){
+    const launchButton = document.getElementById('launch_button')
+    // The server can't change while a launch is in progress.
+    document.getElementById('landingContainer').toggleAttribute('launching', loading)
+    launchButton.toggleAttribute('launching', loading)
+    server_select.disabled = loading
+    if(loading) closeServerMenu()
     if(loading){
+        launchButton.disabled = true
         launch_details.style.display = 'flex'
         launch_content.style.display = 'none'
     } else {
         launch_details.style.display = 'none'
-        launch_content.style.display = 'inline-flex'
+        launch_content.style.display = 'flex'
+        setLaunchPercentage(0)
+        renderRunningState()
+        // A launch downloads whatever was missing.
+        refreshPackInstalled()
+        maybeApplyPendingLanguage()
     }
 }
 
@@ -74,9 +89,37 @@ function setLaunchDetails(details){
  * @param {number} percent Percentage (0-100)
  */
 function setLaunchPercentage(percent){
-    launch_progress.setAttribute('max', 100)
-    launch_progress.setAttribute('value', percent)
+    sizeLaunchRing()
+    launch_progress.querySelector('.launchRingFill').style.strokeDashoffset = 100 - Math.max(0, Math.min(100, percent))
     launch_progress_label.innerHTML = percent + '%'
+}
+
+// Gap between the pill and its progress ring, and the ring's width, in px.
+const LAUNCH_RING = { gap: 4, width: 3 }
+
+/**
+ * Shape the progress ring to the launch button: a pill just outside it,
+ * starting at the top centre and running clockwise.
+ */
+function sizeLaunchRing(){
+    const button = document.getElementById('launch_button')
+    const w = button.offsetWidth
+    const h = button.offsetHeight
+    if(w === 0 || launch_progress.getAttribute('data-size') === `${w}x${h}`){
+        return
+    }
+    launch_progress.setAttribute('data-size', `${w}x${h}`)
+    const o = LAUNCH_RING.gap + LAUNCH_RING.width
+    const W = w + 2 * o
+    const H = h + 2 * o
+    const s = LAUNCH_RING.width / 2
+    const r = H / 2 - s
+    const d = `M ${W / 2} ${s} H ${W - s - r} A ${r} ${r} 0 0 1 ${W - s - r} ${H - s} H ${s + r} A ${r} ${r} 0 0 1 ${s + r} ${s} Z`
+    launch_progress.setAttribute('viewBox', `0 0 ${W} ${H}`)
+    launch_progress.style.inset = `${-o}px`
+    for(const path of launch_progress.querySelectorAll('path')){
+        path.setAttribute('d', d)
+    }
 }
 
 /**
@@ -95,7 +138,110 @@ function setDownloadPercentage(percent){
  * @param {boolean} val True to enable, false to disable.
  */
 function setLaunchEnabled(val){
-    document.getElementById('launch_button').disabled = !val
+    // A modpack that is already running can't be launched a second time.
+    document.getElementById('launch_button').disabled = !val || isServerRunning(ConfigManager.getSelectedServer())
+}
+
+/* Running game tracking */
+
+// Game processes per server id, while they are running.
+const runningServers = new Map()
+
+/**
+ * @param {string} id The server id.
+ * @returns {boolean} Whether the modpack of that server is currently running.
+ */
+function isServerRunning(id){
+    return id != null && runningServers.has(id)
+}
+
+/**
+ * Track a game process until it exits, keeping the running indicators in sync.
+ *
+ * @param {string} id The server id.
+ * @param {ChildProcess} child The game process.
+ */
+function trackRunningServer(id, child){
+    runningServers.set(id, child)
+    const done = () => {
+        if(runningServers.get(id) === child){
+            runningServers.delete(id)
+            renderRunningState()
+            // A language picked while the game ran applies now.
+            maybeApplyPendingLanguage()
+        }
+    }
+    child.on('close', done)
+    child.on('error', done)
+    renderRunningState()
+}
+
+/* Download vs Play */
+
+// Whether a server's pack is fully on disk, per server id; absent until checked.
+const packInstalled = new Map()
+
+/**
+ * Collect the files a pack needs on disk: every module (optional ones are
+ * downloaded too) and the Minecraft version jar.
+ */
+function packFiles(serv){
+    const files = [getVersionJarPath(ConfigManager.getCommonDirectory(), serv.rawServer.minecraftVersion)]
+    const walk = (mdls) => {
+        for(const mdl of mdls){
+            try {
+                files.push(mdl.getPath())
+            } catch {
+                // Modules without a local path have nothing to check.
+            }
+            walk(mdl.subModules)
+        }
+    }
+    walk(serv.modules)
+    return files
+}
+
+/**
+ * Check whether the selected server's pack is on disk and relabel the launch
+ * button. Only checks the files exist; hashes are validated on launch.
+ */
+async function refreshPackInstalled(){
+    const id = ConfigManager.getSelectedServer()
+    const distro = await DistroAPI.getDistribution()
+    const serv = distro != null ? distro.getServerById(id) : null
+    if(serv == null){
+        return
+    }
+    const exists = await Promise.all(packFiles(serv).map(f => fs.pathExists(f)))
+    packInstalled.set(id, exists.every(Boolean))
+    renderRunningState()
+}
+
+/**
+ * Show which modpacks are running: the hero chip, the Play button, the server
+ * list rows and the dial tiles.
+ */
+function renderRunningState(){
+    const selId = ConfigManager.getSelectedServer()
+    const running = isServerRunning(selId)
+    const launchButton = document.getElementById('launch_button')
+
+    document.getElementById('serverHeroRunning').hidden = !running
+    launchButton.toggleAttribute('running', running)
+    // Until the check finishes the button keeps saying Play.
+    const needsDownload = packInstalled.get(selId) === false
+    document.getElementById('launchButtonLabel').textContent = Lang.queryJS(running ? 'landing.running.button' : needsDownload ? 'landing.running.download' : 'landing.running.play')
+    if(!document.getElementById('landingContainer').hasAttribute('launching')){
+        launchButton.disabled = selId == null || running
+    }
+
+    server_select.toggleAttribute('running', running)
+    for(const row of document.getElementById('serverMenuList').children){
+        row.toggleAttribute('running', isServerRunning(row.getAttribute('data-id')))
+    }
+    for(const tile of document.getElementById('serverDialTiles').children){
+        tile.toggleAttribute('running', isServerRunning(tile.getAttribute('data-id')))
+    }
 }
 
 // Bind launch button
@@ -128,17 +274,26 @@ document.getElementById('launch_button').addEventListener('click', async e => {
 })
 
 // Bind settings button
-document.getElementById('settingsMediaButton').onclick = async e => {
-    await prepareSettings()
-    switchView(getCurrentView(), VIEWS.settings)
+// Settings are filled in while the landing fades out, not before it starts.
+document.getElementById('settingsMediaButton').onclick = () => {
+    switchView(getCurrentView(), VIEWS.settings, 500, 500, () => prepareSettings())
 }
 
 // Bind avatar overlay button.
-document.getElementById('avatarOverlay').onclick = async e => {
-    await prepareSettings()
-    switchView(getCurrentView(), VIEWS.settings, 500, 500, () => {
+document.getElementById('avatarOverlay').onclick = () => {
+    switchView(getCurrentView(), VIEWS.settings, 500, 500, async () => {
+        await prepareSettings()
         settingsNavItemListener(document.getElementById('settingsNavAccount'), false)
     })
+}
+
+/**
+ * What to ask mc-heads.net for when drawing an account's skin. Offline
+ * accounts have no Mojang profile, so the name (which picks up the skin of
+ * the premium player with that name, or Steve) is used instead.
+ */
+function getAccountSkinId(acc){
+    return acc.type === 'offline' ? encodeURIComponent(acc.displayName) : acc.uuid
 }
 
 // Bind selected account
@@ -149,7 +304,7 @@ function updateSelectedAccount(authUser){
             username = authUser.displayName
         }
         if(authUser.uuid != null){
-            document.getElementById('avatarContainer').style.backgroundImage = `url('https://mc-heads.net/body/${authUser.uuid}/right')`
+            document.getElementById('avatarContainer').style.backgroundImage = `url('https://mc-heads.net/avatar/${getAccountSkinId(authUser)}/88')`
         }
     }
     user_text.innerHTML = username
@@ -163,37 +318,472 @@ function updateSelectedServer(serv){
     }
     ConfigManager.setSelectedServer(serv != null ? serv.rawServer.id : null)
     ConfigManager.save()
-    server_selection_button.innerHTML = `<span class="serverSelectionName">${serv != null ? serv.rawServer.name : Lang.queryJS('landing.selectedServer.noSelection')}</span>`
     updateServerHero(serv)
+    renderServerPicker()
+    ThemeEngine.setServer(serv != null ? serv.rawServer : null)
     if(getCurrentView() === VIEWS.settings){
         animateSettingsTabRefresh()
     }
     setLaunchEnabled(serv != null)
 }
-// Real text is set in uibinder.js on distributionIndexDone.
-server_selection_button.innerHTML = `<span class="serverSelectionName">${Lang.queryJS('landing.selectedServer.loading')}</span>`
+
+/**
+ * Short label for the server's mod loader, e.g. "Forge 47.2.0".
+ *
+ * @param {Object} serv The HeliosServer.
+ * @returns {string} The label, or Vanilla when the pack has no loader.
+ */
+function getServerLoaderLabel(serv){
+    // Keyed by maven group: Forge ships under several artifact names.
+    const names = {
+        'net.minecraftforge': 'Forge',
+        'net.neoforged': 'NeoForge',
+        'net.fabricmc': 'Fabric',
+        'org.quiltmc': 'Quilt'
+    }
+    for(const mdl of serv.modules){
+        const type = mdl.rawModule.type
+        if(type !== Type.ForgeHosted && type !== Type.Fabric){
+            continue
+        }
+        try {
+            const { group, version } = mdl.getMavenComponents()
+            const name = names[group] || (type === Type.Fabric ? 'Fabric' : 'Forge')
+            // Forge versions are "<mc>-<forge>"; only the loader part is useful.
+            return `${name} ${String(version).split('-').pop()}`
+        } catch(err) {
+            return type === Type.Fabric ? 'Fabric' : 'Forge'
+        }
+    }
+    return Lang.queryJS('landing.serverHero.vanilla')
+}
+
+/**
+ * One-line summary for the server list, e.g. "Fabric 0.16 · 1.21.1".
+ */
+function getServerMetaLabel(serv){
+    return `${getServerLoaderLabel(serv)} · ${serv.rawServer.minecraftVersion}`
+}
+
+const HERO_NAME_SIZE = { max: 52, min: 30, step: 2, lines: 2 }
+
+/**
+ * The hero name wraps between words; shrink it until it fits in two lines
+ * without a word overflowing the hero.
+ */
+function fitHeroName(){
+    const name = document.getElementById('serverHeroName')
+    name.style.fontSize = ''
+    const width = name.parentElement.clientWidth
+    if(width === 0){
+        return
+    }
+    const fits = (size) => {
+        name.style.fontSize = size + 'px'
+        const lineHeight = parseFloat(getComputedStyle(name).lineHeight)
+        return name.scrollWidth <= width && name.offsetHeight <= lineHeight * HERO_NAME_SIZE.lines * 1.2
+    }
+    let size = HERO_NAME_SIZE.max
+    while(size > HERO_NAME_SIZE.min && !fits(size)){
+        size -= HERO_NAME_SIZE.step
+    }
+    if(size === HERO_NAME_SIZE.max){
+        name.style.fontSize = ''
+    }
+}
+// Also refits when the landing view is shown, since its width is 0 while hidden.
+new ResizeObserver(fitHeroName).observe(document.getElementById('serverHero'))
 
 // Large selected-server summary on the landing view.
 function updateServerHero(serv){
     const name = document.getElementById('serverHeroName')
     const version = document.getElementById('serverHeroVersion')
+    const loader = document.getElementById('serverHeroLoader')
     const revision = document.getElementById('serverHeroRevision')
-    const desc = document.getElementById('serverHeroDesc')
+    // Local modpacks have no server, so there is no status to show.
+    document.getElementById('statusCard').hidden = serv != null && LocalPacks.isLocal(serv.rawServer)
     if(serv == null){
         name.textContent = Lang.queryJS('landing.selectedServer.noSelection')
+        name.removeAttribute('title')
+        fitHeroName()
         version.textContent = ''
+        loader.textContent = ''
         revision.textContent = ''
-        desc.textContent = ''
+        renderRunningState()
         return
     }
     name.textContent = serv.rawServer.name
+    name.title = serv.rawServer.name
+    fitHeroName()
     version.textContent = Lang.queryJS('landing.serverHero.minecraftVersion', { version: serv.rawServer.minecraftVersion })
+    loader.textContent = getServerLoaderLabel(serv)
     revision.textContent = Lang.queryJS('landing.serverHero.modpackRevision', { version: serv.rawServer.version })
-    desc.textContent = serv.rawServer.description || ''
+    renderRunningState()
+    refreshPackInstalled()
 }
-server_selection_button.onclick = async e => {
-    e.target.blur()
-    await toggleServerSelection(true)
+
+/* Server picker: the dial above the dock and the list next to Play. */
+
+// Dial geometry, in the dial's own 520x180 box (see the handoff spec).
+const SERVER_DIAL = { cx: 260, cy: 372, r: 300, step: 20, tile: 72 }
+let serverDialWheelAt = 0
+
+/**
+ * Initials shown on a dial tile when a server has no icon.
+ */
+function getServerMonogram(raw){
+    if(raw.launcherTheme != null && raw.launcherTheme.monogram){
+        return String(raw.launcherTheme.monogram).slice(0, 3)
+    }
+    const words = String(raw.name).replace(/\(.*?\)/g, '').trim().split(/\s+/).filter(Boolean)
+    const letters = words.length > 1 ? words[0][0] + words[1][0] : String(raw.name).slice(0, 2)
+    return letters.toUpperCase()
+}
+
+/**
+ * Paint a server tile: the server's icon over a monogram on the theme colours.
+ *
+ * @param {HTMLElement} tile The tile element. Its children are replaced.
+ * @param {Object} raw The raw server from distribution.json.
+ * @param {Object} appearance The appearance settings.
+ * @param {string} prefix Class prefix for the monogram and icon children.
+ */
+function paintServerTile(tile, raw, appearance, prefix){
+    tile.style.backgroundImage = 'linear-gradient(160deg, var(--meridian-mid) 0%, var(--meridian-navy) 100%)'
+    tile.removeAttribute('hasIcon')
+    tile.innerHTML = ''
+    const mono = document.createElement('span')
+    mono.className = prefix + 'Mono'
+    mono.textContent = getServerMonogram(raw)
+    tile.appendChild(mono)
+    tile.setAttribute('data-icon', raw.icon || '')
+    if(raw.icon){
+        const show = (url) => {
+            // The tile may have been repainted for another server meanwhile.
+            if(url == null || tile.getAttribute('data-icon') !== raw.icon) return
+            const img = document.createElement('img')
+            img.className = prefix + 'Icon'
+            img.alt = ''
+            img.onload = () => tile.setAttribute('hasIcon', '')
+            img.onerror = () => img.remove()
+            img.src = url
+            tile.appendChild(img)
+        }
+        const cached = IconCache.peek(raw.icon)
+        if(cached !== undefined) show(cached)
+        else IconCache.remote(raw.icon).then(show)
+    }
+}
+
+// Players per server id: { online, max }, null when offline, absent while unknown.
+const serverPlayers = new Map()
+let serverPlayersAt = 0
+
+/**
+ * Ping every server in the distribution and update the list as answers come in.
+ *
+ * @param {boolean} force Ping even if the last round was under a minute ago.
+ */
+async function refreshAllServerPlayers(force = false){
+    if(!force && Date.now() - serverPlayersAt < 60 * 1000){
+        return
+    }
+    serverPlayersAt = Date.now()
+    const distro = await DistroAPI.getDistribution()
+    if(distro == null){
+        return
+    }
+    // Local modpacks have no server to ask.
+    await Promise.all(distro.servers.filter(s => !LocalPacks.isLocal(s.rawServer)).map(async s => {
+        try {
+            const stat = await getServerStatus(47, s.hostname, s.port)
+            serverPlayers.set(s.rawServer.id, { online: stat.players.online, max: stat.players.max })
+        } catch {
+            serverPlayers.set(s.rawServer.id, null)
+        }
+        renderServerMenuStatus()
+    }))
+}
+
+/**
+ * Write the cached player counts into the server list rows.
+ */
+function renderServerMenuStatus(){
+    for(const row of document.getElementById('serverMenuList').children){
+        const cell = row.querySelector('.serverListStatus')
+        const id = row.getAttribute('data-id')
+        const p = serverPlayers.get(id)
+        if(row.hasAttribute('local')){
+            cell.removeAttribute('state')
+            cell.textContent = ''
+        } else if(p === undefined){
+            cell.setAttribute('state', 'pending')
+            cell.textContent = Lang.queryJS('landing.serverStatus.checking')
+        } else if(p === null){
+            cell.setAttribute('state', 'offline')
+            cell.textContent = Lang.queryJS('landing.serverStatus.offline')
+        } else {
+            cell.setAttribute('state', 'online')
+            cell.textContent = `${p.online}/${p.max}`
+        }
+    }
+}
+
+// Draw the dial's tick marks once; the ring is rotated as the selection moves.
+;(function drawServerDialTicks(){
+    let minor = ''
+    let major = ''
+    const { cx, cy, r } = SERVER_DIAL
+    for(let deg = -180; deg < 180; deg += 4){
+        const a = deg * Math.PI / 180
+        const isMajor = deg % 20 === 0
+        const pt = (rad) => (cx + rad * Math.sin(a)).toFixed(1) + ' ' + (cy - rad * Math.cos(a)).toFixed(1)
+        const seg = 'M' + pt(r + 7) + ' L' + pt(r + (isMajor ? 19 : 12)) + ' '
+        if(isMajor) major += seg
+        else minor += seg
+    }
+    document.getElementById('serverDialTicksMinor').setAttribute('d', minor)
+    document.getElementById('serverDialTicksMajor').setAttribute('d', major)
+})()
+
+/**
+ * Rebuild the dial tiles and the server list from the distribution, and
+ * place them around the selected server.
+ */
+async function renderServerPicker(){
+    const distro = await DistroAPI.getDistribution()
+    const servers = distro != null ? distro.servers : []
+    const selId = ConfigManager.getSelectedServer()
+    const sel = Math.max(0, servers.findIndex(s => s.rawServer.id === selId))
+    const appearance = ConfigManager.getAppearance()
+    const tiles = document.getElementById('serverDialTiles')
+    const landing = document.getElementById('landingContainer')
+
+    landing.toggleAttribute('dialHidden', appearance.serverPicker === 'dropdown' || servers.length === 0)
+
+    // Server list next to Play. Rebuilt when the servers or the theme change.
+    const menuList = document.getElementById('serverMenuList')
+    const themeKey = appearance.theme
+    const listKey = servers.map(s => s.rawServer.id + ':' + s.rawServer.icon).join('|') + '#' + themeKey
+    if(menuList.getAttribute('data-key') !== listKey){
+        menuList.innerHTML = ''
+        servers.forEach((s, i) => {
+            const row = document.createElement('div')
+            row.className = 'serverListRow'
+            row.setAttribute('role', 'option')
+            row.setAttribute('data-id', s.rawServer.id)
+            row.toggleAttribute('local', LocalPacks.isLocal(s.rawServer))
+            row.innerHTML = '<span class="serverListTile"></span>'
+                + '<span class="serverListText"><span class="serverListName"></span><span class="serverListMeta"></span></span>'
+                + '<span class="serverListRunning"></span>'
+                + '<span class="serverListStatus"></span>'
+            paintServerTile(row.firstChild, s.rawServer, appearance, 'serverListTile')
+            row.querySelector('.serverListName').textContent = s.rawServer.name
+            row.querySelector('.serverListMeta').textContent = getServerMetaLabel(s)
+            row.querySelector('.serverListRunning').textContent = Lang.queryJS('landing.running.badge')
+            row.onclick = () => {
+                closeServerMenu(true)
+                selectServerAt(i)
+            }
+            row.onmousemove = () => setServerMenuActive(i)
+            menuList.appendChild(row)
+        })
+        menuList.setAttribute('data-key', listKey)
+        renderServerMenuStatus()
+    }
+    Array.from(menuList.children).forEach((row, i) => {
+        row.toggleAttribute('selected', i === sel && selId != null)
+        row.setAttribute('aria-selected', i === sel && selId != null)
+    })
+
+    const curServ = selId != null ? servers[sel] : null
+    const pickerTile = document.getElementById('serverPickerTile')
+    if(curServ != null){
+        if(pickerTile.getAttribute('data-key') !== curServ.rawServer.id + '#' + themeKey){
+            paintServerTile(pickerTile, curServ.rawServer, appearance, 'serverListTile')
+            pickerTile.setAttribute('data-key', curServ.rawServer.id + '#' + themeKey)
+        }
+        document.getElementById('serverPickerName').textContent = curServ.rawServer.name
+        document.getElementById('serverPickerMeta').textContent = getServerMetaLabel(curServ)
+    } else {
+        pickerTile.removeAttribute('data-key')
+        pickerTile.innerHTML = ''
+        pickerTile.style.backgroundImage = ''
+        document.getElementById('serverPickerName').textContent = Lang.queryJS('landing.selectedServer.noSelection')
+        document.getElementById('serverPickerMeta').textContent = ''
+    }
+    pickerTile.toggleAttribute('empty', curServ == null)
+    server_select.toggleAttribute('empty', servers.length === 0)
+
+    // Dial tiles. Tiles are reused so their position animates between states.
+    // Rebuild when the servers or the theme (tile colours) change.
+    const tileKey = servers.map(s => s.rawServer.id).join('|') + '#' + themeKey
+    if(tiles.getAttribute('data-key') !== tileKey){
+        tiles.innerHTML = ''
+        servers.forEach((s, i) => {
+            const raw = s.rawServer
+            const tile = document.createElement('button')
+            tile.className = 'serverTile'
+            tile.tabIndex = -1
+            tile.setAttribute('role', 'option')
+            tile.setAttribute('aria-label', raw.name)
+            tile.setAttribute('data-id', raw.id)
+            // Placed without a transition the first time (see below).
+            tile.setAttribute('fresh', '')
+            paintServerTile(tile, raw, appearance, 'serverTile')
+            tile.onclick = () => selectServerAt(i)
+            tiles.appendChild(tile)
+        })
+        tiles.setAttribute('data-key', tileKey)
+    }
+
+    Array.from(tiles.children).forEach((tile, i) => {
+        const d = i - sel
+        const ad = Math.abs(d)
+        const a = d * SERVER_DIAL.step * Math.PI / 180
+        const x = SERVER_DIAL.cx + SERVER_DIAL.r * Math.sin(a)
+        const y = SERVER_DIAL.cy - SERVER_DIAL.r * Math.cos(a)
+        const size = ad === 0 ? SERVER_DIAL.tile : ad === 1 ? 52 : 42
+        // Tiles are SERVER_DIAL.tile wide; a transform places and sizes them.
+        tile.style.transform = `translate(${(x - SERVER_DIAL.tile / 2).toFixed(1)}px, ${(y - SERVER_DIAL.tile / 2).toFixed(1)}px) scale(${(size / SERVER_DIAL.tile).toFixed(4)})`
+        tile.style.opacity = ad === 0 ? 1 : ad === 1 ? 0.92 : ad === 2 ? 0.5 : 0
+        tile.toggleAttribute('selected', d === 0)
+        tile.toggleAttribute('far', ad > 2)
+        tile.toggleAttribute('edge', ad === 2)
+        tile.setAttribute('aria-selected', d === 0)
+    })
+    const fresh = tiles.querySelectorAll('.serverTile[fresh]')
+    if(fresh.length > 0){
+        void tiles.offsetWidth
+        fresh.forEach(tile => tile.removeAttribute('fresh'))
+    }
+
+    document.getElementById('serverDialTicks').style.transform = `rotate(${-sel * SERVER_DIAL.step}deg)`
+    const cur = servers[sel]
+    document.getElementById('serverDialName').textContent = cur != null ? cur.rawServer.name : ''
+    document.getElementById('serverDialPos').textContent = servers.length > 0
+        ? Lang.queryJS('landing.serverHero.position', { current: sel + 1, total: servers.length })
+        : ''
+    document.getElementById('serverDialPrev').disabled = sel <= 0
+    document.getElementById('serverDialNext').disabled = sel >= servers.length - 1
+    renderRunningState()
+}
+
+/**
+ * Select the server at an index in the distribution.
+ */
+async function selectServerAt(index){
+    if(document.getElementById('landingContainer').hasAttribute('launching')){
+        return
+    }
+    const servers = (await DistroAPI.getDistribution()).servers
+    const next = servers[Math.max(0, Math.min(servers.length - 1, index))]
+    if(next == null || next.rawServer.id === ConfigManager.getSelectedServer()){
+        return
+    }
+    updateSelectedServer(next)
+    refreshServerStatus(true)
+}
+
+async function stepServer(delta){
+    const servers = (await DistroAPI.getDistribution()).servers
+    const cur = servers.findIndex(s => s.rawServer.id === ConfigManager.getSelectedServer())
+    selectServerAt(cur + delta)
+}
+
+/* Server list popover. */
+const serverPicker = document.getElementById('serverPicker')
+const serverMenu = document.getElementById('serverMenu')
+let serverMenuActive = -1
+
+function setServerMenuActive(index){
+    const rows = document.getElementById('serverMenuList').children
+    if(rows.length === 0) return
+    serverMenuActive = Math.max(0, Math.min(rows.length - 1, index))
+    Array.from(rows).forEach((row, i) => row.toggleAttribute('active', i === serverMenuActive))
+    rows[serverMenuActive].scrollIntoView({ block: 'nearest' })
+}
+
+function openServerMenu(){
+    if(server_select.disabled || server_select.hasAttribute('empty')) return
+    serverPicker.setAttribute('open', '')
+    server_select.setAttribute('aria-expanded', 'true')
+    const rows = Array.from(document.getElementById('serverMenuList').children)
+    setServerMenuActive(Math.max(0, rows.findIndex(r => r.hasAttribute('selected'))))
+    serverMenu.focus()
+    refreshAllServerPlayers()
+}
+
+/**
+ * @param {boolean} refocus Return focus to the picker button.
+ */
+function closeServerMenu(refocus = false){
+    if(!serverPicker.hasAttribute('open')) return
+    serverPicker.removeAttribute('open')
+    server_select.setAttribute('aria-expanded', 'false')
+    if(refocus) server_select.focus()
+}
+
+server_select.onclick = () => {
+    if(serverPicker.hasAttribute('open')) closeServerMenu()
+    else openServerMenu()
+}
+server_select.addEventListener('keydown', e => {
+    if(e.key === 'ArrowUp' || e.key === 'ArrowDown'){
+        e.preventDefault()
+        e.stopPropagation()
+        openServerMenu()
+    }
+})
+serverMenu.addEventListener('keydown', e => {
+    // Keep arrows and Escape away from the news drawer shortcuts.
+    e.stopPropagation()
+    if(e.key === 'ArrowDown' || e.key === 'ArrowUp'){
+        e.preventDefault()
+        setServerMenuActive(serverMenuActive + (e.key === 'ArrowDown' ? 1 : -1))
+    } else if(e.key === 'Enter' || e.key === ' '){
+        e.preventDefault()
+        const row = document.getElementById('serverMenuList').children[serverMenuActive]
+        if(row != null) row.click()
+    } else if(e.key === 'Escape' || e.key === 'Tab'){
+        closeServerMenu(e.key === 'Escape')
+    }
+})
+document.addEventListener('mousedown', e => {
+    if(!serverPicker.contains(e.target)) closeServerMenu()
+})
+document.getElementById('serverDialPrev').onclick = () => stepServer(-1)
+document.getElementById('serverDialNext').onclick = () => stepServer(1)
+
+const serverDial = document.getElementById('serverDial')
+// One step per 280ms, however fast the wheel or trackpad reports.
+serverDial.addEventListener('wheel', e => {
+    const dv = Math.abs(e.deltaY) >= Math.abs(e.deltaX) ? e.deltaY : e.deltaX
+    const now = Date.now()
+    if(Math.abs(dv) < 4 || now - serverDialWheelAt < 280){
+        return
+    }
+    serverDialWheelAt = now
+    stepServer(dv > 0 ? 1 : -1)
+}, { passive: true })
+serverDial.addEventListener('keydown', e => {
+    if(e.key === 'ArrowLeft' || e.key === 'ArrowRight'){
+        e.preventDefault()
+        e.stopPropagation()
+        stepServer(e.key === 'ArrowRight' ? 1 : -1)
+    }
+})
+
+/**
+ * Stable 0..1 value from a string, used to vary the shade of letter tiles
+ * (mods and packs in settings).
+ */
+function modShade(str){
+    let h = 0
+    for(let i = 0; i < str.length; i++){
+        h = (h * 31 + str.charCodeAt(i)) | 0
+    }
+    return (Math.abs(h) % 1000) / 1000
 }
 
 // Update Mojang Status Color
@@ -255,35 +845,50 @@ const refreshMojangStatuses = async function(){
     const mojangStatusIcon = document.getElementById('mojang_status_icon')
     mojangStatusIcon.style.color = MojangRestAPI.statusToHex(status)
     mojangStatusIcon.setAttribute('data-label', Lang.queryJS(`landing.mojangStatusLabel.${status}`))
+    const stateLabel = document.getElementById('mojangStatusTooltipState')
+    stateLabel.textContent = Lang.queryJS(`landing.mojangStatusLabel.${status}`)
+    stateLabel.style.color = MojangRestAPI.statusToHex(status)
+    document.getElementById('mojangStatusWrapper').setAttribute('aria-label', `${Lang.queryJS('landing.mojang.aria')}: ${stateLabel.textContent}`)
 }
 
 const refreshServerStatus = async (fade = false) => {
     loggerLanding.info('Refreshing Server Status')
     const serv = (await DistroAPI.getDistribution()).getServerById(ConfigManager.getSelectedServer())
 
-    let pLabel = Lang.queryJS('landing.serverStatus.server')
-    let pVal = Lang.queryJS('landing.serverStatus.offline')
+    // Local modpacks have no server, so there is no status to show.
+    const local = serv != null && LocalPacks.isLocal(serv.rawServer)
+    document.getElementById('statusCard').hidden = local
+    if(local){
+        return
+    }
+
+    let players = null
 
     try {
 
         const servStat = await getServerStatus(47, serv.hostname, serv.port)
-        console.log(servStat)
-        pLabel = Lang.queryJS('landing.serverStatus.players')
-        pVal = servStat.players.online + '/' + servStat.players.max
+        players = { online: servStat.players.online, max: servStat.players.max }
+        serverPlayers.set(serv.rawServer.id, players)
 
     } catch (err) {
         loggerLanding.warn('Unable to refresh server status, assuming offline.')
         loggerLanding.debug(err)
+        if(serv != null) serverPlayers.set(serv.rawServer.id, null)
     }
+    const online = players != null
+    // Offline, or the player count while the server answers.
+    const pVal = online
+        ? Lang.queryJS('landing.serverStatus.playerCount', players)
+        : Lang.queryJS('landing.serverStatus.offline')
+    renderServerMenuStatus()
+    document.getElementById('server_status_wrapper').toggleAttribute('online', online)
     if(fade){
         $('#server_status_wrapper').fadeOut(250, () => {
-            document.getElementById('landingPlayerLabel').innerHTML = pLabel
-            document.getElementById('player_count').innerHTML = pVal
+            document.getElementById('player_count').textContent = pVal
             $('#server_status_wrapper').fadeIn(500)
         })
     } else {
-        document.getElementById('landingPlayerLabel').innerHTML = pLabel
-        document.getElementById('player_count').innerHTML = pVal
+        document.getElementById('player_count').textContent = pVal
     }
     
 }
@@ -294,7 +899,10 @@ refreshMojangStatuses()
 // Refresh statuses every hour. The status page itself refreshes every day so...
 let mojangStatusListener = setInterval(() => refreshMojangStatuses(true), 60*60*1000)
 // Set refresh rate to once every 5 minutes.
-let serverStatusListener = setInterval(() => refreshServerStatus(true), 300000)
+let serverStatusListener = setInterval(() => {
+    refreshServerStatus(true)
+    refreshAllServerPlayers(true)
+}, 300000)
 
 /**
  * Shows an error overlay, toggles off the launch area.
@@ -464,7 +1072,8 @@ let hasRPC = false
 // Joined server regex
 // Change this if your server uses something different.
 const GAME_JOINED_REGEX = /\[.+\]: Sound engine started/
-const GAME_LAUNCH_REGEX = /^\[.+\]: (?:MinecraftForge .+ Initialized|ModLauncher .+ starting: .+|Loading Minecraft .+ with Fabric Loader .+)$/
+// "Setting user" is printed by every version, including NeoForge without ModLauncher.
+const GAME_LAUNCH_REGEX = /^\[.+\]: (?:MinecraftForge .+ Initialized|ModLauncher .+ starting: .+|Loading Minecraft .+ with Fabric Loader .+|Setting user: .+)$/
 const MIN_LINGER = 5000
 
 async function dlAsync(login = true) {
@@ -508,7 +1117,8 @@ async function dlAsync(login = true) {
         DistroAPI.isDevMode()
     )
 
-    fullRepairModule.spawnReceiver()
+    // The download runs in a child process; hand it the proxy and timeouts.
+    ProxyManager.spawnReceiver(fullRepairModule, ConfigManager.getProxy())
 
     fullRepairModule.childProcess.on('error', (err) => {
         loggerLaunchSuite.error('Error during launch', err)
@@ -547,7 +1157,12 @@ async function dlAsync(login = true) {
             setDownloadPercentage(100)
         } catch(err) {
             loggerLaunchSuite.error('Error during file download.')
-            showLaunchFailure(Lang.queryJS('landing.dlAsync.errorDuringFileDownloadTitle'), err.displayable || Lang.queryJS('landing.dlAsync.seeConsoleForDetails'))
+            let desc = err.displayable || Lang.queryJS('landing.dlAsync.seeConsoleForDetails')
+            // A stalled download is almost always the network, not the pack.
+            if(/timed out/i.test(desc)){
+                desc += '<br><br>' + Lang.queryJS('landing.dlAsync.downloadTimedOutHint')
+            }
+            showLaunchFailure(Lang.queryJS('landing.dlAsync.errorDuringFileDownloadTitle'), desc)
             return
         }
     } else {
@@ -570,8 +1185,14 @@ async function dlAsync(login = true) {
         serv.rawServer.id
     )
 
-    const modLoaderData = await distributionIndexProcessor.loadModLoaderVersionJson(serv)
     const versionData = await mojangIndexProcessor.getVersionJson()
+    // Null for vanilla packs (see localpacks.js): launch on Mojang's manifest alone.
+    const modLoaderData = await distributionIndexProcessor.loadModLoaderVersionJson(serv) || {
+        id: versionData.id,
+        mainClass: versionData.mainClass,
+        arguments: { jvm: [], game: [] },
+        minecraftArguments: versionData.minecraftArguments
+    }
 
     if(login) {
         const authUser = ConfigManager.getSelectedAccount()
@@ -582,7 +1203,12 @@ async function dlAsync(login = true) {
         // const SERVER_JOINED_REGEX = /\[.+\]: \[CHAT\] [a-zA-Z0-9_]{1,16} joined the game/
         const SERVER_JOINED_REGEX = new RegExp(`\\[.+\\]: \\[CHAT\\] ${authUser.displayName} joined the game`)
 
+        let loadComplete = false
         const onLoadComplete = () => {
+            if(loadComplete){
+                return
+            }
+            loadComplete = true
             toggleLaunchArea(false)
             if(hasRPC){
                 DiscordWrapper.updateDetails(Lang.queryJS('landing.discord.loading'))
@@ -626,9 +1252,27 @@ async function dlAsync(login = true) {
             }
         }
 
+        // Start the game in the launcher's language.
+        const langConf = ConfigManager.getLanguage()
+        if(langConf.minecraft){
+            try {
+                DropinModUtil.setGameLanguage(pb.gameDir, Lang.minecraftCode(Lang.resolve(langConf), serv.rawServer.minecraftVersion))
+            } catch(err) {
+                loggerLaunchSuite.warn('Unable to set the game language.', err)
+            }
+        }
+
         try {
             // Build Minecraft process.
             proc = pb.build()
+            trackRunningServer(serv.rawServer.id, proc)
+            // The game quit (or crashed) before it finished loading.
+            proc.on('close', () => {
+                if(!loadComplete){
+                    loggerLaunchSuite.warn('Game exited before it finished loading.')
+                    onLoadComplete()
+                }
+            })
 
             // Bind listeners to stdout.
             proc.stdout.on('data', tempListener)
@@ -674,66 +1318,24 @@ const nELoadSpan                    = document.getElementById('nELoadSpan')
 
 // News slide caches.
 let newsActive = false
-let newsGlideCount = 0
 
 /**
- * Show the news UI via a slide animation.
+ * Show or hide the news UI. The motion itself lives in CSS, keyed off the
+ * landing container's `news` attribute.
  * 
- * @param {boolean} up True to slide up, otherwise false. 
+ * @param {boolean} up True to show the news, otherwise false. 
  */
 function slide_(up){
-    const lCUpper = document.querySelector('#landingContainer > #upper')
-    const lCLLeft = document.querySelector('#landingContainer > #lower > #left')
-    const lCLCenter = document.querySelector('#landingContainer > #lower > #center')
-    const lCLRight = document.querySelector('#landingContainer > #lower > #right')
-    const newsBtn = document.querySelector('#landingContainer > #lower > #center #content')
-    const landingContainer = document.getElementById('landingContainer')
-    const newsContainer = document.querySelector('#landingContainer > #newsContainer')
-
-    newsGlideCount++
-
-    if(up){
-        lCUpper.style.top = '-200vh'
-        lCLLeft.style.top = '-200vh'
-        lCLCenter.style.top = '-200vh'
-        lCLRight.style.top = '-200vh'
-        newsBtn.style.top = '200vh'
-        newsContainer.style.top = '0px'
-        //date.toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: 'numeric'})
-        //landingContainer.style.background = 'rgba(29, 29, 29, 0.55)'
-        landingContainer.style.background = 'rgba(0, 0, 0, 0.50)'
-        setTimeout(() => {
-            if(newsGlideCount === 1){
-                lCLCenter.style.transition = 'none'
-                newsBtn.style.transition = 'none'
-            }
-            newsGlideCount--
-        }, 2000)
-    } else {
-        setTimeout(() => {
-            newsGlideCount--
-        }, 2000)
-        landingContainer.style.background = null
-        lCLCenter.style.transition = null
-        newsBtn.style.transition = null
-        newsContainer.style.top = '100%'
-        lCUpper.style.top = '0px'
-        lCLLeft.style.top = '0px'
-        lCLCenter.style.top = '0px'
-        lCLRight.style.top = '0px'
-        newsBtn.style.top = ''
-    }
+    document.getElementById('landingContainer').toggleAttribute('news', up)
 }
 
 // Bind news button.
 document.getElementById('newsButton').onclick = () => {
-    // Toggle tabbing.
+    // Toggle tabbing. The drawer leaves the rest of the landing usable.
     if(newsActive){
-        $('#landingContainer *').removeAttr('tabindex')
         $('#newsContainer *').attr('tabindex', '-1')
     } else {
-        $('#landingContainer *').attr('tabindex', '-1')
-        $('#newsContainer, #newsContainer *, #lower, #lower #center *').removeAttr('tabindex')
+        $('#newsContainer, #newsContainer *').removeAttr('tabindex')
         if(newsAlertShown){
             $('#newsButtonAlert').fadeOut(2000)
             newsAlertShown = false
@@ -743,6 +1345,10 @@ document.getElementById('newsButton').onclick = () => {
     }
     slide_(!newsActive)
     newsActive = !newsActive
+    document.getElementById('newsButton').setAttribute('aria-pressed', newsActive)
+}
+document.getElementById('newsClose').onclick = () => {
+    document.getElementById('newsButton').click()
 }
 
 // Array to store article meta.
@@ -933,6 +1539,9 @@ async function initNews(){
  */
 document.addEventListener('keydown', (e) => {
     if(newsActive){
+        if(e.key === 'Escape'){
+            document.getElementById('newsButton').click()
+        }
         if(e.key === 'ArrowRight' || e.key === 'ArrowLeft'){
             document.getElementById(e.key === 'ArrowRight' ? 'newsNavigateRight' : 'newsNavigateLeft').click()
         }
@@ -1001,7 +1610,7 @@ async function loadNews(){
                     const el = $(items[i])
 
                     // Resolve date.
-                    const date = new Date(el.find('pubDate').text()).toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: 'numeric'})
+                    const date = new Date(el.find('pubDate').text()).toLocaleDateString(Lang.getCurrent().tag, {month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: 'numeric'})
 
                     // Resolve comments.
                     let comments = el.find('slash\\:comments').text() || '0'

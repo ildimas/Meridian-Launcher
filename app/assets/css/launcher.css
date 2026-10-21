@@ -5,61 +5,70 @@
  *                                                                             *
  * Theme Tokens                                                                *
  *                                                                             *
- * Tinted Glass Geode: basalt ground, violet-tinted frosted glass, one         *
- * amethyst accent, calcite type. To rebrand, change the --amethyst-* ramp     *
- * (and branding/generate.mjs) -- everything else derives from it.             *
+ * Dark glass over a live wallpaper. The accent is not fixed: themeengine.js   *
+ * sets --accent* from the active wallpaper (or photo), so every primary       *
+ * control follows the theme. Text on the accent is always --accent-ink.       *
  *                                                                             *
  ******************************************************************************/
 
 :root {
-    /* Brand ramp, darkest to lightest. */
-    --amethyst-900: #24133a;
-    --amethyst-800: #3b1d5c;
-    --amethyst-700: #5a2f8a;
-    --amethyst-600: #7d4fbf;
-    --amethyst-500: #a07ae0;
-    --amethyst-300: #c9b0f5;
-    --amethyst-100: #ece2ff;
+    /* Meridian brand palette. Source of truth for the default look. */
+    --meridian-navy: #004477;
+    --meridian-face: #0a508a;
+    --meridian-mid: #6a9ccd;
+    --meridian-light: #b9d3ec;
+    --meridian-text: #7db4e6;
+    --meridian-ground: #021a30;
 
-    --accent: var(--amethyst-500);
-    --accent-hi: var(--amethyst-300);
-    --accent-lo: var(--amethyst-600);
-    --accent-soft: rgba(160, 122, 224, 0.16);
-    --accent-line: rgba(201, 176, 245, 0.45);
-    --accent-ink: #160c26;
+    /* Accent: Meridian blue throughout. */
+    --accent: #7db4e6;
+    --accent-hi: #b9d3ec;
+    --accent-lo: #6a9ccd;
+    --accent-soft: rgba(125, 180, 230, 0.16);
+    --accent-line: rgba(125, 180, 230, 0.45);
+    --accent-ink: #021a30;
 
-    /* Basalt (ground) and glass (surfaces). */
-    --basalt-0: #07060a;
-    --basalt-1: #0f0d14;
-    --basalt-2: #19161f;
-    --glass: rgba(24, 19, 33, 0.58);
-    --glass-strong: rgba(18, 14, 25, 0.82);
-    --glass-sunk: rgba(6, 5, 9, 0.38);
-    --glass-hover: rgba(236, 226, 255, 0.07);
-    --glass-blur: blur(20px) saturate(150%);
-    --line: rgba(236, 226, 255, 0.11);
-    --line-strong: rgba(236, 226, 255, 0.2);
-    --sheen: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+    /* Ground and glass (surfaces), tinted toward Night ground. */
+    --basalt-0: #021a30;
+    --basalt-1: #06223d;
+    --basalt-2: #0c2b4a;
+    --glass: rgba(2, 22, 42, 0.42);
+    --glass-strong: rgba(3, 26, 48, 0.78);
+    --glass-sunk: rgba(1, 14, 28, 0.36);
+    --glass-hover: rgba(255, 255, 255, 0.08);
+    --glass-blur: blur(18px) saturate(140%);
+    --line: rgba(185, 211, 236, 0.13);
+    --line-strong: rgba(185, 211, 236, 0.22);
+    --sheen: inset 0 1px 0 rgba(255, 255, 255, 0.06);
 
-    /* Calcite type. */
-    --text-1: #f4f0fa;
-    --text-2: rgba(236, 230, 248, 0.74);
-    --text-3: rgba(236, 230, 248, 0.56);
+    /* Type. */
+    --text-1: #ffffff;
+    --text-2: rgba(232, 241, 250, 0.76);
+    --text-3: rgba(232, 241, 250, 0.6);
 
     /* Status. */
-    --ok: #63d69e;
-    --warn: #f2c46b;
-    --danger: #f2727a;
-    --danger-soft: rgba(242, 114, 122, 0.14);
+    --ok: #7ee2a0;
+    --warn: #ffd27a;
+    --danger: #ff9a9a;
+    --danger-soft: rgba(255, 154, 154, 0.14);
 
     --radius-s: 8px;
     --radius-m: 12px;
     --radius-l: 18px;
+    /* Shape language, after the chips under the modpack name: every control
+       is a pill; cards and panels get large soft corners around them. */
+    --radius-pill: 999px;
+    --radius-card: 20px;
+    --radius-panel: 28px;
 
-    --shadow-float: 0 22px 48px -16px rgba(0, 0, 0, 0.7), 0 2px 8px rgba(0, 0, 0, 0.35);
+    --shadow-float: 0 24px 60px rgba(0, 0, 0, 0.35);
     --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 
-    --font-ui: 'Hanken Grotesk', system-ui, 'Segoe UI', sans-serif;
+    --font-ui: 'Inter', ui-sans-serif, system-ui, 'Segoe UI', sans-serif;
+    --font-mono: 'Geist Mono', ui-monospace, monospace;
+    /* Display headings, set like the meridian wordmark: heavy Inter, tight tracking. */
+    --display-weight: 800;
+    --display-tracking: -0.04em;
 }
 
 /*******************************************************************************
@@ -68,20 +77,55 @@
  *                                                                             *
  ******************************************************************************/
 
+/* Inter (UI) and Geist Mono, variable weight (OFL, see fonts/OFL-Inter.txt, fonts/OFL-Geist.txt). */
 @font-face {
-    font-family: 'Hanken Grotesk';
+    font-family: 'Inter';
     font-weight: 100 900;
     font-display: block;
-    src: url('../fonts/HankenGrotesk-Variable.woff2') format('woff2');
+    src: url('../fonts/Inter-latin.woff2') format('woff2');
     unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
-
 @font-face {
-    font-family: 'Hanken Grotesk';
+    font-family: 'Inter';
     font-weight: 100 900;
     font-display: block;
-    src: url('../fonts/HankenGrotesk-Variable-ext.woff2') format('woff2');
-    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+    src: url('../fonts/Inter-latin-ext.woff2') format('woff2');
+    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+    font-family: 'Inter';
+    font-weight: 100 900;
+    font-display: block;
+    src: url('../fonts/Inter-cyrillic.woff2') format('woff2');
+    unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+    font-family: 'Inter';
+    font-weight: 100 900;
+    font-display: block;
+    src: url('../fonts/Inter-cyrillic-ext.woff2') format('woff2');
+    unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+    font-family: 'Geist Mono';
+    font-weight: 100 900;
+    font-display: block;
+    src: url('../fonts/GeistMono-latin.woff2') format('woff2');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+    font-family: 'Geist Mono';
+    font-weight: 100 900;
+    font-display: block;
+    src: url('../fonts/GeistMono-latin-ext.woff2') format('woff2');
+    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+    font-family: 'Geist Mono';
+    font-weight: 100 900;
+    font-display: block;
+    src: url('../fonts/GeistMono-cyrillic.woff2') format('woff2');
+    unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
 }
 
 /*******************************************************************************
@@ -112,6 +156,13 @@ body, button, input, select, textarea {
 body {
     background-color: var(--basalt-0);
     font-feature-settings: 'tnum' 0;
+}
+
+/* The window itself never scrolls; panels that need it scroll on their own. */
+html,
+body {
+    height: 100%;
+    overflow: hidden;
 }
 
 ::selection {
@@ -151,17 +202,15 @@ select:focus-visible,
     justify-content: center;
     gap: 10px;
     border: none;
-    border-radius: var(--radius-m);
-    background:
-        linear-gradient(118deg, rgba(255, 255, 255, 0.34) 0%, rgba(255, 255, 255, 0.08) 45%, rgba(0, 0, 0, 0) 45.5%, rgba(0, 0, 0, 0.14) 100%),
-        linear-gradient(180deg, var(--amethyst-300) 0%, var(--amethyst-500) 55%, var(--amethyst-600) 100%);
+    border-radius: var(--radius-pill);
+    background: var(--accent);
     color: var(--accent-ink);
     font-family: var(--font-ui);
-    font-weight: 750;
+    font-weight: 700;
     letter-spacing: 0.06em;
     text-transform: uppercase;
     text-shadow: none;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), inset 0 -1px 0 rgba(0, 0, 0, 0.18), 0 10px 24px -10px rgba(125, 79, 191, 0.75);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
     cursor: pointer;
     transition: transform 180ms var(--ease-out), filter 180ms var(--ease-out), box-shadow 180ms var(--ease-out);
 }
@@ -172,9 +221,8 @@ select:focus-visible,
 #serverSelectConfirm:hover,
 #accountSelectConfirm:hover,
 #settingsNavDone:hover {
-    filter: brightness(1.08);
+    filter: brightness(1.07);
     transform: translateY(-1px);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), inset 0 -1px 0 rgba(0, 0, 0, 0.18), 0 14px 30px -10px rgba(125, 79, 191, 0.9);
 }
 .crystalButton:active,
 #launch_button:active,
@@ -207,7 +255,7 @@ select:focus-visible,
 #loginOptionCancelButton {
     background: none;
     border: none;
-    border-radius: var(--radius-s);
+    border-radius: var(--radius-pill);
     padding: 8px 14px;
     color: var(--text-2);
     font-family: var(--font-ui);
@@ -269,9 +317,9 @@ select:focus-visible,
     z-index: 100;
     display: flex;
     flex-direction: column;
-    background-color: rgba(7, 6, 10, 0.42) !important;
+    background-color: rgba(2, 26, 48, 0.42) !important;
     backdrop-filter: blur(12px);
-    border-bottom: 1px solid rgba(236, 226, 255, 0.06);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     transition: background-color 400ms ease;
     -webkit-user-select: none;
 }
@@ -359,11 +407,11 @@ select:focus-visible,
 }
 .frameButton:hover,
 .frameButton:focus {
-    background: rgba(236, 226, 255, 0.1);
+    background: rgba(255, 255, 255, 0.1);
     opacity: 1;
 }
 .frameButton:active {
-    background: rgba(236, 226, 255, 0.16);
+    background: rgba(255, 255, 255, 0.16);
 }
 .frameButton:focus {
     outline: 0px;
@@ -440,7 +488,7 @@ select:focus-visible,
     width: 100%;
     box-sizing: border-box;
     padding-left: 56px;
-    background: linear-gradient(90deg, rgba(7, 6, 10, 0.72) 0%, rgba(7, 6, 10, 0.35) 55%, rgba(7, 6, 10, 0) 100%);
+    background: linear-gradient(90deg, rgba(2, 26, 48, 0.72) 0%, rgba(2, 26, 48, 0.35) 55%, rgba(2, 26, 48, 0) 100%);
 }
 
 #welcomeContent {
@@ -450,7 +498,7 @@ select:focus-visible,
     width: 400px;
     box-sizing: border-box;
     padding: 32px 32px 28px;
-    border-radius: var(--radius-l);
+    border-radius: var(--radius-panel);
     background: var(--glass);
     backdrop-filter: var(--glass-blur);
     border: 1px solid var(--line);
@@ -462,14 +510,14 @@ select:focus-visible,
     height: 56px;
     width: 56px;
     margin-bottom: 22px;
-    border-radius: 14px;
+    border-radius: 50%;
 }
 
 #welcomeHeader {
-    font-weight: 750;
     font-size: 26px;
+    font-weight: var(--display-weight);
+    letter-spacing: var(--display-tracking);
     line-height: 1.15;
-    letter-spacing: -0.02em;
     color: var(--text-1);
     margin-bottom: 12px;
 }
@@ -556,7 +604,7 @@ select:focus-visible,
     height: 100%;
     width: 100%;
     transition: filter 0.25s ease;
-    background: rgba(7, 6, 10, 0.5);
+    background: rgba(2, 26, 48, 0.5);
 }
 
 /* Login cancel button styles. */
@@ -1053,7 +1101,7 @@ select:focus-visible,
     height: 100%;
     width: 100%;
     transition: filter 0.25s ease;
-    background: rgba(7, 6, 10, 0.5);
+    background: rgba(2, 26, 48, 0.5);
 }
 
 #waitingContent {
@@ -1133,7 +1181,7 @@ select:focus-visible,
     height: 100%;
     width: 100%;
     transition: filter 0.25s ease;
-    background: rgba(7, 6, 10, 0.5);
+    background: rgba(2, 26, 48, 0.5);
 }
 
 #loginOptionsContent {
@@ -1141,7 +1189,7 @@ select:focus-visible,
     width: 340px;
     box-sizing: border-box;
     padding: 28px;
-    border-radius: var(--radius-l);
+    border-radius: var(--radius-panel);
     background: var(--glass);
     backdrop-filter: var(--glass-blur);
     border: 1px solid var(--line);
@@ -1157,8 +1205,8 @@ select:focus-visible,
 .loginOptionsMainContent > h2 {
     margin: 0px 0px 20px;
     font-size: 20px;
-    font-weight: 700;
-    letter-spacing: -0.01em;
+    font-weight: var(--display-weight);
+    letter-spacing: var(--display-tracking);
 }
 
 .loginOptionActions {
@@ -1174,7 +1222,7 @@ select:focus-visible,
 .loginOptionButton {
     background: var(--glass-sunk);
     border: 1px solid var(--line);
-    border-radius: var(--radius-m);
+    border-radius: var(--radius-pill);
     height: 52px;
     width: 100%;
     text-align: left;
@@ -1197,6 +1245,93 @@ select:focus-visible,
     background: var(--accent-soft);
 }
 
+/* "or" between the account logins and playing offline. */
+.loginOptionDivider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 2px 0px;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-3);
+}
+.loginOptionDivider:before,
+.loginOptionDivider:after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--line);
+}
+#loginOptionOffline svg {
+    flex-shrink: 0;
+}
+
+/* Offline name form, revealed under its button. */
+#loginOptionOfflinePanel {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px 2px 2px;
+}
+#loginOptionOfflinePanel label {
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-2);
+}
+#loginOptionOfflineRow {
+    display: flex;
+    gap: 8px;
+}
+#loginOptionOfflineName {
+    flex: 1;
+    min-width: 0;
+    height: 40px;
+    box-sizing: border-box;
+    padding: 0px 16px;
+    border-radius: var(--radius-pill);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text-1);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    outline: none;
+    transition: border-color 160ms ease;
+}
+#loginOptionOfflineName:focus {
+    border-color: var(--accent-line);
+}
+#loginOptionOfflineName[invalid] {
+    border-color: var(--danger);
+}
+#loginOptionOfflineSubmit {
+    height: 40px;
+    padding: 0px 16px;
+    border-radius: var(--radius-pill);
+    border: 0px;
+    background: var(--accent);
+    color: var(--accent-ink);
+    font-family: var(--font-ui);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: filter 160ms ease, opacity 160ms ease;
+}
+#loginOptionOfflineSubmit:hover {
+    filter: brightness(1.07);
+}
+#loginOptionOfflineSubmit:disabled {
+    opacity: 0.45;
+    cursor: default;
+    filter: none;
+}
+#loginOptionOfflineHint {
+    font-size: 11.5px;
+    line-height: 1.45;
+    color: var(--text-3);
+}
+
 #loginOptionCancelContainer {
     display: flex;
     justify-content: center;
@@ -1206,6 +1341,173 @@ select:focus-visible,
 #loginOptionCancelButton:disabled {
     color: var(--text-3);
     pointer-events: none;
+}
+
+#loginOptionProxyContainer {
+    display: flex;
+    flex-direction: column;
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid var(--line);
+}
+
+#loginOptionProxyToggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    align-self: flex-start;
+    padding: 6px 8px;
+    margin-left: -8px;
+    font-size: 12px;
+}
+
+#loginOptionProxyState {
+    color: var(--ok);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+}
+
+#loginOptionProxyPanel {
+    padding-top: 10px;
+}
+
+
+/*******************************************************************************
+ *                                                                             *
+ * Proxy Form (proxyForm.ejs)                                                  *
+ *                                                                             *
+ ******************************************************************************/
+
+.proxyForm {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.proxyFormToggleRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+.proxyFormToggleText {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.proxyFormTitle {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-1);
+}
+.proxyFormDesc {
+    font-size: 11px;
+    line-height: 1.4;
+    color: var(--text-3);
+}
+
+.proxyFormFields {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.proxyFormRow {
+    display: flex;
+    gap: 8px;
+}
+.proxyFormGameRow {
+    margin-top: 4px;
+}
+.proxyFormGameRow:has(input:disabled) {
+    opacity: 0.5;
+}
+
+.proxyForm input,
+.proxyForm select,
+#settingsContainer .proxyForm input[type=text] {
+    min-width: 0;
+    flex: 1 1 0;
+    box-sizing: border-box;
+    height: 32px;
+    color: var(--text-1);
+    background: var(--glass-sunk);
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--line-strong);
+    font-family: var(--font-ui);
+    font-size: 12px;
+    padding: 0px 14px;
+    transition: border-color 160ms var(--ease-out), background 160ms var(--ease-out), opacity 160ms var(--ease-out);
+}
+.proxyForm input:focus,
+.proxyForm select:focus,
+#settingsContainer .proxyForm input[type=text]:focus {
+    outline: none;
+    border-color: var(--accent-line);
+    background: rgba(6, 5, 9, 0.55);
+}
+.proxyForm input:disabled,
+.proxyForm select:disabled {
+    opacity: 0.45;
+}
+.proxyForm select {
+    cursor: pointer;
+}
+.proxyForm select option {
+    background: var(--basalt-2);
+}
+.proxyForm .proxyFormType {
+    flex: 0 0 84px;
+}
+.proxyForm .proxyFormHost {
+    flex: 1 1 auto;
+}
+#settingsContainer .proxyForm .proxyFormPort,
+.proxyForm .proxyFormPort {
+    flex: 0 0 72px;
+    font-variant-numeric: tabular-nums;
+}
+
+.proxyFormActions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.proxyFormStatus {
+    flex: 1 1 auto;
+    font-size: 11px;
+    line-height: 1.4;
+    color: var(--text-3);
+}
+.proxyFormStatus[state=ok] {
+    color: var(--ok);
+}
+.proxyFormStatus[state=warn] {
+    color: var(--warn);
+}
+.proxyFormStatus[state=error] {
+    color: var(--danger);
+}
+.proxyForm .proxyFormSave {
+    flex: 0 0 auto;
+    height: 30px;
+    padding: 0px 14px;
+    border-radius: var(--radius-pill);
+    font-size: 11px;
+}
+.proxyForm .proxyFormTest {
+    flex: 0 0 auto;
+    padding: 6px 10px;
+    font-size: 12px;
+}
+.proxyForm .proxyFormTest:disabled {
+    color: var(--text-3);
+    pointer-events: none;
+}
+
+.settingsProxyContainer {
+    width: 88%;
+    padding: 16px 0px;
+    border-bottom: 1px solid var(--line);
 }
 
 
@@ -1220,8 +1522,9 @@ select:focus-visible,
     position: relative;
     height: 100%;
     display: flex;
-    background-color: rgba(7, 6, 10, 0.62);
-    backdrop-filter: blur(24px) saturate(140%);
+    background-color: rgba(2, 26, 48, 0.62);
+    /* No backdrop-filter: without GPU acceleration it re-blurs the whole
+       window on every scrolled frame. The wallpaper shows a blurred copy instead (.wpBlur). */
     transition: background-color 0.25s cubic-bezier(.02, .01, .47, 1);
 }
 
@@ -1246,7 +1549,7 @@ select:focus-visible,
     width: 210px;
     flex: 0 0 210px;
     box-sizing: border-box;
-    background: rgba(236, 226, 255, 0.025);
+    background: rgba(255, 255, 255, 0.025);
     border-right: 1px solid var(--line);
 }
 
@@ -1266,8 +1569,8 @@ select:focus-visible,
 }
 #settingsNavHeaderText {
     font-size: 20px;
-    font-weight: 700;
-    letter-spacing: -0.01em;
+    font-weight: var(--display-weight);
+    letter-spacing: var(--display-tracking);
 }
 
 /* Navigation items outer container. */
@@ -1294,7 +1597,7 @@ select:focus-visible,
     gap: 10px;
     background: none;
     border: none;
-    border-radius: var(--radius-s);
+    border-radius: var(--radius-pill);
     text-align: left;
     margin: 1px 0px;
     padding: 8px 12px;
@@ -1322,7 +1625,21 @@ select:focus-visible,
 .settingsNavItem[selected] {
     cursor: default;
     color: var(--text-1);
+    background: transparent;
+}
+/* Highlight that slides to the selected item. */
+#settingsNavPill {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    right: 0px;
+    border-radius: var(--radius-pill);
     background: var(--accent-soft);
+    pointer-events: none;
+    transition: transform 380ms cubic-bezier(0.16, 1, 0.3, 1), height 380ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+#settingsNavPill[still] {
+    transition: none;
 }
 .settingsNavItem[selected]:before {
     opacity: 1;
@@ -1357,9 +1674,12 @@ select:focus-visible,
 
 /* Right hand side of the settings container, for tabs. */
 #settingsContainerRight {
+    position: relative;
     height: 100%;
     flex: 1;
     min-width: 0;
+    /* The Appearance drawer waits off to the right. */
+    overflow: hidden;
     box-sizing: border-box;
     padding-left: 36px;
 }
@@ -1390,8 +1710,8 @@ select:focus-visible,
 }
 .settingsTabHeaderText {
     font-size: 22px;
-    font-weight: 700;
-    letter-spacing: -0.015em;
+    font-weight: var(--display-weight);
+    letter-spacing: var(--display-tracking);
 }
 .settingsTabHeaderDesc {
     font-size: 13px;
@@ -1400,13 +1720,17 @@ select:focus-visible,
 
 /* Selected server content container */
 .settingsSelServContainer {
+    box-sizing: border-box;
     background: var(--glass-sunk);
     border: 1px solid var(--line);
     width: 88%;
-    border-radius: var(--radius-m);
+    border-radius: var(--radius-l);
     display: flex;
+    align-items: center;
     justify-content: space-between;
-    margin: 15px 0px;
+    gap: 16px;
+    padding: 14px 16px;
+    margin: 0px 0px 8px;
 }
 
 /* Div which will be populated with the selected server's information. */
@@ -1414,27 +1738,27 @@ select:focus-visible,
     display: flex;
     align-items: center;
     justify-content: flex-start;
-    padding: 8px 4px;
+    gap: 14px;
+    min-width: 0;
 }
 
 /* Wrapper container for the switch server button. */
 .settingsSwitchServerContainer {
+    flex: none;
     display: flex;
     align-items: center;
-    padding: 15px;
 }
 
 /* Button to switch server configurations on the mods tab. */
 .settingsSwitchServerButton {
-    opacity: 0;
     border: 1px solid var(--line-strong);
     color: var(--text-1);
     background: var(--glass-hover);
     font-size: 12px;
     font-weight: 600;
     padding: 6px 12px;
-    border-radius: var(--radius-s);
-    transition: opacity 160ms var(--ease-out), background 160ms var(--ease-out), border-color 160ms var(--ease-out);
+    border-radius: var(--radius-pill);
+    transition: background 160ms var(--ease-out), border-color 160ms var(--ease-out);
     cursor: pointer;
     outline: none;
 }
@@ -1445,10 +1769,6 @@ select:focus-visible,
 }
 .settingsSwitchServerButton:active {
     background: var(--glass-sunk);
-}
-.settingsSelServContainer:hover .settingsSwitchServerButton,
-.settingsSwitchServerButton:focus {
-    opacity: 1;
 }
 
 /* Remove spin button from number inputs. */
@@ -1461,11 +1781,11 @@ select:focus-visible,
 #settingsContainer input[type=text] {
     color: var(--text-1);
     background: var(--glass-sunk);
-    border-radius: var(--radius-s);
+    border-radius: var(--radius-pill);
     border: 1px solid var(--line-strong);
     font-family: var(--font-ui);
     font-size: 13px;
-    padding: 6px 10px;
+    padding: 6px 14px;
     transition: border-color 160ms var(--ease-out), background 160ms var(--ease-out);
 }
 #settingsContainer input[type=number]:focus,
@@ -1531,7 +1851,7 @@ select:focus-visible,
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(236, 226, 255, 0.12);
+    background-color: rgba(255, 255, 255, 0.12);
     transition: background-color 200ms var(--ease-out), border-color 200ms var(--ease-out);
     border-radius: 50px;
     border: 1px solid var(--line-strong);
@@ -1562,7 +1882,7 @@ input:checked + .toggleSwitchSlider:before {
     width: 40%;
     height: 6px;
     margin: 15px 0px;
-    background: rgba(236, 226, 255, 0.12);
+    background: rgba(255, 255, 255, 0.12);
     border-radius: 6px;
     position: relative;
 }
@@ -1618,7 +1938,7 @@ input:checked + .toggleSwitchSlider:before {
     display: flex;
     align-items: center;
     background: var(--line-strong);
-    border-radius: 3px 0px 0px 3px;
+    border-radius: 999px 0px 0px 999px;
     padding: 5px;
     transition: 0.25s ease;
 }
@@ -1640,7 +1960,7 @@ input:checked + .toggleSwitchSlider:before {
 /* File selection button. */
 .settingsFileSelButton {
     border: 0px;
-    border-radius: 0px 3px 3px 0px;
+    border-radius: 0px 999px 999px 0px;
     font-size: 12px;
     padding: 0px 5px;
     cursor: pointer;
@@ -1730,7 +2050,7 @@ input:checked + .toggleSwitchSlider:before {
 .settingsAuthAccount {
     display: flex;
     background: var(--glass-sunk);
-    border-radius: var(--radius-s);
+    border-radius: var(--radius-card);
     border: 1px solid var(--line-strong);
 }
 
@@ -1818,7 +2138,7 @@ input:checked + .toggleSwitchSlider:before {
     color: rgb(241, 55, 55);
     background: none;
     font-size: 12px;
-    border-radius: var(--radius-s);
+    border-radius: var(--radius-pill);
     font-family: var(--font-ui);
     font-weight: 600;
     transition: 0.25s ease;
@@ -1871,43 +2191,57 @@ input:checked + .toggleSwitchSlider:before {
 * Settings View (Mods Tab)
 * * */
 
-/* Main content container for the mod elements. */
+/* Main content container for the mod elements; as wide as the other tabs' rows. */
 #settingsModsContainer {
-    width: 75%;
+    width: 88%;
 }
 
-/* Mod sub-container header text. */
+/* Section titles, like the Appearance tab's. */
 .settingsModsHeader {
-    padding-bottom: 10px;
-    border-bottom: 1px solid var(--line);
-    margin-bottom: 10px;
+    margin: 26px 0px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-3);
 }
 
-/* Mod elements sub-containers. */
-#settingsReqModsContainer,
-#settingsOptModsContainer,
-#settingsDropinModsContainer {
-    padding-bottom: 25px;
-}
-
-/* Main content containers for mod elements. */
+/* Lists: one bordered card, rows split by hairlines. */
 #settingsReqModsContent,
 #settingsOptModsContent,
-#settingsDropinModsContent {
-    font-size: 12px;
+#settingsDropinModsContent,
+.settingsPackList {
+    display: flex;
+    flex-direction: column;
+    border-radius: var(--radius-l);
+    border: 1px solid var(--line);
     background: var(--glass-sunk);
-    border-radius: var(--radius-s);
+    overflow: hidden;
     color: var(--text-1);
 }
+#settingsReqModsContent:empty,
+#settingsOptModsContent:empty,
+#settingsDropinModsContent:empty {
+    display: none;
+}
+/* An empty section only shows its title when nothing explains it. */
+#settingsOptModsContainer:has(#settingsOptModsContent:empty),
+#settingsReqModsContainer:has(#settingsReqModsContent:empty) {
+    display: none;
+}
 
-/* Mod elements. */
+/* Mod rows. */
 .settingsMod,
 .settingsDropinMod {
-    padding: 10px;
+    padding: 0px 14px 0px 16px;
+}
+.settingsMod + .settingsMod,
+.settingsDropinMod + .settingsDropinMod {
+    border-top: 1px solid var(--line);
 }
 .settingsSubMod {
-    padding: 10px 0px 10px 15px;
-    margin-left: 20px;
+    margin-left: 18px;
+    padding-left: 16px;
     border-left: 1px solid var(--line);
 }
 
@@ -1916,6 +2250,8 @@ input:checked + .toggleSwitchSlider:before {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 16px;
+    min-height: 56px;
     transition: opacity 0.25s ease;
 }
 
@@ -1923,39 +2259,59 @@ input:checked + .toggleSwitchSlider:before {
 .settingsModMainWrapper {
     display: flex;
     align-items: center;
+    gap: 12px;
+    min-width: 0;
 }
 
 /* Mod enabled/disabled status. */
 .settingsModStatus {
+    flex: none;
     width: 7px;
     height: 7px;
     border-radius: 50%;
-    background-color: #c32625;
-    margin-right: 15px;
-    transition: 0.25s ease;
+    background-color: var(--danger);
+    transition: background-color 0.25s ease;
+}
+
+/* Mod, shaderpack and resource pack icon, sized like the mods dialog. */
+.settingsBaseMod:not([enabled]) > .settingsModContent .settingsModIcon {
+    opacity: 0.5;
 }
 
 /* Mod details container. */
 .settingsModDetails {
     display: flex;
     flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+.settingsModName {
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* The version of the mod. */
 .settingsModVersion {
-    color: var(--text-3);
-    font-size: 10px;
+    color: var(--text-2);
+    font-size: 12.5px;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* Disabled toggleswitch for required mods. */
 .toggleSwitch[reqmod] {
-    filter: grayscale(49%) brightness(60%);
+    opacity: 0.45;
     pointer-events: none;
 }
 
 /* Set the status color of an enabled mod. */
 .settingsBaseMod[enabled] > .settingsModContent > .settingsModMainWrapper > .settingsModStatus {
-    background-color: rgb(165, 195, 37);
+    background-color: var(--ok);
 }
 
 /* Add opacity to submods of a disabled mod. */
@@ -1963,98 +2319,482 @@ input:checked + .toggleSwitchSlider:before {
     opacity: 0.5;
 }
 
-/* Curve the left border for submods. */
-.settingsSubModContainer > .settingsSubMod:first-child {
-    border-top-left-radius: 10px;
-}
-.settingsSubModContainer > .settingsSubMod:last-child {
-    border-bottom-left-radius: 10px;
-}
-.settingsSubModContainer > .settingsSubMod:only-child {
-    border-top-left-radius: 10px;
-    border-bottom-left-radius: 10px;
-}
-
 /* Wrapper container for all submods. */
 .settingsSubModContainer {
-    margin-top: 10px;
+    padding-bottom: 8px;
 }
 
-/* Button to open the mods folder for drop-in mods. */
-#settingsDropinFileSystemButton {
-    background: var(--glass-sunk);
-    border: 1px solid var(--line-strong);
-    border-radius: var(--radius-s);
-    height: 50px;
+/* Buttons to open the drop-in mods, shaderpacks and resource packs folders.
+   They also take files dropped on them. */
+.settingsPackAddButton {
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    gap: 10px;
     width: 100%;
+    height: 52px;
+    padding: 0px 18px;
+    margin-bottom: 10px;
+    border: 1px dashed var(--line-strong);
+    border-radius: var(--radius-l);
+    background: transparent;
+    color: var(--text-1);
+    font-family: var(--font-ui);
+    font-size: 14px;
+    font-weight: 600;
     text-align: left;
-    padding: 0px 50px;
     cursor: pointer;
     outline: none;
-    transition: 0.25s ease;
-    margin-bottom: 10px;
+    transition: background 160ms ease, border-color 160ms ease;
 }
-#settingsDropinFileSystemButton:hover,
-#settingsDropinFileSystemButton:focus,
-#settingsDropinFileSystemButton[drag] {
-    background: rgba(54, 54, 54, 0.25);
+.settingsPackAddButton:before {
+    content: '+';
+    flex: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--accent-soft);
+    color: var(--accent-hi);
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 1;
 }
-/* Refresh instructions on the file system button. */
-#settingsDropinRefreshNote {
-    font-size: 10px;
+.settingsPackAddButton:hover,
+.settingsPackAddButton:focus-visible,
+.settingsPackAddButton[drag] {
+    background: var(--glass-hover);
+    border-color: var(--accent-line);
+}
+/* Refresh instructions on the file system buttons, pushed to the right. */
+#settingsDropinRefreshNote,
+.settingsPackAddNote {
+    margin-left: auto;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-3);
     pointer-events: none;
 }
 
 /* Button to remove drop-in mods. */
 .settingsDropinRemoveButton {
+    align-self: flex-start;
     background: none;
     border: none;
-    font-size: 10px;
-    text-align: left;
     padding: 0px;
-    color: #c32625;
-    font-weight: bold;
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--danger);
     cursor: pointer;
     outline: none;
-    transition: 0.25s ease;
+    transition: opacity 160ms ease;
 }
 .settingsDropinRemoveButton:hover,
-.settingsDropinRemoveButton:focus {
+.settingsDropinRemoveButton:focus-visible {
+    text-decoration: underline;
+    text-underline-offset: 2px;
 }
 .settingsDropinRemoveButton:active {
-    color: #9b1f1f;
+    opacity: 0.7;
 }
 
-/* Shaderpack settings description. */
-#settingsShaderpackDesc {
-    font-size: 10px;
-    margin: 10px 0px;
-    color: lightgrey;
-    font-weight: bold;
-    width: 89%;
+/* Shaderpack and resource pack descriptions. */
+.settingsPackDesc {
+    font-size: 12.5px;
+    line-height: 1.45;
+    margin: -4px 0px 10px;
+    color: var(--text-2);
 }
 
-/* Wrapper container. */
-#settingsShaderpackWrapper {
+/* Shown in a pack list with nothing in it. */
+.settingsPackList[empty] {
+    border-style: dashed;
+    background: none;
+}
+.settingsPackEmpty {
+    padding: 14px 16px;
+    font-size: 12.5px;
+    color: var(--text-3);
+}
+
+/* * *
+* Settings View (Modpacks Tab)
+* * */
+
+#mpContainer {
+    width: 88%;
+}
+#mpContainer [hidden] {
+    display: none !important;
+}
+
+/* Install progress, pinned above the lists while it matters. */
+#mpTask {
     display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 14px 16px;
+    margin-bottom: 8px;
+    border-radius: var(--radius-l);
+    border: 1px solid var(--accent-line);
+    background: var(--accent-soft);
+}
+#mpTask[state="error"] {
+    border-color: rgba(255, 154, 154, 0.45);
+    background: var(--danger-soft);
+}
+#mpTask[state="warn"] {
+    border-color: rgba(255, 210, 122, 0.45);
+    background: rgba(255, 210, 122, 0.1);
+}
+.mpTaskHead,
+.mpTaskFoot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+#mpTaskTitle {
+    font-size: 14px;
+    font-weight: 600;
+}
+#mpTaskPercent {
+    font-size: 12.5px;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-2);
+}
+.mpTaskBar {
+    position: relative;
+    height: 4px;
+    border-radius: 2px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.1);
+}
+#mpTaskFill {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    bottom: 0px;
+    border-radius: 2px;
+    background: var(--accent);
+    transition: width 200ms ease;
+}
+#mpTask[indeterminate] #mpTaskFill {
+    width: 30% !important;
+    animation: mp-indeterminate 1.2s ease-in-out infinite;
+}
+#mpTask[state] .mpTaskBar {
+    display: none;
+}
+@keyframes mp-indeterminate {
+    from { left: -30%; }
+    to { left: 100%; }
+}
+#mpTaskDetail {
+    font-size: 12.5px;
+    line-height: 1.45;
+    color: var(--text-2);
 }
 
-/* Button to add shaderpacks. */
-#settingsShaderpackButton {
-    background: var(--glass-sunk);
-    border: 1px solid var(--line-strong);
-    border-radius: var(--radius-s);
-    cursor: pointer;
-    outline: none;
-    transition: 0.25s ease;
-    font-size: 14px;
-    padding: 6px 11px;
-    margin-right: 5px;
+/* Add: import card and the version form, side by side. */
+#mpAddGrid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr);
+    gap: 10px;
 }
-#settingsShaderpackButton:hover,
-#settingsShaderpackButton:focus,
-#settingsShaderpackButton[drag] {
-    background: rgba(54, 54, 54, 0.25);
+.mpCard {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 16px;
+    border-radius: var(--radius-l);
+    border: 1px solid var(--line);
+    background: var(--glass-sunk);
+    color: var(--text-1);
+    font-family: var(--font-ui);
+    text-align: left;
+}
+.mpCardTitle {
+    font-size: 14px;
+    font-weight: 600;
+}
+.mpCardDesc {
+    font-size: 12.5px;
+    line-height: 1.45;
+    color: var(--text-2);
+}
+.mpCardDesc a {
+    color: var(--accent);
+    font-weight: 600;
+    text-decoration: none;
+}
+.mpCardDesc a:hover {
+    text-decoration: underline;
+}
+.mpImport {
+    justify-content: center;
+    border-style: dashed;
+    border-color: var(--line-strong);
+    background: transparent;
+    cursor: pointer;
+    transition: background 160ms ease, border-color 160ms ease;
+}
+.mpImport svg {
+    width: 28px;
+    height: 28px;
+    padding: 8px;
+    border-radius: 50%;
+    background: var(--accent-soft);
+    fill: none;
+    stroke: var(--accent-hi);
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+.mpImport:hover:not(:disabled),
+.mpImport:focus-visible,
+.mpImport[drag] {
+    background: var(--glass-hover);
+    border-color: var(--accent-line);
+}
+.mpImport:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+.mpFormRow {
+    width: 100%;
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+}
+.mpField {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 0;
+}
+.mpField > span {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-3);
+}
+.mpFieldGrow {
+    flex: 1;
+}
+#mpContainer input[type=text] {
+    box-sizing: border-box;
+    height: 36px;
+    width: 100%;
+}
+.mpSelect {
+    height: 36px;
+    min-width: 150px;
+    padding: 0px 34px 0px 14px;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--line-strong);
+    background: var(--glass-sunk) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7 10l5 5 5-5' fill='none' stroke='white' stroke-opacity='0.7' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 10px center / 16px;
+    color: var(--text-1);
+    font-family: var(--font-ui);
+    font-size: 13px;
+    -webkit-appearance: none;
+    appearance: none;
+    outline: none;
+    cursor: pointer;
+}
+.mpSelect:focus {
+    border-color: var(--accent-line);
+}
+.mpSelect:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+.mpSelect option {
+    background: var(--basalt-1);
+    color: var(--text-1);
+}
+
+/* Buttons: accent pill, a small and a quiet variant. */
+.mpButton {
+    flex: none;
+    height: 36px;
+    padding: 0px 18px;
+    border-radius: var(--radius-pill);
+    border: 0px;
+    background: var(--accent);
+    color: var(--accent-ink);
+    font-family: var(--font-ui);
+    font-size: 13px;
+    font-weight: 700;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background 160ms ease, opacity 160ms ease;
+}
+.mpButton:hover:not(:disabled),
+.mpButton:focus-visible {
+    background: var(--accent-hi);
+}
+.mpButton:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+.mpButtonSmall {
+    height: 30px;
+    padding: 0px 14px;
+    font-size: 12.5px;
+}
+.mpButtonQuiet {
+    display: block;
+    margin: 10px auto 0px;
+    border: 1px solid var(--line-strong);
+    background: var(--glass-hover);
+    color: var(--text-1);
+}
+.mpButtonQuiet:hover:not(:disabled),
+.mpButtonQuiet:focus-visible {
+    background: var(--accent-soft);
+    border-color: var(--accent-line);
+}
+
+/* Browse bar: source switch and search. */
+#mpBrowseBar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+#mpSearch {
+    position: relative;
+    flex: 1;
+    display: flex;
+    align-items: center;
+}
+#mpSearch svg {
+    position: absolute;
+    left: 14px;
+    width: 16px;
+    height: 16px;
+    fill: none;
+    stroke: var(--text-2);
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    pointer-events: none;
+}
+#mpContainer #mpSearchInput {
+    height: 42px;
+    padding-left: 40px;
+}
+#mpCurseForgeKey {
+    margin-bottom: 10px;
+}
+
+/* Rows of the installed and search lists. */
+.mpRow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 60px;
+    padding: 0px 10px 0px 14px;
+}
+.mpRow + .mpRow {
+    border-top: 1px solid var(--line);
+}
+.mpRow[selected] {
+    background: var(--accent-soft);
+}
+.mpTile {
+    width: 36px;
+    height: 36px;
+}
+.mpRowText {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.mpRowName {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-1);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.mpRowMeta {
+    font-size: 12.5px;
+    color: var(--text-2);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.mpRemove:hover,
+.mpRemove:focus-visible {
+    background: var(--danger-soft);
+    color: var(--danger);
+}
+.mpResult {
+    align-items: flex-start;
+    padding-top: 14px;
+    padding-bottom: 14px;
+}
+.mpResult .mpButton {
+    align-self: center;
+}
+/* Doubled class: .modIcon comes later in this file. */
+.mpResultIcon.modIcon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    font-size: 16px;
+}
+.mpResultTitle {
+    align-self: flex-start;
+    max-width: 100%;
+    text-decoration: none;
+}
+.mpResultTitle:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+.mpResultDesc {
+    font-size: 12.5px;
+    line-height: 1.45;
+    color: var(--text-2);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.mpResultMeta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 12px;
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--text-3);
+}
+.mpChip {
+    height: 20px;
+    padding: 0px 8px;
+    display: flex;
+    align-items: center;
+    border-radius: var(--radius-pill);
+    background: var(--accent-soft);
+    color: var(--accent-hi);
+    font-size: 11px;
+    font-weight: 600;
+}
+.mpChip[unsupported] {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-3);
 }
 
 /* Main select container. */
@@ -2065,7 +2805,7 @@ input:checked + .toggleSwitchSlider:before {
 
 /* Div which displays the selected option. */
 .settingsSelectSelected {
-    border-radius: var(--radius-s);
+    border-radius: var(--radius-pill);
     border-width: 1px;
     font-size: 14px;
     padding: 6px 16px;
@@ -2089,7 +2829,7 @@ input:checked + .toggleSwitchSlider:before {
     top: 7px;
 }
 .settingsSelectSelected.select-arrow-active {
-    border-radius: 3px 3px 0px 0px;
+    border-radius: 18px 18px 0px 0px;
 }
 
 /* Options content container. */
@@ -2103,7 +2843,7 @@ input:checked + .toggleSwitchSlider:before {
     overflow-y: scroll;
     border: 1px solid var(--line-strong);
     border-top: none;
-    border-radius: 0px 0px 3px 3px;
+    border-radius: 0px 0px 18px 18px;
 }
 /* Hide the items when the select box is closed. */
 .settingsSelectOptions[hidden] {
@@ -2276,7 +3016,7 @@ input:checked + .toggleSwitchSlider:before {
 
 /* Text field to input the JVM options. */
 #settingsJVMOptsVal {
-    border-radius: 0px 3px 3px 0px !important;
+    border-radius: 0px 999px 999px 0px !important;
     width: 100%;
     padding: 5px 10px;
     font-size: 12px;
@@ -2313,7 +3053,7 @@ input:checked + .toggleSwitchSlider:before {
     flex-direction: column;
     background: var(--glass-sunk);
     border: 1px solid var(--line-strong);
-    border-radius: var(--radius-s);
+    border-radius: var(--radius-card);
     width: 75%;
     margin-bottom: 20px;
 }
@@ -2339,6 +3079,8 @@ input:checked + .toggleSwitchSlider:before {
 }
 #settingsAboutTitle {
     font-size: 23px;
+    font-weight: var(--display-weight);
+    letter-spacing: var(--display-tracking);
     padding-left: 10px;
 }
 
@@ -2414,7 +3156,7 @@ input:checked + .toggleSwitchSlider:before {
     flex-direction: column;
     background: var(--glass-sunk);
     border: 1px solid var(--line-strong);
-    border-radius: var(--radius-s);
+    border-radius: var(--radius-card);
     width: 75%;
     margin-bottom: 20px;
 }
@@ -2506,694 +3248,651 @@ input:checked + .toggleSwitchSlider:before {
     padding: 0px;
 }
 
-/* * *
-* Settings View (Updates Tab)
-* * */
-
-/* Main about content container. */
-#settingsUpdateStatusContainer {
+/* Update status, on the right of the version. */
+#settingsUpdateStatus {
+    margin-left: auto;
     display: flex;
     flex-direction: column;
-    background: var(--glass-sunk);
-    border: 1px solid var(--line-strong);
-    border-radius: var(--radius-s);
-    width: 75%;
-    margin-bottom: 20px;
-}
-
-/* Update content. */
-#settingsUpdateStatusContent {
-    display: flex;
-    flex-direction: column;
-    padding: 15px;
-}
-
-/* Update header elements. */
-#settingsUpdateStatusHeadline {
-    display: flex;
-    align-items: center;
-    padding-bottom: 5px;
-    border-bottom: 1px solid var(--line-strong);
+    align-items: flex-end;
+    gap: 6px;
+    padding-right: 4px;
+    text-align: right;
 }
 #settingsUpdateTitle {
-    font-size: 16px;
-    padding-left: 10px;
-    font-weight: bold;
-}
-
-/* Update version container. */
-#settingsUpdateVersion {
-    display: flex;
-    align-items: center;
-    padding: 10px 0px;
-    border-bottom: 1px solid var(--line-strong);
-}
-
-/* Checkmark next to the version information. */
-#settingsUpdateVersionCheck {
-    border-radius: 50%;
-    background: var(--ok);
-    text-align: center;
-    font-weight: bold;
-    margin: 11px 12px;
-    color: var(--text-1);
-    height: 15px;
-    width: 15px;
     font-size: 12px;
-    line-height: 17px;
+    color: var(--text-2);
 }
-
-/* Update version details container. */
-#settingsUpdateVersionDetails {
-    margin-left: 10px;
-}
-
-/* Release type text. */
-#settingsUpdateVersionTitle {
-    font-size: 12px;
-    font-family: var(--font-ui);
+#settingsUpdateTitle[available] {
+    color: var(--accent);
     font-weight: 600;
-    color: var(--ok);
-    font-weight: bold;
 }
 
-/* Current version text. */
-#settingsUpdateVersionLine {
-    font-size: 10px;
-    color: var(--text-3);
-    font-weight: bold;
-}
-
-/* Update action container. */
-#settingsUpdateActionContainer {
-    padding-top: 10px;
-    font-size: 14px;
-    font-weight: bold;
-}
-
-/* Update action button styles. */
+/* Check for updates / install / download. */
 #settingsUpdateActionButton {
     display: flex;
     flex-direction: column;
-    padding-left: 10px;
-    background: none;
-    border: none;
-    font-size: 14px;
-    font-weight: bold;
+    align-items: flex-end;
+    border: 1px solid var(--line-strong);
+    color: var(--text-1);
+    background: var(--glass-hover);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 14px;
+    border-radius: var(--radius-pill);
     cursor: pointer;
     outline: none;
-    text-align: left;
-    transition: 0.25s ease;
+    transition: background 160ms var(--ease-out), border-color 160ms var(--ease-out), opacity 160ms var(--ease-out);
 }
 #settingsUpdateActionButton:hover,
-#settingsUpdateActionButton:focus {
+#settingsUpdateActionButton:focus-visible {
+    background: var(--accent-soft);
+    border-color: var(--accent-line);
 }
 #settingsUpdateActionButton:active {
-    color: var(--text-3);
+    background: var(--glass-sunk);
 }
 #settingsUpdateActionButton:disabled {
     pointer-events: none;
+    opacity: 0.6;
 }
 
 
 /*******************************************************************************
  *                                                                             *
- * Landing View (Structural Styles)                                            *
- *                                                                             *
- * The geode stays visible; everything sits on glass. Upper: brand (top        *
- * left), selected-server hero (lower left), account + rail (right). Lower:    *
- * a dock of three glass pods -- status, news, server + play.                  *
+ * Settings View (Appearance tab)                                              *
  *                                                                             *
  ******************************************************************************/
 
-/* Main content container. */
-#landingContainer {
-    height: 100%;
-    position: relative;
-    transition: background 600ms var(--ease-out);
-    overflow-y: hidden;
-}
-
-/* Upper content container. */
-#landingContainer > #upper {
-    position: relative;
-    transition: top 900ms var(--ease-out);
-    top: 0px;
-    height: calc(100% - 96px);
-    box-sizing: border-box;
-    padding: 24px 24px 18px 32px;
-    display: grid;
-    grid-template-columns: 1fr auto;
-    grid-template-rows: auto 1fr;
-}
-#landingContainer > #upper > #left {
-    grid-column: 1;
-    grid-row: 1;
+/* Segmented control. */
+.apSegment {
+    flex: none;
     display: flex;
-    align-items: center;
+    gap: 2px;
+    padding: 3px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.08);
 }
-#landingContainer > #upper > #content {
-    grid-column: 1;
-    grid-row: 2;
-    display: flex;
-    align-items: flex-end;
-    min-width: 0;
+.apSegment button {
+    height: 34px;
+    padding: 0px 14px;
+    border-radius: 9px;
+    border: 0px;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.72);
+    font-family: var(--font-ui);
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background 160ms ease, color 160ms ease;
 }
-#landingContainer > #upper > #right {
-    grid-column: 2;
-    grid-row: 1 / span 2;
-    display: flex;
+.apSegment button:hover {
+    color: var(--text-1);
+    background: rgba(255, 255, 255, 0.08);
 }
-
-/* Lower content container: the dock. */
-#landingContainer > #lower {
-    height: 96px;
-    box-sizing: border-box;
-    padding: 0px 24px 24px 32px;
-    display: flex;
-    align-items: flex-end;
-    gap: 12px;
+.apSegment button[selected] {
+    color: var(--text-1);
+    font-weight: 600;
+    background: rgba(255, 255, 255, 0.16);
 }
-#landingContainer > #lower > #left,
-#landingContainer > #lower > #center,
-#landingContainer > #lower > #right {
-    position: relative;
-    transition: top 900ms var(--ease-out);
-    top: 0px;
-    display: flex;
-    align-items: flex-end;
-}
-#landingContainer > #lower > #left {
-    flex: 0 0 auto;
-}
-#landingContainer > #lower > #center {
-    flex: 1 1 auto;
-    justify-content: center;
-}
-#landingContainer > #lower > #right {
-    flex: 0 0 auto;
-}
-#landingContainer > #lower > #center #content {
-    position: relative;
-    z-index: 500;
-    transition: top 900ms var(--ease-out);
-    top: 0px;
-}
-
-/* Every dock pod is a glass slab of the same height. */
-#landingContainer > #lower .bot_wrapper {
-    height: 64px;
-    box-sizing: border-box;
-    display: flex;
-    align-items: center;
-    border-radius: var(--radius-l);
-    background: var(--glass);
-    backdrop-filter: var(--glass-blur);
-    border: 1px solid var(--line);
-    box-shadow: var(--sheen), var(--shadow-float);
-}
-#landingContainer > #lower > #left .bot_wrapper {
-    padding: 0px 20px;
-}
-#landingContainer > #lower > #left #content {
-    display: flex;
-    align-items: center;
-}
-#landingContainer > #lower > #center .bot_wrapper {
+.apLink {
+    padding: 0px;
+    border: 0px;
     background: none;
-    backdrop-filter: none;
-    border-color: transparent;
-    box-shadow: none;
+    color: var(--accent);
+    font-family: var(--font-ui);
+    font-size: 12.5px;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
 }
-#landingContainer > #lower > #right .bot_wrapper {
-    padding: 0px 8px 0px 6px;
-    min-width: 330px;
+.apLink:hover {
+    color: var(--accent-hi);
 }
-
-/*******************************************************************************
- *                                                                             *
- * Landing View (Brand + Server Hero)                                          *
- *                                                                             *
- ******************************************************************************/
-
-#brandBlock {
-    display: flex;
-    align-items: center;
-    gap: 12px;
+.apLink[hidden] {
+    display: none;
 }
 
-#brandText {
+/* Settings on the left, a live preview on the right. */
+.apLayout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(220px, 34%);
+    align-items: start;
+    gap: 36px;
+    padding-right: 36px;
+}
+.apMain {
     display: flex;
     flex-direction: column;
-    gap: 1px;
+    border-top: 1px solid var(--line);
 }
-
-#brandName {
-    font-size: 15px;
-    font-weight: 750;
-    letter-spacing: -0.005em;
-    color: var(--text-1);
+.apField {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px 0px;
+    border-bottom: 1px solid var(--line);
 }
-
-#brandTagline {
-    font-size: 12px;
-    font-weight: 500;
+.apFieldRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+}
+.apField > .settingsFieldDesc {
+    margin-top: 0px;
+}
+.apCaps {
+    margin: 26px 0px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
     color: var(--text-3);
 }
 
-#serverHero {
+/* Modpack list: one row per pack. */
+.apPackList {
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
-    max-width: 520px;
-    animation: riseIn 600ms var(--ease-out) both;
-}
-
-#serverHeroLabel {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--accent-hi);
-    margin-bottom: 8px;
-}
-#serverHeroLabel:before {
-    content: '';
-    width: 7px;
-    height: 7px;
-    transform: rotate(45deg);
-    background: var(--accent);
-    box-shadow: 0 0 0 3px var(--accent-soft);
-}
-
-#serverHeroName {
-    font-size: 44px;
-    line-height: 1.02;
-    font-weight: 800;
-    letter-spacing: -0.035em;
-    color: var(--text-1);
-    text-wrap: balance;
-    text-shadow: 0 2px 24px rgba(7, 6, 10, 0.6);
-}
-
-#serverHeroMeta {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px;
-    margin-top: 14px;
-}
-
-.heroChip {
-    display: inline-flex;
-    align-items: center;
-    height: 26px;
-    padding: 0px 10px;
-    border-radius: 999px;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--text-1);
-    background: var(--glass);
-    backdrop-filter: var(--glass-blur);
-    border: 1px solid var(--line);
-}
-.heroChip:empty {
-    display: none;
-}
-
-#serverHeroDesc {
-    margin-top: 12px;
-    font-size: 13.5px;
-    line-height: 1.55;
-    color: var(--text-2);
-    max-width: 46ch;
-    text-shadow: 0 1px 12px rgba(7, 6, 10, 0.8);
-}
-#serverHeroDesc:empty {
-    display: none;
-}
-
-/*******************************************************************************
- *                                                                             *
- * Landing View (News Styles)                                                  *
- *                                                                             *
- ******************************************************************************/
-
-/* Main container. */
-#newsContainer {
-    position: absolute;
-    top: 100%;
-    height: 100%;
-    width: 100%;
-    transition: top 900ms var(--ease-out);
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
-}
-
-/* News content container. */
-#newsContent {
-    height: calc(100% - 96px);
-    width: calc(100% - 56px);
-    margin-bottom: 84px;
-    display: flex;
-    -webkit-user-select: initial;
-    position: relative;
-    box-sizing: border-box;
     border-radius: var(--radius-l);
-    background: var(--glass-strong);
-    backdrop-filter: var(--glass-blur);
     border: 1px solid var(--line);
-    box-shadow: var(--sheen), var(--shadow-float);
+    background: var(--glass-sunk);
     overflow: hidden;
 }
-
-/* Drop shadow displayed when content is scrolled out of view. */
-#newsContent:before {
-    content: '';
-    background: linear-gradient(rgba(0, 0, 0, 0.35), transparent);
-    width: 100%;
-    height: 8px;
-    position: absolute;
-    opacity: 0;
-    transition: opacity 0.25s ease;
-}
-#newsContent[scrolled]:before {
-    opacity: 1;
-}
-
-/* News article status container (left). */
-#newsStatusContainer {
-    width: 30%;
-    flex: 0 0 30%;
-    box-sizing: border-box;
-    padding: 24px 22px;
+.apPackRow {
     display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    position: relative;
-    border-right: 1px solid var(--line);
+    align-items: center;
+    gap: 12px;
+    min-height: 54px;
+    padding: 0px 8px 0px 12px;
+    cursor: pointer;
+    transition: background 160ms ease;
 }
-
-/* News status content. */
-#newsStatusContent {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
+.apPackRow + .apPackRow {
+    border-top: 1px solid var(--line);
 }
-
-/* News title wrapper. */
-#newsTitleContainer {
-    display: flex;
+.apPackRow:hover {
+    background: rgba(255, 255, 255, 0.04);
 }
-
-/* News article title styles. */
-#newsArticleTitle {
-    font-size: 19px;
-    line-height: 1.25;
-    font-weight: 700;
-    letter-spacing: -0.01em;
-    color: var(--text-1);
-    text-decoration: none;
-    transition: color 160ms ease;
-    outline: none;
-    text-align: left;
+.apPackRow[selected] {
+    background: rgba(0, 68, 119, 0.5);
 }
-#newsArticleTitle:hover,
-#newsArticleTitle:focus {
-    color: var(--accent-hi);
+.apPackRow .serverListTile {
+    width: 30px;
+    height: 30px;
+    font-size: 10.5px;
 }
-
-/* News meta container. */
-#newsMetaContainer {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
-    margin-top: 12px;
-}
-
-/* Date and author wrappers. */
-#newsArticleDateWrapper,
-#newsArticleAuthorWrapper {
-    display: flex;
-}
-
-/* Date and author shared styles. */
-#newsArticleDate,
-#newsArticleAuthor {
-    display: inline-block;
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--text-2);
-}
-
-/* Author styles. */
-#newsArticleAuthor {
-    color: var(--accent-hi);
-}
-
-/* News article comments styles. */
-#newsArticleComments {
-    margin-top: 4px;
-    display: inline-block;
-    font-size: 12px;
-    color: var(--text-3);
-    text-decoration: none;
-    transition: color 160ms ease;
-    outline: none;
-}
-#newsArticleComments:focus,
-#newsArticleComments:hover {
-    color: var(--text-1);
-}
-
-/* Article content container (right). */
-#newsArticleContainer {
+.apPackRowName {
     flex: 1;
     min-width: 0;
-    height: 100%;
-}
-
-#newsArticleContent {
-    height: 100%;
-}
-
-/* Article content styles. */
-#newsArticleContentScrollable {
-    font-size: 13.5px;
-    line-height: 1.65;
-    color: var(--text-2);
-    overflow-y: auto;
-    height: 100%;
-    box-sizing: border-box;
-    padding: 0px 28px;
-}
-#newsArticleContentScrollable h1,
-#newsArticleContentScrollable h2,
-#newsArticleContentScrollable h3,
-#newsArticleContentScrollable strong {
-    color: var(--text-1);
-}
-#newsArticleContentScrollable img,
-#newsArticleContentScrollable iframe {
-    max-width: 100%;
-    display: block;
-    margin: 0 auto;
-    border-radius: var(--radius-m);
-}
-#newsArticleContentScrollable a {
-    color: var(--accent-hi);
-    transition: color 160ms ease;
-    outline: none;
-}
-#newsArticleContentScrollable a:hover,
-#newsArticleContentScrollable a:focus {
-    color: var(--text-1);
-}
-.bbCodeSpoilerButton {
-    background: none;
-    border: none;
-    outline: none;
-    cursor: pointer;
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 600;
-    transition: color 160ms ease;
-    width: 100%;
-    border-bottom: 1px solid var(--line);
-    padding-bottom: 15px;
+    color: var(--text-1);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
-.bbCodeSpoilerButton:hover,
-.bbCodeSpoilerButton:focus {
-    color: var(--accent-hi);
+.apPackRowMeta {
+    flex: none;
+    font-size: 12.5px;
+    color: var(--text-2);
+    white-space: nowrap;
 }
-.bbCodeSpoilerText {
-    display: none;
-    padding: 15px 0px;
-    border-bottom: 1px solid var(--line);
-}
-
-#newsArticleContentWrapper {
-    max-width: 68ch;
-}
-
-.newsArticleSpacerTop {
-    height: 24px;
-}
-
-/* Div to add spacing at the end of a news article. */
-.newsArticleSpacerBot {
-    height: 32px;
-}
-
-/* News navigation container. */
-#newsNavigationContainer {
+.apEdit {
+    flex: none;
     display: flex;
     align-items: center;
     gap: 4px;
-    -webkit-user-select: none;
-}
-
-/* Navigation status span. */
-#newsNavigationStatus {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--text-2);
-    margin: 0px 8px;
-    font-variant-numeric: tabular-nums;
-}
-
-/* Left and right navigation button styles. */
-#newsNavigateLeft,
-#newsNavigateRight {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
     height: 32px;
-    border-radius: var(--radius-s);
-    background: var(--glass-hover);
-    border: 1px solid var(--line);
-    outline: none;
-    cursor: pointer;
-    transition: background 160ms ease, border-color 160ms ease;
-}
-#newsNavigateLeft:hover,
-#newsNavigateRight:hover {
-    background: var(--accent-soft);
-    border-color: var(--accent-line);
-}
-#newsNavigateLeft:disabled,
-#newsNavigateRight:disabled {
-    opacity: 0.4;
-    cursor: default;
-}
-#newsNavigationLeftSVG,
-#newsNavigationRightSVG {
-    width: 12px;
-}
-#newsNavigationLeftSVG {
-    transform: rotate(-90deg);
-}
-#newsNavigationRightSVG {
-    transform: rotate(90deg);
-}
-#newsNavigationContainer .arrowLine {
-    stroke-width: 3px !important;
-}
-
-/* News error (message) container. */
-#newsErrorContainer {
-    height: calc(100% - 96px);
-    width: calc(100% - 56px);
-    margin-bottom: 84px;
-    box-sizing: border-box;
-    border-radius: var(--radius-l);
-    background: var(--glass-strong);
-    backdrop-filter: var(--glass-blur);
-    border: 1px solid var(--line);
-    display: flex;
-    align-items: center;
-    flex-direction: column;
-    justify-content: center;
-}
-#newsErrorFailed {
-    display: flex;
-    align-items: center;
-    flex-direction: column;
-    justify-content: center;
-    gap: 14px;
-}
-
-/* News error content (message). */
-.newsErrorContent {
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--text-2);
-}
-#newsErrorLoading {
-    display: flex;
-    width: 168.92px;
-}
-#nELoadSpan {
-    white-space: pre;
-}
-/* News error retry button styles. */
-#newsErrorRetry {
+    padding: 0px 8px 0px 10px;
+    border-radius: 8px;
+    border: 0px;
+    background: transparent;
+    color: var(--accent);
+    font-family: var(--font-ui);
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
-    padding: 8px 16px;
-    border-radius: var(--radius-s);
-    background: var(--glass-hover);
-    border: 1px solid var(--line-strong);
-    outline: none;
-    transition: background 160ms ease, border-color 160ms ease;
+    transition: background 160ms ease, color 160ms ease;
 }
-#newsErrorRetry:focus,
-#newsErrorRetry:hover {
-    background: var(--accent-soft);
-    border-color: var(--accent-line);
+.apEdit:hover {
+    color: var(--accent-hi);
+    background: rgba(255, 255, 255, 0.06);
+}
+.apEdit svg,
+.apDrawerClose svg,
+.apShotMark svg {
+    width: 14px;
+    height: 14px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+/* Preview. */
+.apPreview {
+    position: sticky;
+    top: 0px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.apPreviewFrame {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    border-radius: var(--radius-l);
+    overflow: hidden;
+    background: var(--basalt-2);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12), var(--shadow-float);
+}
+.apPreviewImg {
+    position: absolute;
+    inset: 0px;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0;
+    transition: opacity 600ms ease;
+}
+.apPreviewImg.apShown {
+    opacity: 1;
+}
+.apPreviewLabel {
+    position: absolute;
+    left: 10px;
+    bottom: 10px;
+    padding: 4px 9px;
+    border-radius: 7px;
+    background: rgba(8, 10, 16, 0.7);
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 600;
+}
+.apPreviewLabel[hidden] {
+    display: none;
+}
+.apPreviewFoot {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+.apPreviewCaption {
+    min-width: 0;
+    font-size: 12.5px;
+    color: var(--text-2);
+}
+.apDots {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding-top: 5px;
+}
+.apDots span {
+    width: 5px;
+    height: 5px;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.35);
+    transition: width 240ms var(--ease-out), background 240ms ease;
+}
+.apDots span[selected] {
+    width: 14px;
+    background: #ffffff;
+}
+
+/* Drawer: slides in over the right of settings to edit one modpack. */
+#apDrawerScrim {
+    position: absolute;
+    inset: 0px;
+    z-index: 10;
+    background: rgba(2, 14, 28, 0.55);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 220ms ease, visibility 0s linear 220ms;
+}
+#apDrawer {
+    position: absolute;
+    top: 0px;
+    right: 0px;
+    bottom: 0px;
+    z-index: 11;
+    width: min(420px, 48%);
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    background: rgb(4, 24, 44);
+    border-left: 1px solid var(--line-strong);
+    box-shadow: var(--shadow-float);
+    transform: translateX(100%);
+    visibility: hidden;
+    transition: transform 280ms var(--ease-out), visibility 0s linear 280ms;
+}
+#settingsContainerRight[drawer] #apDrawerScrim {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 220ms ease, visibility 0s;
+}
+#settingsContainerRight[drawer] #apDrawer {
+    transform: none;
+    visibility: visible;
+    transition: transform 280ms var(--ease-out), visibility 0s;
+}
+.apDrawerHead {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 20px 20px 14px;
+}
+#apDrawerTile {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+}
+.apDrawerTitle {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+#apDrawerName {
+    font-size: 16px;
+    font-weight: var(--display-weight);
+    letter-spacing: -0.02em;
+    color: var(--text-1);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+#apDrawerSub {
+    font-size: 12.5px;
+    color: var(--text-2);
+}
+.apDrawerClose {
+    flex: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: 0px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    color: var(--text-2);
+    cursor: pointer;
+}
+.apDrawerClose:hover {
+    color: var(--text-1);
+    background: rgba(255, 255, 255, 0.08);
+}
+.apDrawerBody {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 4px 20px 20px;
+}
+.apDrawerBody .apGroupHead {
+    margin-top: 12px;
+}
+.apDrawerFoot {
+    flex: none;
+    padding: 14px 20px 20px;
+}
+#apDrawerDone {
+    width: 100%;
+    height: 40px;
+    border-radius: var(--radius-m);
+    border: 1px solid var(--accent-line);
+    background: var(--meridian-navy);
+    color: var(--text-1);
+    font-family: var(--font-ui);
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 160ms ease;
+}
+#apDrawerDone:hover {
+    background: var(--meridian-face);
+}
+.apGroupHead {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+}
+.apGroupTitle {
+    font-size: 13.5px;
+    color: var(--text-2);
+}
+.apGroupTitle b {
+    font-weight: 700;
+    color: var(--text-1);
+}
+#apShotEmpty[hidden] {
+    display: none;
+}
+
+/* Picture grids, three to a row. */
+.apShotGrid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+}
+.apShotGrid:empty {
+    display: none;
+}
+.apShot {
+    padding: 0px;
+    border: 0px;
+    background: transparent;
+    cursor: pointer;
+}
+.apShotPreview {
+    position: relative;
+    display: block;
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    border-radius: 10px;
+    overflow: hidden;
+    background-color: var(--basalt-2);
+    background-size: cover;
+    background-position: center;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);
+    opacity: 0.45;
+    transition: opacity 220ms ease, box-shadow 200ms ease;
+}
+.apShot:hover .apShotPreview {
+    opacity: 0.75;
+}
+.apShot[selected] .apShotPreview {
+    opacity: 1;
+    box-shadow: 0 0 0 2px var(--accent-line);
+}
+.apShotMark {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 20px;
+    height: 20px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(12, 14, 20, 0.45);
+    box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.75);
+    color: transparent;
+    transition: background 160ms ease, color 160ms ease;
+}
+.apShotMark svg {
+    width: 12px;
+    height: 12px;
+    stroke-width: 2.6;
+}
+.apShot[selected] .apShotMark {
+    background: var(--meridian-navy);
+    box-shadow: inset 0 0 0 1.5px var(--accent-hi);
+    color: #ffffff;
 }
 
 /*******************************************************************************
  *                                                                             *
- * Landing View (Top Styles)                                                   *
+ * Wallpaper (app.ejs)                                                         *
+ *                                                                             *
+ * Layers are built by themeengine.js and cross-fade over 900ms. Scrims keep   *
+ * the top bar and the bottom block readable on any wallpaper.                 *
  *                                                                             *
  ******************************************************************************/
 
-/* Logo image. */
-#image_seal {
-    height: 40px;
-    width: 40px;
-    position: relative;
-    border-radius: 11px;
-    display: block;
+#wallpaper {
+    position: fixed;
+    inset: 0px;
+    z-index: 0;
+    overflow: hidden;
+    background: var(--basalt-0);
+}
+.wpLayer {
+    position: absolute;
+    inset: 0px;
+    overflow: hidden;
+    opacity: 0;
+    transition: opacity 900ms ease;
+}
+.wpLayer.wpShown {
+    opacity: 1;
+}
+/* Photos and screenshots: a decoded <img>, so the fade never shows a blank. */
+.wpImg {
+    position: absolute;
+    inset: 0px;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+/* Pictures drift in slowly, like a console's game backdrop. */
+.wpLayer .wpImg {
+    transform-origin: 60% 50%;
+    animation: wp-kenburns 40s ease-in-out infinite alternate;
+}
+.wpLayer[still] .wpImg,
+html[noGpu] .wpLayer .wpImg {
+    animation: none;
+}
+#wallpaper.wpPaused .wpImg,
+body[settingsOpen] #wallpaper .wpImg {
+    animation-play-state: paused;
+}
+/* Under settings: a blurred copy of the wallpaper, drawn once by
+   themeengine.js at a fraction of the size and stretched. A live CSS blur
+   would be redone on every scrolled frame without GPU acceleration. */
+.wpBlur {
+    position: absolute;
+    inset: 0px;
+    /* Above wallpaper layers that fade in later. */
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    transition: opacity 300ms ease;
+}
+.wpBlur.wpShown {
+    opacity: 1;
+}
+#wallpaperScrim {
+    position: fixed;
+    inset: 0px;
+    z-index: 1;
+    pointer-events: none;
+    background:
+        linear-gradient(180deg, rgba(5, 7, 12, 0.38) 0px, rgba(5, 7, 12, 0) 160px),
+        linear-gradient(0deg, rgba(5, 7, 12, 0.58) 0px, rgba(5, 7, 12, 0) 320px);
+}
+@keyframes wp-kenburns { from { transform: scale(1); } to { transform: scale(1.03); } }
+@media (prefers-reduced-motion: reduce) {
+    .wpImg {
+        animation: none !important;
+    }
 }
 
-/* Logo container styles. */
+/*******************************************************************************
+ *                                                                             *
+ * Landing View (landing.ejs)                                                  *
+ *                                                                             *
+ * Everything floats on the wallpaper: brand pill (top left), news / settings  *
+ * / account (top right), selected server (bottom left), the server dial      *
+ * (bottom centre) and the server list + Play (bottom right).                  *
+ *                                                                             *
+ ******************************************************************************/
+
+#landingContainer {
+    height: 100%;
+    position: relative;
+    overflow: hidden;
+    --edge: 40px;
+    --dial-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* Shared glass pill used across the top bar. */
+
+.topButton,
+#user_content,
+#mediaContent {
+    box-sizing: border-box;
+    border-radius: var(--radius-pill);
+    background: var(--glass);
+    backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--line);
+}
+
+#landingContainer > #upper {
+    position: absolute;
+    top: 26px;
+    left: var(--edge);
+    right: var(--edge);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    z-index: 5;
+}
+
+/* Brand: the logo mark and wordmark sit straight on the wallpaper. */
+#brandBlock {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 44px;
+}
 #image_seal_container {
     position: relative;
-    height: 40px;
-    width: 40px;
-    border-radius: 11px;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
 }
-
-/* Logo container styles w/ update. */
-#image_seal_container[update]{
-    cursor: pointer
+#image_seal {
+    width: 34px;
+    height: 34px;
+    display: block;
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3));
+}
+#image_seal_container[update] {
+    cursor: pointer;
 }
 #image_seal_container[update]:before,
 #image_seal_container[update]:after {
     cursor: pointer;
     position: absolute;
     content: '';
-    height: 100%;
-    width: 100%;
-    top: 0%;
-    left: 0%;
-    border-radius: 11px;
+    inset: 0px;
+    border-radius: 50%;
     border: 2px solid var(--ok);
     box-sizing: border-box;
     animation: glow-grow 3s var(--ease-out) infinite;
@@ -3201,8 +3900,6 @@ input:checked + .toggleSwitchSlider:before {
 #image_seal_container[update]:before {
     animation-delay: 1.5s;
 }
-
-/* Update available tooltip styles. */
 #updateAvailableTooltip {
     cursor: pointer;
     visibility: hidden;
@@ -3211,11 +3908,11 @@ input:checked + .toggleSwitchSlider:before {
     background-color: var(--glass-strong);
     border: 1px solid var(--line);
     color: var(--ok);
-    border-radius: var(--radius-s);
+    border-radius: var(--radius-card);
     padding: 5px 9px;
     position: absolute;
     z-index: 1;
-    top: calc(100% + 8px);
+    top: calc(100% + 10px);
     left: 0px;
     font-weight: 600;
     font-size: 12px;
@@ -3226,217 +3923,349 @@ input:checked + .toggleSwitchSlider:before {
     opacity: 1;
     transition-delay: 0s;
 }
-
-/* Update available animation. */
 @keyframes glow-grow {
-    0% {
-        opacity: 0;
-        transform: scale(1);
-    }
-    30% {
-        opacity: 1;
-    }
-    100% {
-        transform: scale(1.4);
-        opacity: 0;
-    }
+    0% { opacity: 0; transform: scale(1); }
+    30% { opacity: 1; }
+    100% { transform: scale(1.4); opacity: 0; }
+}
+#brandName {
+    font-size: 20px;
+    font-weight: var(--display-weight);
+    letter-spacing: var(--display-tracking);
+    text-transform: lowercase;
+    color: var(--text-1);
+    text-shadow: 0 2px 16px rgba(0, 0, 0, 0.3);
 }
 
-/*  Wrapper container for top, right content. */
+/* Mojang status: a small dot beside the wordmark, explained on hover. */
+#mojangStatusWrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    margin-left: 2px;
+    border-radius: var(--radius-pill);
+    cursor: help;
+    outline: none;
+}
+#mojangStatusWrapper:focus-visible {
+    box-shadow: 0 0 0 2px #ffffff;
+}
+#mojang_status_icon {
+    display: block;
+    width: 8px;
+    height: 8px;
+    border-radius: 4px;
+    color: var(--text-3);
+    background: currentColor;
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.08), 0 0 10px currentColor;
+    transition: color 300ms ease;
+}
+#mojangStatusTooltip {
+    position: absolute;
+    top: calc(100% + 10px);
+    left: -12px;
+    z-index: 10;
+    width: 260px;
+    box-sizing: border-box;
+    padding: 12px 14px;
+    border-radius: var(--radius-card);
+    background-color: var(--glass-strong);
+    backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow-float);
+    color: var(--text-1);
+    font-size: 12px;
+    cursor: default;
+    visibility: hidden;
+    opacity: 0;
+    transform: translateY(-4px);
+    transition: visibility 0s linear 0.2s, opacity 0.2s ease, transform 0.2s var(--ease-out);
+}
+#mojangStatusWrapper:hover #mojangStatusTooltip,
+#mojangStatusWrapper:focus-visible #mojangStatusTooltip {
+    visibility: visible;
+    opacity: 1;
+    transform: none;
+    transition-delay: 0s;
+}
+#mojangStatusTooltipHead {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+}
+#mojangStatusTooltipTitle {
+    font-size: 13px;
+    font-weight: 600;
+}
+#mojangStatusTooltipState {
+    font-size: 12px;
+    font-weight: 600;
+}
+#mojangStatusTooltipDesc {
+    margin: 4px 0px 8px;
+    line-height: 1.45;
+    color: var(--text-2);
+}
+#mojangStatusNEContainer {
+    display: flex;
+    align-items: center;
+    margin: 8px 0px 4px;
+}
+.mojangStatusNEBar {
+    height: 1px;
+    width: 100%;
+    background: var(--line);
+}
+#mojangStatusNETitle {
+    font-size: 10px;
+    padding: 0px 8px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    white-space: nowrap;
+}
+.mojangStatusContainer {
+    display: flex;
+    align-items: center;
+}
+.mojangStatusName {
+    width: 100%;
+    font-size: 12px;
+    line-height: 14px;
+    padding: 4px 0px;
+    color: var(--text-2);
+}
+.mojangStatusIcon {
+    margin-right: 8px;
+    font-size: 18px;
+    line-height: 14px;
+}
+
+/* Top right: news, settings, account. */
 #rightContainer {
     display: flex;
     flex-direction: column;
     align-items: flex-end;
-    gap: 12px;
-    position: relative;
+    gap: 10px;
 }
-
-/* Right hand user content container. */
-#user_content {
+/* Credit for the gallery wallpaper, under the top bar. Opens the Photon gallery. */
+#wallpaperCredit {
     display: flex;
     align-items: center;
-    gap: 12px;
-    box-sizing: border-box;
-    position: relative;
-    height: 56px;
-    padding: 0px 6px 0px 16px;
-    border-radius: var(--radius-l);
-    background: var(--glass);
-    backdrop-filter: var(--glass-blur);
-    border: 1px solid var(--line);
-    box-shadow: var(--sheen), var(--shadow-float);
-}
-
-/* User profile avatar container. */
-#avatarContainer {
-    order: 2;
-    border-radius: var(--radius-m);
-    box-sizing: border-box;
-    background-color: var(--accent-soft);
-    height: 44px;
-    width: 44px;
-    overflow: hidden;
-    position: relative;
-    background-position: center 8%;
-    background-repeat: no-repeat;
-    background-size: 180%;
-}
-
-/* Avatar edit overlay. */
-#avatarOverlay {
-    opacity: 0;
-    position: absolute;
-    z-index: 1;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    transition: opacity 160ms ease;
-    font-size: 11px;
-    font-weight: 700;
-    background-color: rgba(7, 6, 10, 0.6);
-    -webkit-user-select: none;
+    gap: 6px;
+    margin-right: 4px;
+    padding: 2px 4px;
     border: none;
-    cursor: pointer;
-    width: 100%;
-    height: 100%;
-}
-#avatarOverlay:hover,
-#avatarOverlay:focus {
-    opacity: 1;
-}
-
-/* User profile name text. */
-#user_text {
-    order: 1;
-    font-size: 13.5px;
-    font-weight: 650;
-    max-width: 150px;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    background: none;
+    color: rgba(255, 255, 255, 0.5);
+    font-family: var(--font-ui);
+    font-size: 11.5px;
+    font-weight: 500;
     white-space: nowrap;
-    text-align: right;
-    -webkit-user-select: initial;
+    text-shadow: 0 1px 6px rgba(0, 0, 0, 0.45);
+    cursor: default;
+    outline: none;
+    transition: color 160ms ease;
 }
-
-/* Icon rail: settings + social links. */
-#mediaContent {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    width: 44px;
-    padding: 6px 0px;
-    margin-right: 6px;
-    box-sizing: border-box;
-    border-radius: 14px;
-    background: var(--glass);
-    backdrop-filter: var(--glass-blur);
-    border: 1px solid var(--line);
-    box-shadow: var(--sheen), var(--shadow-float);
+#wallpaperCredit[linked] {
+    cursor: pointer;
 }
-
-/* Social Media Icon division containers. */
-#internalMedia, #externalMedia {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-/* Container object which wraps an icon. */
-.mediaContainer {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 34px;
-    width: 34px;
-}
-.mediaContainer:has(a[href="#"]) {
+#wallpaperCredit[hidden] {
     display: none;
 }
-
-/* Divider bar between the external and internal icons. */
-.mediaDivider {
-    height: 1px;
-    width: 18px;
-    background: var(--line-strong);
-    margin: 4px 0px;
+#wallpaperCredit:hover,
+#wallpaperCredit:focus-visible {
+    color: var(--text-1);
+}
+#wallpaperCredit svg {
+    width: 13px;
+    height: 13px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.7;
+    stroke-linejoin: round;
+}
+.wallpaperCreditAuthor {
+    color: rgba(255, 255, 255, 0.72);
+    font-weight: 600;
+}
+#wallpaperCredit:hover .wallpaperCreditAuthor {
+    color: var(--text-1);
 }
 
-/* Social media URL + internal button shared styles. */
-.mediaURL,
-.mediaButton {
-    position: relative;
+#topBar {
     display: flex;
     align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    border-radius: 9px;
-    background: none;
-    border: none;
-    padding: 0px;
-    outline: none;
+    gap: 8px;
+}
+.topButton {
+    position: relative;
+    height: 44px;
+    padding: 0px 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-1);
+    font-family: var(--font-ui);
+    font-size: 13px;
+    font-weight: 500;
     cursor: pointer;
     transition: background 160ms ease;
 }
-.mediaURL:hover,
-.mediaButton:hover {
-    background: var(--glass-hover);
+.topButton:hover {
+    background: rgba(255, 255, 255, 0.14);
 }
-
-/* Social media icon shared styles. */
-.mediaSVG {
-    fill: var(--text-2);
-    height: 15px;
-    width: 18px;
-    transition: fill 160ms ease, transform 200ms var(--ease-out);
-    cursor: pointer;
+.topButton[aria-pressed="true"] {
+    background: rgba(255, 255, 255, 0.18);
 }
-.mediaURL:hover .mediaSVG,
-.mediaButton:hover .mediaSVG {
-    transform: scale(1.12);
+.topButtonSquare {
+    width: 44px;
+    padding: 0px;
+    justify-content: center;
 }
-
-#settingsMediaContainer {
-    position: relative;
-}
-
-/* Settings icon colors. */
-#settingsSVG {
+.topButtonIcon {
+    width: 16px;
+    height: 16px;
     fill: none;
-    stroke: var(--text-1);
-    stroke-width: 9px;
-    height: 17px;
+    stroke: currentColor;
+    stroke-width: 1.7;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    flex-shrink: 0;
 }
-.mediaButton:hover #settingsSVG {
-    transform: rotate(45deg) scale(1.08);
-    stroke: var(--accent-hi);
+#settingsSVG {
+    width: 18px;
+    height: 18px;
+    stroke-width: 1.6;
+    transition: transform 400ms var(--ease-out);
 }
-
-/* Settings tooltip styles. */
+#settingsMediaButton:hover #settingsSVG {
+    transform: rotate(45deg);
+}
 #settingsTooltip {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0px;
     visibility: hidden;
     opacity: 0;
     white-space: nowrap;
     padding: 5px 9px;
     background-color: var(--glass-strong);
     border: 1px solid var(--line);
-    border-radius: var(--radius-s);
-    position: absolute;
-    z-index: 1;
-    right: calc(100% + 10px);
+    border-radius: var(--radius-card);
     font-size: 12px;
-    font-weight: 600;
+    font-weight: 500;
     transition: visibility 0s linear 0.2s, opacity 0.2s ease;
 }
-.mediaButton:hover #settingsTooltip,
-.mediaButton:focus-visible #settingsTooltip {
+#settingsMediaButton:hover #settingsTooltip,
+#settingsMediaButton:focus-visible #settingsTooltip {
     visibility: visible;
     opacity: 1;
     transition-delay: 0s;
 }
 
-/* Brand colours on hover. */
+/* Unread news: an accent badge on the News button. */
+#newsButtonAlert {
+    width: 8px;
+    height: 8px;
+    border-radius: 4px;
+    background: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+/* Account pill. */
+#user_content {
+    height: 44px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0px 14px 0px 4px;
+}
+#avatarContainer {
+    position: relative;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+    box-sizing: border-box;
+    background-color: var(--accent-soft);
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
+    image-rendering: pixelated;
+}
+#avatarOverlay {
+    opacity: 0;
+    position: absolute;
+    inset: 0px;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border: none;
+    cursor: pointer;
+    font-size: 10px;
+    font-weight: 600;
+    background-color: rgba(2, 26, 48, 0.65);
+    transition: opacity 160ms ease;
+}
+#avatarOverlay:hover,
+#avatarOverlay:focus {
+    opacity: 1;
+}
+#user_text {
+    font-size: 13px;
+    font-weight: 500;
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    -webkit-user-select: initial;
+}
+
+/* Social links: a small row under the top bar, hidden when none are set. */
+#mediaContent {
+    display: flex;
+    padding: 4px;
+}
+#mediaContent:not(:has(a:not([href="#"]))) {
+    display: none;
+}
+#externalMedia {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+.mediaContainer {
+    display: flex;
+}
+.mediaContainer:has(a[href="#"]) {
+    display: none;
+}
+.mediaURL {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: var(--radius-pill);
+    transition: background 160ms ease;
+}
+.mediaURL:hover {
+    background: rgba(255, 255, 255, 0.14);
+}
+.mediaSVG {
+    fill: var(--text-2);
+    height: 15px;
+    width: 18px;
+    transition: fill 160ms ease;
+}
 #linkURL:hover #linkSVG,
 #xURL:hover #xSVG {
     fill: var(--text-1);
@@ -3451,378 +4280,1116 @@ input:checked + .toggleSwitchSlider:before {
     fill: #8b9cf7;
 }
 
-/*******************************************************************************
- *                                                                             *
- * Landing View (Bottom Styles)                                                *
- *                                                                             *
- ******************************************************************************/
-
-/* Style for a general label on the bottom of the landing view. */
-.bot_label {
-    font-size: 10.5px;
-    font-weight: 650;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--text-3);
-}
-
-/* Divider used on the bottom of the landing view. */
-.bot_divider {
-    height: 28px;
-    width: 1px;
-    background: var(--line-strong);
-    margin: 0px 18px;
-}
-
-/* Player count: label above value. */
-#server_status_wrapper {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    min-width: 64px;
-}
-
-/* Span which displays the player count of the selected server. */
-#player_count {
-    font-size: 14px;
-    font-weight: 700;
-    color: var(--text-1);
-    font-variant-numeric: tabular-nums;
-}
-
-/* Wrapper container for the mojang status bar. */
-#mojangStatusWrapper {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    cursor: default;
-}
-
-/* Status dot: the colour is set inline by landing.js. */
-#mojang_status_icon {
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    font-size: 0px;
-    height: 17px;
-    color: var(--text-3);
-}
-#mojang_status_icon:before {
-    content: '';
-    width: 9px;
-    height: 9px;
-    border-radius: 50%;
-    background: currentColor;
-    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.06);
-}
-#mojang_status_icon:after {
-    content: attr(data-label);
-    font-size: 14px;
-    font-weight: 700;
-    color: var(--text-1);
-}
-
-/* Tooltip which displays more details about the mojang statuses. */
-#mojangStatusTooltip {
+/* Selected server, bottom left. */
+#heroBlock {
     position: absolute;
-    visibility: hidden;
-    opacity: 0;
-    width: 200px;
-    box-sizing: border-box;
-    background-color: var(--glass-strong);
-    backdrop-filter: var(--glass-blur);
-    border: 1px solid var(--line);
-    color: var(--text-1);
-    border-radius: var(--radius-m);
-    padding: 12px 14px;
-    z-index: 1;
-    font-size: 12px;
-    transition: visibility 0s linear 0.2s, opacity 0.2s ease, transform 0.2s var(--ease-out);
-    bottom: calc(100% + 22px);
-    left: -20px;
-    transform: translateY(4px);
-    box-shadow: var(--shadow-float);
-    cursor: default;
-}
-#mojangStatusWrapper:hover #mojangStatusTooltip {
-    visibility: visible;
-    opacity: 1;
-    transform: none;
-    transition-delay: 0s;
-}
-
-/* Tooltip title for the mojang statuses. */
-#mojangStatusTooltipTitle {
-    font-size: 13px;
-    font-weight: 700;
-    margin-bottom: 6px;
-}
-
-/* Wrapper container for the non essential services title. */
-#mojangStatusNEContainer {
-    display: flex;
-    align-items: center;
-    margin: 8px 0px 4px;
-}
-
-/* Bar which surrounds the non essential service title. */
-.mojangStatusNEBar {
-    height: 1px;
-    width: 100%;
-    background: var(--line);
-}
-
-/* Non essential service title text. */
-#mojangStatusNETitle {
-    font-size: 10.5px;
-    font-weight: 650;
-    padding: 0px 8px;
-    text-align: center;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--text-3);
-    white-space: nowrap;
-}
-
-/* Wrapper container for mojang service information. */
-.mojangStatusContainer {
-    display: flex;
-    align-items: center;
-}
-
-/* Displays the name of the mojang service. */
-.mojangStatusName {
-    width: 100%;
-    font-size: 12px;
-    line-height: 14px;
-    padding: 5px 0px;
-    color: var(--text-2);
-}
-
-/* Displays the status of the mojang service. */
-.mojangStatusIcon {
-    margin-right: 8px;
-    font-size: 18px;
-    line-height: 14px;
-    color: var(--text-3);
-}
-
-/* Button which opens the news view. */
-#newsButton {
+    left: var(--edge);
+    bottom: var(--edge);
+    /* Runs up to the dial (520px wide, centred) with a gap before its tiles. */
+    width: calc(50% - 230px - var(--edge));
+    max-width: 760px;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    gap: 3px;
-    position: relative;
-    padding: 8px 18px;
-    border-radius: var(--radius-m);
-    background: none;
-    border: none;
-    cursor: pointer;
-    outline: none;
-    transition: background 160ms ease;
+    gap: 12px;
+    z-index: 4;
 }
-#newsButton:hover {
-    background: var(--glass-hover);
-}
-
-/* Icon which indicates there is new news. */
-#newsButtonAlert {
-    width: 7px;
-    height: 7px;
-    position: absolute;
-    border-radius: 50%;
-    background: var(--accent-hi);
-    box-shadow: 0 0 0 3px var(--accent-soft);
-    right: 10px;
-    top: 9px;
-}
-
-/* Arrow which floats above the news button. */
-#newsButtonSVG {
-    height: 9px;
-    transition: transform 220ms var(--ease-out);
-}
-#newsButtonSVG .arrowLine {
-    stroke: var(--text-2) !important;
-    stroke-width: 2.6px !important;
-}
-#newsButton:hover #newsButtonSVG {
-    transform: translateY(-3px);
-}
-
-/* Span which contains the news button text. */
-#newsButtonText {
-    color: var(--text-2);
-    font-weight: 650;
-    letter-spacing: 0.08em;
-    font-size: 11px;
-    display: flex;
-}
-#newsButton:hover #newsButtonText {
-    color: var(--text-1);
-}
-
-/* Main launch content container. */
-#landingContainer > #lower > #right #launch_content {
-    display: flex;
-    align-items: center;
-    width: 100%;
-}
-#landingContainer > #lower > #right #launch_content > .bot_divider {
-    display: none;
-}
-
-/* The launch button: a faceted crystal slab. */
-#launch_button {
-    order: 2;
-    height: 50px;
-    padding: 0px 30px;
-    margin-left: auto;
-    font-size: 15px;
-    font-weight: 800;
-    letter-spacing: 0.14em;
-}
-
-/* Launch details main container, hidden until launch processing begins. */
-#launch_details {
-    display: none;
-    align-items: center;
-    width: 100%;
-    max-width: none !important;
-    padding: 0px 14px 0px 12px;
-    box-sizing: border-box;
-}
-
-/* Left side of launch details container, displays percentage and a divider. */
-#launch_details_left {
-    display: flex;
-    align-items: center;
-}
-#launch_details_left > .bot_divider {
-    margin: 0px 14px;
-}
-
-/* Span which displays percentage complete. */
-#launch_progress_label {
-    font-weight: 800;
-    font-size: 22px;
-    letter-spacing: -0.02em;
-    font-variant-numeric: tabular-nums;
-    min-width: 58px;
-    width: auto !important;
-    text-align: right;
-}
-
-/* Right side of launch details container, displays progress bar and details. */
-#launch_details_right {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    gap: 7px;
-    flex: 1;
-    min-width: 0;
-    max-width: none !important;
-}
-
-/* Button which opens the server selection view. */
-#server_selection_button {
-    order: 1;
+#serverHero {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
+    gap: 12px;
+    animation: riseIn 600ms var(--ease-out) both;
+}
+#serverHeroLabel {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.8);
+}
+#serverHeroLabel:before {
+    content: '';
+    width: 7px;
+    height: 7px;
+    background: var(--accent);
+    transform: rotate(45deg);
+}
+#serverHeroName {
+    font-size: 52px;
+    font-weight: var(--display-weight);
+    letter-spacing: var(--display-tracking);
+    color: var(--text-1);
+    text-shadow: 0 2px 24px rgba(0, 0, 0, 0.25);
+    /* Wraps between whole words; fitHeroName() shrinks the size when a single word is too wide. */
+    max-width: 100%;
+    line-height: 1.05;
+    text-wrap: balance;
+    overflow-wrap: normal;
+    word-break: normal;
+    padding-bottom: 0.08em;
+}
+#serverHeroMeta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+.heroChip {
+    height: 28px;
+    padding: 0px 12px;
+    display: flex;
+    align-items: center;
+    border-radius: var(--radius-pill);
+    background: rgba(12, 14, 20, 0.44);
+    border: 1px solid var(--line);
+    backdrop-filter: blur(14px);
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-1);
+}
+.heroChip:empty,
+.heroChip[hidden] {
+    display: none;
+}
+/* Shown while the selected modpack's game is running. */
+#serverHeroRunning {
+    gap: 7px;
+    color: var(--ok);
+    border-color: rgba(126, 226, 160, 0.4);
+}
+#serverHeroRunning:before {
+    content: '';
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--ok);
+    box-shadow: 0 0 8px var(--ok);
+    animation: server-running-pulse 1.6s ease-in-out infinite alternate;
+}
+@keyframes server-running-pulse {
+    from { opacity: 0.45; }
+    to { opacity: 1; }
+}
+/* Status card row under the hero. */
+#heroFooter {
+    display: flex;
+    align-items: stretch;
+    gap: 8px;
+}
+
+/* Server + Mojang status card; hidden for local modpacks. */
+#statusCard[hidden] {
+    display: none;
+}
+#statusCard {
+    height: 40px;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: fit-content;
+    padding: 0px 16px 0px 14px;
+    border-radius: var(--radius-pill);
+    background: rgba(12, 14, 20, 0.44);
+    border: 1px solid var(--line);
+    backdrop-filter: blur(14px);
+}
+#server_status_wrapper {
+    display: flex;
+    align-items: center;
+}
+#player_count {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+}
+#player_count:before {
+    content: '';
+    width: 7px;
+    height: 7px;
+    border-radius: 4px;
+    background: #ff9a9a;
+}
+#server_status_wrapper[online] #player_count:before {
+    background: #7ee2a0;
+}
+/* Server dial, bottom centre. Geometry lives in landing.js (SERVER_DIAL). */
+#serverDial {
+    position: absolute;
+    left: 50%;
+    bottom: 0px;
+    width: 520px;
+    height: 180px;
+    margin-left: -260px;
+    z-index: 3;
+    outline: none;
+    -webkit-user-select: none;
+    transition: opacity 300ms ease;
+}
+#landingContainer[dialHidden] #serverDial {
+    display: none;
+}
+#landingContainer[launching] #serverDial {
+    pointer-events: none;
+    opacity: 0.6;
+}
+#serverDialRing {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    width: 520px;
+    height: 180px;
+    overflow: visible;
+    pointer-events: none;
+}
+#serverDialRing circle {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.22);
+    stroke-width: 1;
+}
+#serverDialTicks {
+    transform-origin: 260px 372px;
+    transition: transform 520ms var(--dial-ease);
+}
+#serverDialTicksMinor {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.3);
+    stroke-width: 1;
+}
+#serverDialTicksMajor {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.6);
+    stroke-width: 1.5;
+    stroke-linecap: round;
+}
+.serverTile {
+    position: absolute;
+    padding: 0px;
+    border: 0px;
+    border-radius: 50%;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
     justify-content: center;
-    gap: 2px;
-    height: 50px;
+    color: #ffffff;
+    font-family: var(--font-ui);
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-shadow: 0 1px 6px rgba(0, 0, 0, 0.45);
+    background-size: cover;
+    cursor: pointer;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28), 0 6px 18px rgba(0, 0, 0, 0.3);
+    /* Drawn at the selected size and placed with a transform (landing.js), so
+       turning the dial never re-runs layout. */
+    left: 0px;
+    top: 0px;
+    width: 72px;
+    height: 72px;
+    will-change: transform;
+    transition:
+        transform 520ms var(--dial-ease),
+        opacity 400ms ease,
+        box-shadow 300ms ease;
+}
+.serverTile[fresh] {
+    transition: none;
+}
+.serverTile[selected] {
+    cursor: default;
+    box-shadow: 0 0 0 3px rgba(2, 26, 48, 0.7), 0 0 0 5px var(--accent), 0 12px 30px rgba(0, 0, 0, 0.35);
+}
+.serverTile[far] {
+    pointer-events: none;
+}
+.serverTile[running]:not([selected]) {
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28), 0 0 0 2px var(--ok), 0 6px 18px rgba(0, 0, 0, 0.3);
+}
+.serverTile[running][selected] {
+    box-shadow: 0 0 0 3px rgba(2, 26, 48, 0.7), 0 0 0 5px var(--ok), 0 12px 30px rgba(0, 0, 0, 0.35);
+}
+.serverTile[hasIcon] .serverTileMono {
+    visibility: hidden;
+}
+.serverTileIcon {
+    position: absolute;
+    inset: 0px;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+/* The dial itself never draws a focus box; the selected tile shows focus. */
+#serverDial:focus,
+#serverDial:focus-visible,
+.serverTile:focus {
+    outline: none !important;
+}
+#serverDial:focus-visible .serverTile[selected] {
+    outline: 2px solid #ffffff;
+    outline-offset: 6px;
+}
+#serverDialNav {
+    position: absolute;
+    left: 0px;
+    right: 0px;
+    top: 120px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
+    /* The strip spans the dial at the height of the outer tiles; only its
+       contents take clicks so those tiles stay clickable. */
+    pointer-events: none;
+}
+#serverDialNav > * {
+    pointer-events: auto;
+}
+.serverDialArrow {
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-pill);
+    border: 0px;
+    background: transparent;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 160ms ease, opacity 160ms ease;
+}
+.serverDialArrow:hover {
+    background: rgba(255, 255, 255, 0.14);
+}
+.serverDialArrow:disabled {
+    opacity: 0.35;
+    cursor: default;
+    background: transparent;
+}
+.serverDialArrow svg {
+    width: 16px;
+    height: 16px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+/* Fixed width so the arrows never move with the name's length. */
+#serverDialCaption {
+    width: 200px;
+    flex: 0 0 200px;
     min-width: 0;
-    max-width: 220px;
-    padding: 0px 34px 0px 14px;
-    margin-right: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+}
+#serverDialName {
+    font-size: 13px;
+    font-weight: 600;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+#serverDialPos {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: rgba(255, 255, 255, 0.72);
+}
+
+/* Server list + Play, bottom right. */
+#launchArea {
+    position: absolute;
+    right: var(--edge);
+    bottom: var(--edge);
+    display: flex;
+    gap: 10px;
+    z-index: 4;
+}
+#serverPicker {
     position: relative;
-    border: none;
-    border-radius: var(--radius-m);
-    background: none;
+    width: 260px;
+    height: 56px;
+    transition: width 300ms var(--dial-ease);
+}
+#landingContainer[dialHidden] #serverPicker {
+    width: 320px;
+}
+#server_select {
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 0px 14px 0px 9px;
+    border-radius: var(--radius-pill);
+    background: var(--glass-strong);
+    border: 1px solid var(--line-strong);
+    backdrop-filter: var(--glass-blur);
+    color: var(--text-1);
+    font-family: var(--font-ui);
     text-align: left;
+    letter-spacing: normal;
+    text-transform: none;
+    cursor: pointer;
+    transition: background 160ms ease, border-color 160ms ease;
+}
+#server_select:hover:not(:disabled),
+#serverPicker[open] #server_select {
+    background: rgba(12, 43, 74, 0.82);
+    border-color: var(--accent-line);
+}
+#server_select:disabled {
+    cursor: default;
+    opacity: 0.6;
+}
+#server_select > svg {
+    flex: none;
+    width: 14px;
+    height: 14px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    color: var(--text-2);
+    transition: transform 200ms var(--ease-out);
+}
+#serverPicker[open] #server_select > svg {
+    transform: rotate(180deg);
+}
+
+/* Shared row anatomy: tile, name over meta, status. */
+.serverListTile {
+    position: relative;
+    flex: none;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-size: cover;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: #ffffff;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+}
+.serverListTile[empty] {
+    display: none;
+}
+.serverListTile[hasIcon] .serverListTileMono {
+    visibility: hidden;
+}
+.serverListTileIcon {
+    position: absolute;
+    inset: 0px;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.serverListText {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.serverListName,
+.serverListMeta {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.serverListName {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-1);
+}
+.serverListMeta {
+    font-size: 12px;
+    color: var(--text-2);
+}
+.serverListMeta:empty {
+    display: none;
+}
+
+/* The popover above the picker. */
+#serverMenu {
+    position: absolute;
+    right: 0px;
+    bottom: calc(100% + 10px);
+    width: max(100%, 340px);
+    max-height: min(460px, calc(100vh - 220px));
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    padding: 14px 10px 10px;
+    border-radius: var(--radius-panel);
+    background: var(--glass-strong);
+    border: 1px solid var(--line-strong);
+    backdrop-filter: var(--glass-blur);
+    box-shadow: var(--shadow-float), var(--sheen);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(6px) scale(0.98);
+    transform-origin: bottom right;
+    transition: opacity 160ms ease, transform 220ms var(--ease-out), visibility 0s linear 220ms;
+    outline: none;
+}
+#serverPicker[open] #serverMenu {
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+    transition: opacity 160ms ease, transform 220ms var(--ease-out), visibility 0s;
+}
+.serverMenuHeading {
+    flex: none;
+    padding: 0px 8px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-3);
+}
+#serverMenuList {
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.serverListRow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px;
+    border-radius: var(--radius-pill);
+    cursor: pointer;
+}
+.serverListRow .serverListTile {
+    width: 40px;
+    height: 40px;
+}
+.serverListRow[active] {
+    background: var(--glass-hover);
+}
+.serverListRow[selected] {
+    background: rgba(125, 180, 230, 0.12);
+}
+.serverListRow[selected] .serverListTile {
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18), 0 0 0 2px var(--accent);
+}
+.serverListRunning {
+    display: none;
+    flex: none;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 8px;
+    border-radius: var(--radius-pill);
+    background: rgba(126, 226, 160, 0.12);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ok);
+}
+.serverListRunning:before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--ok);
+}
+.serverListRow[running] .serverListRunning {
+    display: flex;
+}
+#server_select[running] #serverPickerTile {
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18), 0 0 0 2px var(--ok);
+}
+.serverListStatus {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-2);
+}
+.serverListStatus:before {
+    content: '';
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--text-3);
+}
+.serverListStatus[state="online"] {
+    color: var(--text-1);
+}
+.serverListStatus[state="online"]:before {
+    background: var(--ok);
+}
+.serverListStatus[state="offline"]:before {
+    background: var(--danger);
+}
+.serverListStatus[state="pending"]:before {
+    animation: server-status-pulse 1.2s ease-in-out infinite alternate;
+}
+@keyframes server-status-pulse {
+    from { opacity: 0.3; }
+    to { opacity: 1; }
+}
+
+#launch_button {
+    position: relative;
+    /* The progress ring sits just outside the pill. */
+    overflow: visible;
+    width: 150px;
+    height: 56px;
+    padding: 0px;
+    border: 0px;
+    border-radius: var(--radius-pill);
+    background: var(--accent);
+    color: var(--accent-ink);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    letter-spacing: normal;
+    text-transform: none;
+    transition: transform 160ms ease, filter 160ms ease, background 600ms ease;
+}
+#launch_button:hover {
+    filter: brightness(1.07);
+    transform: translateY(-1px);
+}
+#launch_button:active {
+    transform: translateY(0px);
+}
+#launch_button:disabled:not([launching]) {
+    filter: grayscale(0.6) brightness(0.8);
+    transform: none;
+}
+/* The selected modpack is already running. */
+#launch_button[running]:disabled:not([launching]) {
+    filter: none;
+    background: rgba(126, 226, 160, 0.16);
+    color: var(--ok);
+    box-shadow: inset 0 0 0 1px rgba(126, 226, 160, 0.45), 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+#launch_button[launching],
+#launch_button[launching]:disabled {
+    cursor: progress;
+    filter: none;
+    opacity: 1;
+    transform: none;
+}
+#launch_content,
+#launch_details {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    max-width: 134px;
+}
+#launch_details {
+    display: none;
+}
+/* Set like the meridian wordmark (#brandName). */
+.launchLabel {
+    font-size: 20px;
+    font-weight: var(--display-weight);
+    letter-spacing: var(--display-tracking);
+    text-transform: lowercase;
+}
+.launchSub {
+    max-width: 100%;
+    font-size: 10.5px;
+    font-weight: 500;
+    opacity: 0.8;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.launchSub:empty {
+    display: none;
+}
+#launch_progress_label {
+    font-size: 11.5px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+/* Launch step under the picker and the button, e.g. "Downloading files..". */
+#launchStatus {
+    position: absolute;
+    top: calc(100% + 10px);
+    left: 0px;
+    right: 0px;
+    display: none;
+    padding: 0px 18px;
+    text-align: right;
+    font-size: 12px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.72);
+    text-shadow: 0 1px 6px rgba(0, 0, 0, 0.5);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+#landingContainer[launching] #launchStatus {
+    display: block;
+}
+/* Progress ring around the pill while launching. */
+#launch_progress {
+    position: absolute;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 200ms ease;
+}
+#launch_button[launching] #launch_progress {
+    opacity: 1;
+}
+#launch_progress path {
+    fill: none;
+    stroke-width: 3px;
+    stroke-linecap: round;
+}
+.launchRingTrack {
+    stroke: rgba(255, 255, 255, 0.16);
+}
+.launchRingFill {
+    stroke: var(--accent);
+    stroke-dasharray: 100;
+    stroke-dashoffset: 100;
+    filter: drop-shadow(0 0 4px var(--accent-soft));
+    transition: stroke-dashoffset 250ms ease;
+}
+
+/* Narrow windows: drop the outer dial tiles so they clear the side blocks. */
+@media (max-width: 1239px) {
+    /* Only the neighbouring tiles remain, so the hero can come closer. */
+    #heroBlock {
+        width: calc(50% - 150px - var(--edge));
+    }
+    #serverPicker {
+        width: 210px;
+    }
+    #landingContainer[dialHidden] #serverPicker {
+        width: 260px;
+    }
+    .serverTile[far],
+    .serverTile[edge] {
+        opacity: 0 !important;
+        pointer-events: none;
+    }
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * Mod and pack tiles (settings, modpacks)                                     *
+ *                                                                             *
+ ******************************************************************************/
+
+.modFolder {
+    flex-shrink: 0;
+    width: 30px;
+    height: 30px;
+    padding: 0px;
+    border: 0px;
+    border-radius: var(--radius-pill);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.6);
+    cursor: pointer;
+    transition: background 120ms ease, color 120ms ease;
+}
+.modFolder svg {
+    width: 17px;
+    height: 17px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.7;
+    stroke-linejoin: round;
+}
+.modFolder:hover,
+.modFolder:focus-visible {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+}
+.modFolder:disabled {
+    opacity: 0.3;
+    cursor: default;
+    background: transparent;
+}
+.modIcon {
+    position: relative;
+    overflow: hidden;
+    flex-shrink: 0;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: color-mix(in srgb, var(--accent) var(--shade, 50%), #021a30);
+    color: #ffffff;
+    font-size: 12.5px;
+    font-weight: 700;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+}
+/* The mod's own icon covers the letter once it loads. */
+.modIcon img {
+    position: absolute;
+    inset: 0px;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+.modIcon[hasIcon] {
+    background: rgba(255, 255, 255, 0.06);
+    color: transparent;
+    text-shadow: none;
+}
+.modIcon[pixelated] img {
+    image-rendering: pixelated;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * Landing View (News drawer)                                                  *
+ *                                                                             *
+ ******************************************************************************/
+
+#newsContainer {
+    position: absolute;
+    top: 82px;
+    right: var(--edge);
+    bottom: 112px;
+    width: 420px;
+    z-index: 6;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    border-radius: var(--radius-panel);
+    background: rgba(12, 14, 20, 0.68);
+    backdrop-filter: blur(28px) saturate(140%);
+    border: 1px solid var(--line);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+    overflow: hidden;
+    -webkit-user-select: initial;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(8px);
+    transition:
+        opacity 220ms ease,
+        transform 220ms ease,
+        visibility 0s linear 220ms;
+}
+#landingContainer[news] > #newsContainer {
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+    transition:
+        opacity 420ms var(--dial-ease),
+        transform 420ms var(--dial-ease),
+        visibility 0s linear 0s;
+}
+#newsHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 16px 12px 10px 20px;
+    flex-shrink: 0;
+}
+#newsHeaderText {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+#newsHeaderText h2 {
+    margin: 0px;
+    font-size: 18px;
+    font-weight: var(--display-weight);
+    letter-spacing: var(--display-tracking);
+}
+#newsHeaderText span {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.72);
+}
+#newsClose {
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-pill);
+    border: 0px;
+    background: transparent;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 160ms ease;
+}
+#newsClose:hover {
+    background: rgba(255, 255, 255, 0.14);
+}
+#newsClose svg {
+    width: 14px;
+    height: 14px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+}
+
+#newsContent {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    margin: 0px 12px 14px;
+    border-radius: var(--radius-card);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    overflow: hidden;
+}
+/* Drop shadow displayed when content is scrolled out of view. */
+#newsContent:before {
+    content: '';
+    position: absolute;
+    left: 0px;
+    right: 0px;
+    z-index: 1;
+    height: 8px;
+    margin-top: var(--news-head, 0px);
+    background: linear-gradient(rgba(0, 0, 0, 0.35), transparent);
+    opacity: 0;
+    transition: opacity 0.25s ease;
+    pointer-events: none;
+}
+#newsContent[scrolled]:before {
+    opacity: 1;
+}
+#newsStatusContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 14px 14px 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    flex-shrink: 0;
+}
+#newsStatusContent {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+#newsTitleContainer {
+    display: flex;
+}
+#newsArticleTitle {
+    font-size: 15px;
+    font-weight: var(--display-weight);
+    letter-spacing: var(--display-tracking);
+    line-height: 1.3;
+    color: var(--text-1);
+    text-decoration: none;
+    transition: color 160ms ease;
+    outline: none;
+}
+#newsArticleTitle:hover,
+#newsArticleTitle:focus {
+    color: var(--accent);
+}
+#newsMetaContainer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 10px;
+}
+#newsArticleDateWrapper,
+#newsArticleAuthorWrapper {
+    display: flex;
+}
+#newsArticleDate {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.7);
+}
+#newsArticleAuthor,
+#newsArticleComments {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.72);
+    text-decoration: none;
+    outline: none;
+}
+#newsArticleComments:hover,
+#newsArticleComments:focus {
+    color: var(--text-1);
+}
+#newsNavigationContainer {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    -webkit-user-select: none;
+}
+#newsNavigationStatus {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.72);
+    margin: 0px 8px;
+}
+#newsNavigateLeft,
+#newsNavigateRight {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-pill);
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     outline: none;
     cursor: pointer;
     transition: background 160ms ease;
 }
-#server_selection_button:before {
-    content: 'Server';
-    font-size: 10.5px;
-    font-weight: 650;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--text-3);
+#newsNavigateLeft:hover,
+#newsNavigateRight:hover {
+    background: rgba(255, 255, 255, 0.14);
 }
-#server_selection_button:after {
-    content: '';
-    position: absolute;
-    right: 12px;
-    top: 50%;
-    width: 7px;
-    height: 7px;
-    margin-top: -6px;
-    border-right: 2px solid var(--text-2);
-    border-bottom: 2px solid var(--text-2);
-    transform: rotate(45deg);
-    transition: transform 200ms var(--ease-out);
+#newsNavigationLeftSVG,
+#newsNavigationRightSVG {
+    width: 11px;
 }
-#server_selection_button:hover {
-    background: var(--glass-hover);
+#newsNavigationLeftSVG {
+    transform: rotate(-90deg);
 }
-#server_selection_button:hover:after {
-    transform: translateY(2px) rotate(45deg);
+#newsNavigationRightSVG {
+    transform: rotate(90deg);
 }
-.serverSelectionName {
-    max-width: 100%;
-    font-size: 14px;
-    font-weight: 700;
-    letter-spacing: 0px;
-    text-transform: none;
+#newsNavigationContainer .arrowLine {
+    stroke-width: 3px !important;
+}
+#newsArticleContainer {
+    flex: 1;
+    min-height: 0;
+}
+#newsArticleContent {
+    height: 100%;
+}
+#newsArticleContentScrollable {
+    height: 100%;
+    overflow-y: auto;
+    box-sizing: border-box;
+    padding: 0px 14px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: rgba(255, 255, 255, 0.88);
+}
+#newsArticleContentScrollable h1,
+#newsArticleContentScrollable h2,
+#newsArticleContentScrollable h3,
+#newsArticleContentScrollable strong {
     color: var(--text-1);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
 }
-
-/* Progress bar: amethyst growing along the track. */
-#launch_progress[value] {
-    height: 6px;
-    width: 100% !important;
-    border-radius: 6px;
-    overflow: hidden;
-    -webkit-appearance: none;
+#newsArticleContentScrollable img,
+#newsArticleContentScrollable iframe {
+    max-width: 100%;
+    display: block;
+    margin: 0 auto;
+    border-radius: 10px;
 }
-#launch_progress[value]::-webkit-progress-bar {
-    background-color: rgba(236, 226, 255, 0.1);
-    border-radius: 6px;
+#newsArticleContentScrollable a {
+    color: var(--accent);
+    outline: none;
 }
-#launch_progress[value]::-webkit-progress-value {
-    border-radius: 6px;
-    background:
-        repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.28) 0px, rgba(255, 255, 255, 0.28) 6px, rgba(255, 255, 255, 0) 6px, rgba(255, 255, 255, 0) 14px),
-        linear-gradient(90deg, var(--accent-lo), var(--accent-hi));
-    background-size: 28px 100%, 100% 100%;
-    animation: facetDrift 1.1s linear infinite;
+#newsArticleContentScrollable a:hover,
+#newsArticleContentScrollable a:focus {
+    color: var(--text-1);
 }
-@keyframes facetDrift {
-    to {
-        background-position: 28px 0px, 0px 0px;
-    }
-}
-
-/* Span which displays information about the status of the launch process. */
-#launch_details_text {
-    font-size: 12px;
-    letter-spacing: 0.02em;
-    text-transform: none;
+.bbCodeSpoilerButton {
+    background: none;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    font-size: 14px;
     font-weight: 600;
+    width: 100%;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 12px;
+}
+.bbCodeSpoilerButton:hover,
+.bbCodeSpoilerButton:focus {
+    color: var(--accent);
+}
+.bbCodeSpoilerText {
+    display: none;
+    padding: 12px 0px;
+    border-bottom: 1px solid var(--line);
+}
+.newsArticleSpacerTop {
+    height: 14px;
+}
+.newsArticleSpacerBot {
+    height: 18px;
+}
+#newsErrorContainer {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+    justify-content: center;
+    padding-bottom: 24px;
+}
+#newsErrorFailed {
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+    gap: 14px;
+}
+.newsErrorContent {
+    font-size: 14px;
+    font-weight: 500;
     color: var(--text-2);
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    overflow: hidden;
+}
+#newsErrorLoading {
+    display: flex;
+    width: 150px;
+}
+#nELoadSpan {
+    white-space: pre;
+}
+#newsErrorRetry {
+    height: 40px;
+    padding: 0px 16px;
+    border-radius: var(--radius-pill);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(255, 255, 255, 0.06);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 160ms ease;
+}
+#newsErrorRetry:hover,
+#newsErrorRetry:focus {
+    background: rgba(255, 255, 255, 0.14);
 }
 
 /*******************************************************************************
@@ -3841,7 +5408,7 @@ input:checked + .toggleSwitchSlider:before {
     justify-content: center;
     width: 100%;
     height: calc(100% - 22px);
-    background: rgba(7, 6, 10, 0.5);
+    background: rgba(2, 26, 48, 0.5);
 }
 
 /* Main overlay content: a glass dialog. */
@@ -3856,7 +5423,7 @@ input:checked + .toggleSwitchSlider:before {
     box-sizing: border-box;
     padding: 26px 26px 20px;
     text-align: left;
-    border-radius: var(--radius-l);
+    border-radius: var(--radius-panel);
     background: var(--glass-strong);
     backdrop-filter: var(--glass-blur);
     border: 1px solid var(--line);
@@ -3888,9 +5455,9 @@ input:checked + .toggleSwitchSlider:before {
 /* Overlay title styles. */
 #overlayTitle {
     font-size: 19px;
+    font-weight: var(--display-weight);
+    letter-spacing: var(--display-tracking);
     line-height: 1.3;
-    font-weight: 700;
-    letter-spacing: -0.01em;
     -webkit-user-select: initial;
 }
 
@@ -3929,7 +5496,7 @@ input:checked + .toggleSwitchSlider:before {
     max-height: 82%;
     box-sizing: border-box;
     padding: 24px 22px 18px;
-    border-radius: var(--radius-l);
+    border-radius: var(--radius-panel);
     background: var(--glass-strong);
     backdrop-filter: var(--glass-blur);
     border: 1px solid var(--line);
@@ -3941,8 +5508,8 @@ input:checked + .toggleSwitchSlider:before {
 #serverSelectHeader,
 #accountSelectHeader {
     font-size: 19px;
-    font-weight: 700;
-    letter-spacing: -0.01em;
+    font-weight: var(--display-weight);
+    letter-spacing: var(--display-tracking);
     color: var(--text-1);
     margin: 0px 4px 16px;
 }
@@ -3969,7 +5536,7 @@ input:checked + .toggleSwitchSlider:before {
 /* Content container for a server listing. */
 .serverListing {
     border: 1px solid var(--line);
-    border-radius: var(--radius-m);
+    border-radius: var(--radius-card);
     padding: 10px;
     width: 100%;
     display: flex;
@@ -4002,7 +5569,7 @@ input:checked + .toggleSwitchSlider:before {
 .accountListing {
     color: var(--text-1);
     border: 1px solid var(--line);
-    border-radius: var(--radius-m);
+    border-radius: var(--radius-card);
     padding: 12px 16px;
     width: 100%;
     display: flex;
@@ -4035,6 +5602,13 @@ input:checked + .toggleSwitchSlider:before {
     padding-left: 12px;
     font-size: 14px;
     font-weight: 600;
+}
+
+/* Modpack logo on the mods tab, round like the modpack picker. */
+.settingsSelServTile {
+    width: 48px;
+    height: 48px;
+    font-size: 15px;
 }
 
 /* Server listing image. */
@@ -4085,7 +5659,7 @@ input:checked + .toggleSwitchSlider:before {
     display: flex;
     align-items: center;
     height: 18px;
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     background: var(--accent-soft);
     color: var(--accent-hi);
     padding: 0px 8px;
@@ -4158,84 +5732,394 @@ input:checked + .toggleSwitchSlider:before {
  *                                                                             *
  ******************************************************************************/
 
-/* Loading container, placed above everything. */
+/* Loading container, placed above everything. The splash keeps the brand
+   navy whatever the theme; splash.js draws a random scene on top of it. */
 #loadingContainer {
     position: absolute;
     z-index: 400;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     width: 100%;
     height: calc(100% - 22px);
-    background: radial-gradient(circle at 50% 50%, rgba(36, 19, 58, 0.55) 0%, rgba(7, 6, 10, 0.85) 60%);
+    overflow: hidden;
+    background: radial-gradient(ellipse at 50% 48%, #0b3358 0%, #04192e 48%, #010a14 100%);
 }
 
-/* Loading content container. */
-#loadingContent {
-    position: relative;
+#splashBack,
+#splashFront {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
+#splashBack {
+    z-index: 1;
+}
+#splashFront {
+    z-index: 3;
+}
+
+/* The compass mark, built and animated part by part in splash.js. */
+#splashLogo {
+    position: absolute;
+    z-index: 2;
+    top: 50%;
+    left: 50%;
+    width: 128px;
+    height: 128px;
+    overflow: visible;
+    transform: translate(-50%, -50%);
+    filter: drop-shadow(0 12px 32px rgba(0, 0, 0, 0.45));
+}
+
+#splashWordmark {
+    position: absolute;
+    z-index: 4;
+    bottom: 40px;
+    width: 100%;
+    text-align: center;
+    font-size: 15px;
+    font-weight: var(--display-weight);
+    letter-spacing: 0.32em;
+    text-transform: lowercase;
+    color: rgba(225, 238, 250, 0.82);
+    text-shadow: 0 2px 16px rgba(0, 0, 0, 0.5);
+    animation: splashWordmarkIn 1.4s 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+@keyframes splashWordmarkIn {
+    from {
+        opacity: 0;
+        letter-spacing: 0.8em;
+    }
+}
+
+
+/*******************************************************************************
+ *                                                                             *
+ * Settings View (Language tab)                                                *
+ *                                                                             *
+ ******************************************************************************/
+
+.langFlag {
+    display: block;
+    flex: none;
+    width: 34px;
+    height: 23px;
+    border-radius: 4px;
+    object-fit: cover;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12), 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+/* The language in use, with samples of its formats. */
+#langCurrent {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+    width: 88%;
+    box-sizing: border-box;
+    padding: 22px 26px;
+    border-radius: var(--radius-card);
+    border: 1px solid var(--accent-line);
+    background: linear-gradient(120deg, rgba(10, 80, 138, 0.55), rgba(0, 68, 119, 0.35));
+    box-shadow: var(--sheen);
+}
+#langCurrentFlag {
+    width: 66px;
+    height: 44px;
+    border-radius: 8px;
+}
+#langCurrentText {
+    flex: 1;
+    min-width: 0;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
+    gap: 6px;
+}
+#langCurrentTitle {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    column-gap: 12px;
+}
+#langCurrentName {
+    font-size: 24px;
+    font-weight: var(--display-weight);
+    letter-spacing: -0.02em;
+    color: var(--text-1);
+}
+#langCurrentMeta {
+    font-size: 14px;
+    color: var(--text-2);
+}
+#langCurrentStatus {
+    display: flex;
+    align-items: flex-start;
+    gap: 7px;
+    font-size: 13px;
+    color: var(--text-2);
+}
+#langCurrentStatus svg {
+    flex: none;
+    width: 15px;
+    height: 15px;
+    margin-top: 1px;
+    fill: none;
+    stroke: var(--ok);
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+#langCurrent[pending] #langCurrentStatus svg {
+    stroke: var(--warn);
 }
 
-/* Spinner container. */
-#loadSpinnerContainer {
+#langOptions {
+    width: 88%;
+    margin-top: 18px;
+    border-top: 1px solid var(--line);
+}
+#langOptions .settingsFieldContainer {
+    width: 100%;
+}
+
+/* All languages: heading, search and the cards. */
+#langAllHead {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+    width: 88%;
+    margin: 30px 0px 14px;
+}
+#langAllHead .apSectionTitle {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text-1);
+}
+#langSearch {
     position: relative;
     display: flex;
     align-items: center;
-    justify-content: center;
+    flex: 0 1 300px;
 }
-
-/* Stationary logo. */
-#loadCenterImage {
+#langSearch svg {
     position: absolute;
-    width: 72px;
-    height: 72px;
-    border-radius: 20px;
-    animation: breathe 2.4s ease-in-out infinite;
+    left: 14px;
+    width: 16px;
+    height: 16px;
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.72);
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    pointer-events: none;
+}
+#langSearchInput {
+    width: 100%;
+    height: 40px;
+    box-sizing: border-box;
+    padding: 0px 16px 0px 40px;
+    border-radius: var(--radius-m);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(255, 255, 255, 0.06);
+    color: #ffffff;
+    font-family: var(--font-ui);
+    font-size: 13.5px;
+    outline: none;
+    transition: border-color 160ms ease, background 160ms ease;
+}
+#langSearchInput::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+#langSearchInput:focus {
+    border-color: var(--accent-line);
+    background: rgba(255, 255, 255, 0.08);
+}
+#langSearchInput::-webkit-search-cancel-button {
+    -webkit-appearance: none;
 }
 
-/* Rotating faceted ring. */
-#loadSpinnerImage {
-    width: 150px;
-    height: 150px;
-    z-index: 400;
+#langList {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+    align-items: start;
+    gap: 12px;
+    width: 88%;
+}
+.langCard {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: 14px;
+    padding: 14px 16px;
+    border-radius: 16px;
+    border: 1px solid var(--line);
+    background: var(--glass-sunk);
+    cursor: pointer;
+    outline: none;
+    transition: background 160ms var(--ease-out), border-color 160ms var(--ease-out);
+}
+.langCard:hover {
+    background: var(--glass-hover);
+}
+.langCard:focus-visible {
+    border-color: var(--accent-line);
+}
+.langCard[selected] {
+    border-color: var(--accent-line);
+    background: linear-gradient(120deg, rgba(10, 80, 138, 0.5), rgba(0, 68, 119, 0.3));
+}
+.langText {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+}
+.langName {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-1);
+}
+.langSub {
+    font-size: 12.5px;
+    color: var(--text-2);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.langRadio {
+    width: 18px;
+    height: 18px;
+    box-sizing: border-box;
+    border-radius: 50%;
+    border: 1.5px solid var(--text-3);
+    transition: border-color 160ms var(--ease-out), box-shadow 160ms var(--ease-out);
+}
+.langCard[selected] .langRadio {
+    border-color: var(--accent);
+    box-shadow: inset 0 0 0 3px var(--basalt-1), inset 0 0 0 9px var(--accent);
 }
 
-@keyframes breathe {
-    50% {
-        transform: scale(0.96);
-        filter: brightness(1.15);
-    }
+/* Countries of a language spoken in more than one. */
+.langChips {
+    grid-column: 2 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+}
+.langChip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px 6px 8px;
+    border-radius: 10px;
+    border: 1px solid var(--line-strong);
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-1);
+    font-family: var(--font-ui);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    outline: none;
+    transition: background 160ms var(--ease-out), border-color 160ms var(--ease-out);
+}
+.langChip .langFlag {
+    width: 22px;
+    height: 15px;
+    border-radius: 3px;
+}
+.langChip:hover,
+.langChip:focus-visible {
+    background: var(--glass-hover);
+}
+.langChip[selected] {
+    border-color: var(--accent-line);
+    background: rgba(0, 68, 119, 0.75);
 }
 
-/* Rotating animation for the spinner. */
-@keyframes rotating {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
+#langEmpty {
+    width: 88%;
+    padding: 12px 2px;
+    font-size: 13px;
+    color: var(--text-3);
 }
-
-/* Class which is applied when the spinner image is spinning. */
-.rotating {
-    animation: rotating 2.2s linear infinite;
-}
-
-/* News open: the news button stays in the dock and points down to close. */
-#landingContainer:has(#newsContainer[style*="top: 0px"]) #newsButtonSVG {
-    transform: rotate(180deg);
-}
-
-/* No social links configured: drop the rail divider. */
-#mediaContent:not(:has(#externalMedia a:not([href="#"]))) .mediaDivider {
+#langEmpty:empty {
     display: none;
 }
 
-/* Visible avatar tile before a skin loads. */
-#avatarContainer {
+#langFooter {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    width: 88%;
+    box-sizing: border-box;
+    margin-top: 26px;
+    padding: 16px 20px;
+    border-radius: 16px;
     border: 1px solid var(--line);
+    background: var(--glass-sunk);
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--text-2);
+}
+#langHelpButton {
+    flex: none;
+    padding: 7px 16px;
+    border-radius: var(--radius-m);
+    border: 1px solid var(--line-strong);
+    color: var(--text-1);
+    font-size: 12.5px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background 160ms var(--ease-out), border-color 160ms var(--ease-out);
+}
+#langHelpButton:hover,
+#langHelpButton:focus-visible {
+    background: var(--accent-soft);
+    border-color: var(--accent-line);
+    outline: none;
+}
+
+
+/* Languages without a translation yet. */
+.langCard[disabled] {
+    cursor: default;
+    opacity: 0.55;
+}
+.langCard[disabled]:hover {
+    background: var(--glass-sunk);
+}
+.langInProgress {
+    padding: 4px 10px;
+    border-radius: var(--radius-s);
+    border: 1px dashed var(--line-strong);
+    color: var(--text-3);
+    font-size: 11.5px;
+    font-weight: 600;
+}
+
+/* Interface scale shown for a moment after Ctrl + / Ctrl -. */
+#zoomIndicator {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    z-index: 1000;
+    padding: 10px 20px;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--line-strong);
+    background: var(--glass-strong);
+    backdrop-filter: var(--glass-blur);
+    box-shadow: var(--shadow-float);
+    color: var(--text-1);
+    font-size: 18px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    pointer-events: none;
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.96);
+    transition: opacity 180ms var(--ease-out), transform 180ms var(--ease-out);
+}
+#zoomIndicator[shown] {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
 }

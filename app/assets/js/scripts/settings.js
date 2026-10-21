@@ -3,6 +3,7 @@ const os     = require('os')
 const semver = require('semver')
 
 const DropinModUtil  = require('./assets/js/dropinmodutil')
+const Screenshots    = require('./assets/js/screenshots')
 const { MSFT_OPCODE, MSFT_REPLY_TYPE, MSFT_ERROR } = require('./assets/js/ipcconstants')
 
 const settingsState = {
@@ -259,6 +260,25 @@ function setupSettingsTabs(){
             }
         }
     })
+    const pill = document.createElement('span')
+    pill.id = 'settingsNavPill'
+    document.getElementById('settingsNavItemsContent').prepend(pill)
+    // Settings is hidden while the launcher starts, so place it once it shows.
+    new ResizeObserver(() => moveSettingsNavPill(false)).observe(document.getElementById('settingsNavItemsContent'))
+}
+
+/**
+ * Slide the highlight behind the selected nav item.
+ *
+ * @param {boolean} animate False to jump straight there.
+ */
+function moveSettingsNavPill(animate = true){
+    const pill = document.getElementById('settingsNavPill')
+    const item = document.querySelector('.settingsNavItem[selected]')
+    if(pill == null || item == null || item.offsetHeight === 0) return
+    pill.toggleAttribute('still', !animate)
+    pill.style.height = item.offsetHeight + 'px'
+    pill.style.transform = `translateY(${item.offsetTop}px)`
 }
 
 /**
@@ -279,35 +299,28 @@ function settingsNavItemListener(ele, fade = true){
         }
     }
     ele.setAttribute('selected', '')
+    closePackDrawer()
     let prevTab = selectedSettingsTab
     selectedSettingsTab = ele.getAttribute('rSc')
 
-    document.getElementById(prevTab).onscroll = null
-    document.getElementById(selectedSettingsTab).onscroll = settingsTabScrollListener
+    const prev = document.getElementById(prevTab)
+    const next = document.getElementById(selectedSettingsTab)
+    prev.onscroll = null
+    next.onscroll = settingsTabScrollListener
+    moveSettingsNavPill(fade)
 
-    if(fade){
-        $(`#${prevTab}`).fadeOut(250, () => {
-            $(`#${selectedSettingsTab}`).fadeIn({
-                duration: 250,
-                start: () => {
-                    settingsTabScrollListener({
-                        target: document.getElementById(selectedSettingsTab)
-                    })
-                }
-            })
-        })
-    } else {
-        $(`#${prevTab}`).hide(0, () => {
-            $(`#${selectedSettingsTab}`).show({
-                duration: 0,
-                start: () => {
-                    settingsTabScrollListener({
-                        target: document.getElementById(selectedSettingsTab)
-                    })
-                }
-            })
-        })
+    // Hide every other tab too, in case clicks came faster than the fades.
+    for(const tab of document.getElementsByClassName('settingsTab')){
+        if(tab !== prev && tab !== next){
+            tab.getAnimations().forEach(a => a.cancel())
+            tab.style.display = 'none'
+        }
     }
+    next.scrollTop = 0
+    // The old tab lifts away while the new one rises into its place.
+    animateOut(prev, fade ? 120 : 0, { lift: 6, float: true })
+    animateIn(next, fade ? 320 : 0, { rise: 12, delay: 80 })
+    settingsTabScrollListener({ target: next })
 }
 
 const settingsNavDone = document.getElementById('settingsNavDone')
@@ -327,6 +340,7 @@ function fullSettingsSave() {
     ConfigManager.save()
     saveDropinModConfiguration()
     saveShaderpackSettings()
+    saveResourcepackSettings()
 }
 
 /* Closes the settings view and saves all data. */
@@ -348,6 +362,17 @@ document.getElementById('settingsAddMojangAccount').onclick = (e) => {
         loginViewOnCancel = VIEWS.settings
         loginViewOnSuccess = VIEWS.settings
         loginCancelEnabled(true)
+    })
+}
+
+// Bind the add offline account button.
+document.getElementById('settingsAddOfflineAccount').onclick = () => {
+    switchView(getCurrentView(), VIEWS.loginOptions, 500, 500, () => {
+        loginOptionsViewOnLoginSuccess = VIEWS.settings
+        loginOptionsViewOnLoginCancel = VIEWS.loginOptions
+        loginOptionsViewOnCancel = VIEWS.settings
+        loginOptionsCancelEnabled(true)
+        loginOptionsShowOffline(true)
     })
 }
 
@@ -519,7 +544,8 @@ function processLogOut(val, isLastAccount){
             ipcRenderer.send(MSFT_OPCODE.OPEN_LOGOUT, uuid, isLastAccount)
         })
     } else {
-        AuthManager.removeMojangAccount(uuid).then(() => {
+        const remove = targetAcc.type === 'offline' ? AuthManager.removeOfflineAccount : AuthManager.removeMojangAccount
+        remove(uuid).then(() => {
             if(!isLastAccount && uuid === prevSelAcc.uuid){
                 const selAcc = ConfigManager.getSelectedAccount()
                 refreshAuthAccountSelected(selAcc.uuid)
@@ -620,6 +646,7 @@ function refreshAuthAccountSelected(uuid){
 
 const settingsCurrentMicrosoftAccounts = document.getElementById('settingsCurrentMicrosoftAccounts')
 const settingsCurrentMojangAccounts = document.getElementById('settingsCurrentMojangAccounts')
+const settingsCurrentOfflineAccounts = document.getElementById('settingsCurrentOfflineAccounts')
 
 /**
  * Add auth account elements for each one stored in the authentication database.
@@ -634,13 +661,14 @@ function populateAuthAccounts(){
 
     let microsoftAuthAccountStr = ''
     let mojangAuthAccountStr = ''
+    let offlineAuthAccountStr = ''
 
     authKeys.forEach((val) => {
         const acc = authAccounts[val]
 
         const accHtml = `<div class="settingsAuthAccount" uuid="${acc.uuid}">
             <div class="settingsAuthAccountLeft">
-                <img class="settingsAuthAccountImage" alt="${acc.displayName}" src="https://mc-heads.net/body/${acc.uuid}/60">
+                <img class="settingsAuthAccountImage" alt="${acc.displayName}" src="https://mc-heads.net/body/${getAccountSkinId(acc)}/60">
             </div>
             <div class="settingsAuthAccountRight">
                 <div class="settingsAuthAccountDetails">
@@ -664,6 +692,8 @@ function populateAuthAccounts(){
 
         if(acc.type === 'microsoft') {
             microsoftAuthAccountStr += accHtml
+        } else if(acc.type === 'offline') {
+            offlineAuthAccountStr += accHtml
         } else {
             mojangAuthAccountStr += accHtml
         }
@@ -672,6 +702,7 @@ function populateAuthAccounts(){
 
     settingsCurrentMicrosoftAccounts.innerHTML = microsoftAuthAccountStr
     settingsCurrentMojangAccounts.innerHTML = mojangAuthAccountStr
+    settingsCurrentOfflineAccounts.innerHTML = offlineAuthAccountStr
 }
 
 /**
@@ -708,6 +739,61 @@ document.getElementById('settingsGameHeight').addEventListener('keydown', (e) =>
 const settingsModsContainer = document.getElementById('settingsModsContainer')
 
 /**
+ * Escape text for use in HTML content and attributes.
+ */
+function escapeSettingsHTML(str){
+    return String(str).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', '\'': '&#39;' })[c])
+}
+
+// Icon lookups for tiles in the HTML being built, keyed by their data-icon.
+const settingsIconJobs = new Map()
+let settingsIconSeq = 0
+
+/**
+ * Markup for an icon tile: the name's first letter until the icon is known.
+ * Call paintSettingsIcons once the markup is in the page.
+ *
+ * @param {string} name The display name.
+ * @param {function(): (string|null|undefined)} peek The already resolved icon, if any.
+ * @param {function(): Promise.<string|null>} load Resolves the icon.
+ */
+function settingsIconTile(name, peek, load){
+    const key = String(++settingsIconSeq)
+    settingsIconJobs.set(key, { peek, load })
+    const letter = (String(name).match(/[A-Za-z0-9]/) || ['?'])[0].toUpperCase()
+    return `<span class="modIcon settingsModIcon" data-icon="${key}" style="--shade: ${Math.round(38 + modShade(String(name)) * 30)}%">${letter}</span>`
+}
+
+/**
+ * Put the icons on the tiles inside an element.
+ */
+function paintSettingsIcons(root){
+    for(const tile of root.querySelectorAll('.settingsModIcon[data-icon]')){
+        const key = tile.getAttribute('data-icon')
+        const job = settingsIconJobs.get(key)
+        settingsIconJobs.delete(key)
+        tile.removeAttribute('data-icon')
+        if(job == null) continue
+        const show = (url) => {
+            if(url == null || !tile.isConnected) return
+            const img = document.createElement('img')
+            img.alt = ''
+            img.onload = () => {
+                tile.setAttribute('hasIcon', '')
+                // Pixel-art icons stay crisp when scaled up.
+                tile.toggleAttribute('pixelated', img.naturalWidth < 30)
+            }
+            img.onerror = () => img.remove()
+            img.src = url
+            tile.appendChild(img)
+        }
+        const cached = job.peek()
+        if(cached !== undefined) show(cached)
+        else job.load().then(show)
+    }
+}
+
+/**
  * Resolve and update the mods on the UI.
  */
 async function resolveModsForUI(){
@@ -720,6 +806,8 @@ async function resolveModsForUI(){
 
     document.getElementById('settingsReqModsContent').innerHTML = modStr.reqMods
     document.getElementById('settingsOptModsContent').innerHTML = modStr.optMods
+    paintSettingsIcons(document.getElementById('settingsReqModsContent'))
+    paintSettingsIcons(document.getElementById('settingsOptModsContent'))
 }
 
 /**
@@ -744,6 +832,7 @@ function parseModulesForUI(mdls, submodules, servConf){
                     <div class="settingsModContent">
                         <div class="settingsModMainWrapper">
                             <div class="settingsModStatus"></div>
+                            ${settingsIconTile(mdl.rawModule.name, () => IconCache.peek(mdl), () => IconCache.mod(mdl))}
                             <div class="settingsModDetails">
                                 <span class="settingsModName">${mdl.rawModule.name}</span>
                                 <span class="settingsModVersion">v${mdl.mavenComponents.version}</span>
@@ -768,6 +857,7 @@ function parseModulesForUI(mdls, submodules, servConf){
                     <div class="settingsModContent">
                         <div class="settingsModMainWrapper">
                             <div class="settingsModStatus"></div>
+                            ${settingsIconTile(mdl.rawModule.name, () => IconCache.peek(mdl), () => IconCache.mod(mdl))}
                             <div class="settingsModDetails">
                                 <span class="settingsModName">${mdl.rawModule.name}</span>
                                 <span class="settingsModVersion">v${mdl.mavenComponents.version}</span>
@@ -863,10 +953,12 @@ async function resolveDropinModsForUI(){
     let dropinMods = ''
 
     for(dropin of CACHE_DROPIN_MODS){
+        const jar = path.join(CACHE_SETTINGS_MODS_DIR, dropin.fullName)
         dropinMods += `<div id="${dropin.fullName}" class="settingsBaseMod settingsDropinMod" ${!dropin.disabled ? 'enabled' : ''}>
                     <div class="settingsModContent">
                         <div class="settingsModMainWrapper">
                             <div class="settingsModStatus"></div>
+                            ${settingsIconTile(dropin.name, () => IconCache.peekFile(jar), () => IconCache.jar(jar))}
                             <div class="settingsModDetails">
                                 <span class="settingsModName">${dropin.name}</span>
                                 <div class="settingsDropinRemoveWrapper">
@@ -883,6 +975,7 @@ async function resolveDropinModsForUI(){
     }
 
     document.getElementById('settingsDropinModsContent').innerHTML = dropinMods
+    paintSettingsIcons(document.getElementById('settingsDropinModsContent'))
 }
 
 /**
@@ -974,6 +1067,8 @@ document.addEventListener('keydown', async (e) => {
             await reloadDropinMods()
             saveShaderpackSettings()
             await resolveShaderpacksForUI()
+            saveResourcepackSettings()
+            await resolveResourcepacksForUI()
         }
     }
 })
@@ -985,11 +1080,49 @@ async function reloadDropinMods(){
     bindModsToggleSwitch()
 }
 
-// Shaderpack
+// Shaderpacks and resource packs.
 
 let CACHE_SETTINGS_INSTANCE_DIR
 let CACHE_SHADERPACKS
 let CACHE_SELECTED_SHADERPACK
+let CACHE_RESOURCEPACKS
+let CACHE_SETTINGS_MC_VERSION
+
+/**
+ * Markup for a shaderpack or resource pack row.
+ *
+ * @param {{fullName: string, name: string, dir: boolean}} pack The pack.
+ * @param {string} file The pack's path on disk.
+ * @param {string} attr The toggle's attribute that carries the pack's fullName.
+ * @param {boolean} enabled Whether the pack is on.
+ */
+function packRowHTML(pack, file, attr, enabled){
+    return `<div class="settingsBaseMod settingsDropinMod settingsPack" ${enabled ? 'enabled' : ''}>
+                    <div class="settingsModContent">
+                        <div class="settingsModMainWrapper">
+                            <div class="settingsModStatus"></div>
+                            ${settingsIconTile(pack.name, () => IconCache.peekFile(file), () => IconCache.pack(file))}
+                            <div class="settingsModDetails">
+                                <span class="settingsModName">${escapeSettingsHTML(pack.name)}</span>
+                                <span class="settingsModVersion">${Lang.queryJS(pack.dir ? 'settings.packs.folder' : 'settings.packs.zip')}</span>
+                            </div>
+                        </div>
+                        <label class="toggleSwitch">
+                            <input type="checkbox" ${attr}="${escapeSettingsHTML(pack.fullName)}" ${enabled ? 'checked' : ''}>
+                            <span class="toggleSwitchSlider"></span>
+                        </label>
+                    </div>
+                </div>`
+}
+
+/**
+ * Fill a pack list, or show its empty note.
+ */
+function renderPackList(cont, rows, emptyKey){
+    cont.innerHTML = rows.length > 0 ? rows.join('') : `<div class="settingsPackEmpty">${Lang.queryJS(emptyKey)}</div>`
+    cont.toggleAttribute('empty', rows.length === 0)
+    paintSettingsIcons(cont)
+}
 
 /**
  * Load shaderpack information.
@@ -997,72 +1130,110 @@ let CACHE_SELECTED_SHADERPACK
 async function resolveShaderpacksForUI(){
     const serv = (await DistroAPI.getDistribution()).getServerById(ConfigManager.getSelectedServer())
     CACHE_SETTINGS_INSTANCE_DIR = path.join(ConfigManager.getInstanceDirectory(), serv.rawServer.id)
-    CACHE_SHADERPACKS = DropinModUtil.scanForShaderpacks(CACHE_SETTINGS_INSTANCE_DIR)
+    CACHE_SHADERPACKS = DropinModUtil.scanForShaderpacks(CACHE_SETTINGS_INSTANCE_DIR).filter(p => p.fullName !== 'OFF')
     CACHE_SELECTED_SHADERPACK = DropinModUtil.getEnabledShaderpack(CACHE_SETTINGS_INSTANCE_DIR)
 
-    setShadersOptions(CACHE_SHADERPACKS, CACHE_SELECTED_SHADERPACK)
-}
+    const dir = path.join(CACHE_SETTINGS_INSTANCE_DIR, 'shaderpacks')
+    const cont = document.getElementById('settingsShadersContent')
+    renderPackList(cont, CACHE_SHADERPACKS.map(p => packRowHTML(p, path.join(dir, p.fullName), 'forshader', p.fullName === CACHE_SELECTED_SHADERPACK)), 'settings.packs.noShaderpacks')
 
-function setShadersOptions(arr, selected){
-    const cont = document.getElementById('settingsShadersOptions')
-    cont.innerHTML = ''
-    for(let opt of arr) {
-        const d = document.createElement('DIV')
-        d.innerHTML = opt.name
-        d.setAttribute('value', opt.fullName)
-        if(opt.fullName === selected) {
-            d.setAttribute('selected', '')
-            document.getElementById('settingsShadersSelected').innerHTML = opt.name
-        }
-        d.addEventListener('click', function(e) {
-            this.parentNode.previousElementSibling.innerHTML = this.innerHTML
-            for(let sib of this.parentNode.children){
-                sib.removeAttribute('selected')
+    // Only one shaderpack runs at a time.
+    for(const input of cont.querySelectorAll('[forshader]')){
+        input.onchange = () => {
+            for(const other of cont.querySelectorAll('[forshader]')){
+                if(other !== input && input.checked) other.checked = false
+                other.closest('.settingsPack').toggleAttribute('enabled', other.checked)
             }
-            this.setAttribute('selected', '')
-            closeSettingsSelect()
-        })
-        cont.appendChild(d)
+        }
     }
 }
 
 function saveShaderpackSettings(){
-    let sel = 'OFF'
-    for(let opt of document.getElementById('settingsShadersOptions').childNodes){
-        if(opt.hasAttribute('selected')){
-            sel = opt.getAttribute('value')
-        }
+    if(CACHE_SHADERPACKS == null) return
+    const on = document.querySelector('#settingsShadersContent [forshader]:checked')
+    const sel = on != null ? on.getAttribute('forshader') : 'OFF'
+    if(sel !== CACHE_SELECTED_SHADERPACK){
+        DropinModUtil.setEnabledShaderpack(CACHE_SETTINGS_INSTANCE_DIR, sel)
+        CACHE_SELECTED_SHADERPACK = sel
     }
-    DropinModUtil.setEnabledShaderpack(CACHE_SETTINGS_INSTANCE_DIR, sel)
 }
 
-function bindShaderpackButton() {
-    const spBtn = document.getElementById('settingsShaderpackButton')
-    spBtn.onclick = () => {
-        const p = path.join(CACHE_SETTINGS_INSTANCE_DIR, 'shaderpacks')
+/**
+ * Load resource pack information.
+ */
+async function resolveResourcepacksForUI(){
+    const serv = (await DistroAPI.getDistribution()).getServerById(ConfigManager.getSelectedServer())
+    CACHE_SETTINGS_INSTANCE_DIR = path.join(ConfigManager.getInstanceDirectory(), serv.rawServer.id)
+    CACHE_SETTINGS_MC_VERSION = serv.rawServer.minecraftVersion
+    CACHE_RESOURCEPACKS = DropinModUtil.scanForResourcepacks(CACHE_SETTINGS_INSTANCE_DIR)
+    const enabled = DropinModUtil.getEnabledResourcepacks(CACHE_SETTINGS_INSTANCE_DIR, CACHE_RESOURCEPACKS)
+
+    const dir = path.join(CACHE_SETTINGS_INSTANCE_DIR, 'resourcepacks')
+    const cont = document.getElementById('settingsResourcepacksContent')
+    renderPackList(cont, CACHE_RESOURCEPACKS.map(p => packRowHTML(p, path.join(dir, p.fullName), 'forpack', enabled.includes(p.fullName))), 'settings.packs.noResourcepacks')
+
+    for(const input of cont.querySelectorAll('[forpack]')){
+        input.onchange = () => input.closest('.settingsPack').toggleAttribute('enabled', input.checked)
+    }
+}
+
+function saveResourcepackSettings(){
+    if(CACHE_RESOURCEPACKS == null) return
+    const enabled = Array.from(document.querySelectorAll('#settingsResourcepacksContent [forpack]:checked')).map(i => i.getAttribute('forpack'))
+    try {
+        DropinModUtil.setEnabledResourcepacks(CACHE_SETTINGS_INSTANCE_DIR, CACHE_RESOURCEPACKS, enabled, CACHE_SETTINGS_MC_VERSION)
+    } catch(err) {
+        console.error('Unable to save resource packs.', err)
+    }
+}
+
+/**
+ * Open a pack folder on click and take .zip files dropped on the button.
+ *
+ * @param {HTMLElement} btn The add button.
+ * @param {string} folder The folder inside the instance directory.
+ * @param {function(FileList, string)} add Moves dropped files into the folder.
+ * @param {function(): Promise} reload Saves the current toggles and reloads the list.
+ */
+function bindPackButton(btn, folder, add, reload){
+    btn.onclick = () => {
+        const p = path.join(CACHE_SETTINGS_INSTANCE_DIR, folder)
         DropinModUtil.validateDir(p)
         shell.openPath(p)
     }
-    spBtn.ondragenter = e => {
+    btn.ondragenter = e => {
         e.dataTransfer.dropEffect = 'move'
-        spBtn.setAttribute('drag', '')
+        btn.setAttribute('drag', '')
         e.preventDefault()
     }
-    spBtn.ondragover = e => {
+    btn.ondragover = e => {
         e.preventDefault()
     }
-    spBtn.ondragleave = e => {
-        spBtn.removeAttribute('drag')
+    btn.ondragleave = e => {
+        btn.removeAttribute('drag')
     }
 
-    spBtn.ondrop = async e => {
-        spBtn.removeAttribute('drag')
+    btn.ondrop = async e => {
+        btn.removeAttribute('drag')
         e.preventDefault()
 
-        DropinModUtil.addShaderpacks(e.dataTransfer.files, CACHE_SETTINGS_INSTANCE_DIR)
+        add(e.dataTransfer.files, CACHE_SETTINGS_INSTANCE_DIR)
+        await reload()
+    }
+}
+
+function bindShaderpackButton() {
+    bindPackButton(document.getElementById('settingsShaderpackButton'), 'shaderpacks', DropinModUtil.addShaderpacks, async () => {
         saveShaderpackSettings()
         await resolveShaderpacksForUI()
-    }
+    })
+}
+
+function bindResourcepackButton() {
+    bindPackButton(document.getElementById('settingsResourcepackButton'), 'resourcepacks', DropinModUtil.addResourcepacks, async () => {
+        saveResourcepackSettings()
+        await resolveResourcepacksForUI()
+    })
 }
 
 // Server status bar functions.
@@ -1075,7 +1246,7 @@ async function loadSelectedServerOnModsTab(){
 
     for(const el of document.getElementsByClassName('settingsSelServContent')) {
         el.innerHTML = `
-            <img class="serverListingImg" src="${serv.rawServer.icon}"/>
+            <span class="serverListTile settingsSelServTile"></span>
             <div class="serverListingDetails">
                 <span class="serverListingName">${serv.rawServer.name}</span>
                 <span class="serverListingDescription">${serv.rawServer.description}</span>
@@ -1095,6 +1266,8 @@ async function loadSelectedServerOnModsTab(){
                 </div>
             </div>
         `
+        // The pack's logo over its monogram, like the modpack picker.
+        paintServerTile(el.querySelector('.settingsSelServTile'), serv.rawServer, ConfigManager.getAppearance(), 'serverListTile')
     }
 }
 
@@ -1113,17 +1286,18 @@ function saveAllModConfigurations(){
     saveModConfiguration()
     ConfigManager.save()
     saveDropinModConfiguration()
+    saveShaderpackSettings()
+    saveResourcepackSettings()
 }
 
 /**
  * Function to refresh the current tab whenever the selected
  * server is changed.
  */
-function animateSettingsTabRefresh(){
-    $(`#${selectedSettingsTab}`).fadeOut(500, async () => {
-        await prepareSettings()
-        $(`#${selectedSettingsTab}`).fadeIn(500)
-    })
+async function animateSettingsTabRefresh(){
+    const tab = document.getElementById(selectedSettingsTab)
+    await Promise.all([animateOut(tab, 160), prepareSettings()])
+    animateIn(tab, 320, { rise: 8 })
 }
 
 /**
@@ -1133,9 +1307,11 @@ async function prepareModsTab(first){
     await resolveModsForUI()
     await resolveDropinModsForUI()
     await resolveShaderpacksForUI()
+    await resolveResourcepacksForUI()
     bindDropinModsRemoveButton()
     bindDropinModFileSystemButton()
     bindShaderpackButton()
+    bindResourcepackButton()
     bindModsToggleSwitch()
     await loadSelectedServerOnModsTab()
 }
@@ -1393,13 +1569,280 @@ async function prepareJavaTab(){
 }
 
 /**
- * About Tab
+ * Language Tab
+ */
+
+const langList = document.getElementById('langList')
+const langSearchInput = document.getElementById('langSearchInput')
+// Set when a language was picked while a game or download was running.
+let langPendingReload = false
+
+function langFlagUrl(country){
+    return `./assets/images/flags/${country}.svg`
+}
+
+/**
+ * Name of a language or region in the interface language, e.g. "Russian"
+ * or "English (United States)".
+ *
+ * @param {string} type 'language' or 'region'.
+ * @param {string} code A language tag or region code.
+ */
+function langDisplayName(type, code){
+    const tag = Lang.getCurrent().tag
+    try {
+        const name = new Intl.DisplayNames([tag], { type, languageDisplay: 'standard' }).of(code)
+        return name.charAt(0).toLocaleUpperCase(tag) + name.slice(1)
+    } catch {
+        return code
+    }
+}
+
+/**
+ * Whether reloading the page now would interrupt a download or lose track of
+ * a running game.
+ */
+function launcherBusy(){
+    return runningServers.size > 0 || document.getElementById('landingContainer').hasAttribute('launching')
+}
+
+/**
+ * The country to use for a language: the system's when it speaks it.
+ */
+function langDefaultCountry(def){
+    for(const locale of Lang.systemLocales()){
+        const hit = Lang.matchLocale(locale)
+        if(hit != null && hit.language === def.id) return hit.country
+    }
+    return def.countries[0].code
+}
+
+/**
+ * Fill the language tab from the saved selection.
+ */
+function renderLanguageTab(){
+    const conf = ConfigManager.getLanguage()
+    const sel = Lang.resolve(conf)
+    const def = Lang.LANGUAGES.find(l => l.id === sel.language)
+    const country = def.countries.find(c => c.code === sel.country)
+
+    document.getElementById('langCurrentFlag').src = langFlagUrl(sel.country)
+    document.getElementById('langCurrentName').textContent = def.name
+    document.getElementById('langCurrentMeta').textContent = `${country.name} · ${sel.language}-${sel.country}`
+    document.getElementById('langCurrent').toggleAttribute('pending', langPendingReload)
+    document.getElementById('langCurrentStatusText').textContent = langPendingReload
+        ? Lang.queryJS('settings.language.pending')
+        : Lang.queryEJS('settings.languageApplied')
+
+    const detected = Lang.systemLocales()[0]
+    document.getElementById('langSystemToggle').checked = conf.system
+    document.getElementById('langSystemDesc').textContent = Lang.queryJS('settings.language.systemDesc', {
+        language: detected != null ? langDisplayName('language', detected) : '—'
+    })
+    document.getElementById('langMinecraftToggle').checked = conf.minecraft
+    document.getElementById('langMinecraftDesc').textContent = Lang.queryJS('settings.language.minecraftDesc', {
+        language: def.name,
+        code: Lang.minecraftCode(sel, null)
+    })
+
+    renderLanguageList()
+}
+
+/**
+ * Build the language cards, filtered by the search box.
+ */
+function renderLanguageList(){
+    const sel = Lang.resolve(ConfigManager.getLanguage())
+    const query = langSearchInput.value.trim().toLocaleLowerCase()
+    langList.innerHTML = ''
+    let shown = 0
+
+    for(const def of Lang.LANGUAGES){
+        const english = langDisplayName('language', def.id)
+        const haystack = [def.id, def.name, english, ...def.countries.flatMap(c => [c.code, c.name, langDisplayName('region', c.code)])]
+            .join(' ').toLocaleLowerCase()
+        if(query && !haystack.includes(query)){
+            continue
+        }
+        shown++
+        const selected = def.id === sel.language
+        const available = Lang.isAvailable(def.id)
+        const flagCountry = selected ? sel.country : def.countries[0].code
+
+        const card = document.createElement('div')
+        card.className = 'langCard'
+        card.tabIndex = 0
+        card.setAttribute('role', 'radio')
+        card.setAttribute('aria-checked', String(selected))
+        card.toggleAttribute('selected', selected)
+        card.toggleAttribute('disabled', !available)
+        if(!available){
+            card.tabIndex = -1
+            card.setAttribute('aria-disabled', 'true')
+        }
+
+        const flag = document.createElement('img')
+        flag.className = 'langFlag'
+        flag.alt = ''
+        flag.src = langFlagUrl(flagCountry)
+
+        const text = document.createElement('div')
+        text.className = 'langText'
+        const name = document.createElement('span')
+        name.className = 'langName'
+        name.textContent = def.name
+        name.lang = def.id
+        const sub = document.createElement('span')
+        sub.className = 'langSub'
+        sub.textContent = `${english} · ${def.countries.length > 1
+            ? Lang.queryJS('settings.language.countries', { count: def.countries.length })
+            : def.countries[0].name}`
+        text.append(name, sub)
+
+        // Languages without a translation yet are listed but can't be picked.
+        const mark = document.createElement('span')
+        if(available){
+            mark.className = 'langRadio'
+        } else {
+            mark.className = 'langInProgress'
+            mark.textContent = Lang.queryJS('settings.language.inProgress')
+        }
+        card.append(flag, text, mark)
+
+        if(def.countries.length > 1 && available){
+            const chips = document.createElement('div')
+            chips.className = 'langChips'
+            for(const c of def.countries){
+                const chip = document.createElement('button')
+                chip.type = 'button'
+                chip.className = 'langChip'
+                chip.toggleAttribute('selected', selected && sel.country === c.code)
+                chip.innerHTML = `<img class="langFlag" alt="" src="${langFlagUrl(c.code)}">`
+                chip.append(c.name)
+                chip.onclick = (e) => {
+                    e.stopPropagation()
+                    chooseLanguage(def.id, c.code)
+                }
+                chips.appendChild(chip)
+            }
+            card.appendChild(chips)
+        }
+
+        const pick = () => {
+            if(available) chooseLanguage(def.id, selected ? sel.country : langDefaultCountry(def))
+        }
+        card.onclick = pick
+        card.onkeydown = (e) => {
+            if(e.target === card && (e.key === 'Enter' || e.key === ' ')){
+                e.preventDefault()
+                pick()
+            }
+        }
+        langList.appendChild(card)
+    }
+
+    document.getElementById('langEmpty').textContent = shown === 0 ? Lang.queryJS('settings.language.noResults') : ''
+}
+
+/**
+ * Save a picked language and switch to it.
+ */
+function chooseLanguage(language, country){
+    ConfigManager.setLanguage({ system: false, language, country })
+    ConfigManager.save()
+    applyLanguageChange()
+}
+
+/**
+ * Show the saved language: reload the page with its strings, or wait for the
+ * running game or download to finish first.
+ */
+function applyLanguageChange(){
+    const want = Lang.resolve(ConfigManager.getLanguage())
+    const cur = Lang.getCurrent()
+    if(want.language === cur.language && want.country === cur.country){
+        langPendingReload = false
+    } else if(launcherBusy()){
+        langPendingReload = true
+    } else {
+        reloadForLanguage()
+        return
+    }
+    renderLanguageTab()
+}
+
+/**
+ * The page is rendered with the strings it loaded with, so a new language
+ * means reloading it. The view, tab and scroll position come back as they
+ * were (see showMainUI).
+ */
+function reloadForLanguage(){
+    if(getCurrentView() === VIEWS.settings){
+        fullSettingsSave()
+    }
+    ipcRenderer.sendSync('languageChanged', ConfigManager.getLanguage())
+    try {
+        const tab = document.getElementById(selectedSettingsTab)
+        sessionStorage.setItem('meridian.reopen', JSON.stringify({
+            view: getCurrentView(),
+            tab: selectedSettingsTab,
+            scroll: tab != null ? tab.scrollTop : 0
+        }))
+    } catch {
+        // Without it the launcher just starts as usual.
+    }
+    document.body.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 140, fill: 'forwards' })
+        .finished.then(() => location.reload())
+}
+
+/**
+ * Switch to a language picked during a game or download once that is over.
+ */
+function maybeApplyPendingLanguage(){
+    if(langPendingReload && !launcherBusy()){
+        langPendingReload = false
+        reloadForLanguage()
+    }
+}
+
+document.getElementById('langSystemToggle').onchange = (e) => {
+    const sel = Lang.resolve(ConfigManager.getLanguage())
+    // Turning it off keeps whatever language is showing now.
+    ConfigManager.setLanguage(e.target.checked ? { system: true } : { system: false, language: sel.language, country: sel.country })
+    ConfigManager.save()
+    applyLanguageChange()
+}
+
+document.getElementById('langMinecraftToggle').onchange = (e) => {
+    ConfigManager.setLanguage({ minecraft: e.target.checked })
+    ConfigManager.save()
+}
+
+langSearchInput.oninput = () => renderLanguageList()
+
+/**
+ * Prepare the language tab for display.
+ */
+function prepareLanguageTab(){
+    renderLanguageTab()
+}
+
+/**
+ * About & Updates Tab
  */
 
 const settingsTabAbout             = document.getElementById('settingsTabAbout')
+const settingsAboutChangelogLabel  = settingsTabAbout.getElementsByClassName('settingsChangelogLabel')[0]
 const settingsAboutChangelogTitle  = settingsTabAbout.getElementsByClassName('settingsChangelogTitle')[0]
 const settingsAboutChangelogText   = settingsTabAbout.getElementsByClassName('settingsChangelogText')[0]
 const settingsAboutChangelogButton = settingsTabAbout.getElementsByClassName('settingsChangelogButton')[0]
+const settingsUpdateTitle          = document.getElementById('settingsUpdateTitle')
+const settingsUpdateActionButton   = document.getElementById('settingsUpdateActionButton')
+
+// Release notes of the running version, once fetched.
+let settingsCurrentReleaseNotes = null
+// The pending update, if there is one. Its notes take the changelog's place.
+let settingsUpdateInfo = null
 
 // Bind the devtools toggle button.
 document.getElementById('settingsAboutDevToolsButton').onclick = (e) => {
@@ -1419,8 +1862,7 @@ function isPrerelease(version){
 }
 
 /**
- * Utility method to display version information on the
- * About and Update settings tabs.
+ * Utility method to display version information on the About tab.
  * 
  * @param {string} version The semver version to display.
  * @param {Element} valueElement The value element.
@@ -1448,6 +1890,25 @@ function populateAboutVersionInformation(){
 }
 
 /**
+ * Show the pending update's notes if there is an update, otherwise the
+ * notes of the running version.
+ */
+function renderChangelog(){
+    if(settingsUpdateInfo != null){
+        settingsAboutChangelogLabel.innerHTML = Lang.queryJS('settings.updates.whatsNew', { version: settingsUpdateInfo.version })
+        settingsAboutChangelogTitle.innerHTML = settingsUpdateInfo.releaseName || settingsUpdateInfo.version
+        settingsAboutChangelogText.innerHTML = settingsUpdateInfo.releaseNotes || Lang.queryEJS('settings.noReleaseNotes')
+    } else if(settingsCurrentReleaseNotes != null){
+        settingsAboutChangelogLabel.innerHTML = Lang.queryEJS('settings.releaseNotes')
+        settingsAboutChangelogTitle.innerHTML = settingsCurrentReleaseNotes.title
+        settingsAboutChangelogText.innerHTML = settingsCurrentReleaseNotes.text
+        if(settingsCurrentReleaseNotes.href){
+            settingsAboutChangelogButton.href = settingsCurrentReleaseNotes.href
+        }
+    }
+}
+
+/**
  * Fetches the GitHub atom release feed and parses it for the release notes
  * of the current version. This value is displayed on the UI.
  */
@@ -1464,40 +1925,31 @@ function populateReleaseNotes(){
                 id = id.substring(id.lastIndexOf('/')+1)
 
                 if(id === version){
-                    settingsAboutChangelogTitle.innerHTML = entry.find('title').text()
-                    settingsAboutChangelogText.innerHTML = entry.find('content').text()
-                    settingsAboutChangelogButton.href = entry.find('link').attr('href')
+                    settingsCurrentReleaseNotes = {
+                        title: entry.find('title').text(),
+                        text: entry.find('content').text(),
+                        href: entry.find('link').attr('href')
+                    }
+                    renderChangelog()
                 }
             }
 
         },
         timeout: 2500
     }).catch(err => {
-        settingsAboutChangelogText.innerHTML = Lang.queryJS('settings.about.releaseNotesFailed')
+        if(settingsUpdateInfo == null && settingsCurrentReleaseNotes == null){
+            settingsAboutChangelogText.innerHTML = Lang.queryJS('settings.about.releaseNotesFailed')
+        }
     })
 }
 
 /**
- * Prepare account tab for display.
+ * Prepare the about tab for display.
  */
 function prepareAboutTab(){
     populateAboutVersionInformation()
     populateReleaseNotes()
 }
-
-/**
- * Update Tab
- */
-
-const settingsTabUpdate            = document.getElementById('settingsTabUpdate')
-const settingsUpdateTitle          = document.getElementById('settingsUpdateTitle')
-const settingsUpdateVersionCheck   = document.getElementById('settingsUpdateVersionCheck')
-const settingsUpdateVersionTitle   = document.getElementById('settingsUpdateVersionTitle')
-const settingsUpdateVersionValue   = document.getElementById('settingsUpdateVersionValue')
-const settingsUpdateChangelogTitle = settingsTabUpdate.getElementsByClassName('settingsChangelogTitle')[0]
-const settingsUpdateChangelogText  = settingsTabUpdate.getElementsByClassName('settingsChangelogText')[0]
-const settingsUpdateChangelogCont  = settingsTabUpdate.getElementsByClassName('settingsChangelogContainer')[0]
-const settingsUpdateActionButton   = document.getElementById('settingsUpdateActionButton')
 
 /**
  * Update the properties of the update action button.
@@ -1515,17 +1967,15 @@ function settingsUpdateButtonStatus(text, disabled = false, handler = null){
 }
 
 /**
- * Populate the update tab with relevant information.
+ * Populate the update status with relevant information.
  * 
  * @param {Object} data The update data.
  */
 function populateSettingsUpdateInformation(data){
+    settingsUpdateInfo = data
     if(data != null){
-        settingsUpdateTitle.innerHTML = isPrerelease(data.version) ? Lang.queryJS('settings.updates.newPreReleaseTitle') : Lang.queryJS('settings.updates.newReleaseTitle')
-        settingsUpdateChangelogCont.style.display = null
-        settingsUpdateChangelogTitle.innerHTML = data.releaseName
-        settingsUpdateChangelogText.innerHTML = data.releaseNotes
-        populateVersionInformation(data.version, settingsUpdateVersionValue, settingsUpdateVersionTitle, settingsUpdateVersionCheck)
+        settingsUpdateTitle.innerHTML = Lang.queryJS(isPrerelease(data.version) ? 'settings.updates.newPreReleaseTitle' : 'settings.updates.newReleaseTitle', { version: data.version })
+        settingsUpdateTitle.setAttribute('available', '')
         
         if(process.platform === 'darwin'){
             settingsUpdateButtonStatus(Lang.queryJS('settings.updates.downloadButton'), false, () => {
@@ -1536,8 +1986,7 @@ function populateSettingsUpdateInformation(data){
         }
     } else {
         settingsUpdateTitle.innerHTML = Lang.queryJS('settings.updates.latestVersionTitle')
-        settingsUpdateChangelogCont.style.display = 'none'
-        populateVersionInformation(remote.app.getVersion(), settingsUpdateVersionValue, settingsUpdateVersionTitle, settingsUpdateVersionCheck)
+        settingsUpdateTitle.removeAttribute('available')
         settingsUpdateButtonStatus(Lang.queryJS('settings.updates.checkForUpdatesButton'), false, () => {
             if(!isDev){
                 ipcRenderer.send('autoUpdateAction', 'checkForUpdate')
@@ -1545,10 +1994,11 @@ function populateSettingsUpdateInformation(data){
             }
         })
     }
+    renderChangelog()
 }
 
 /**
- * Prepare update tab for display.
+ * Prepare the update status for display.
  * 
  * @param {Object} data The update data.
  */
@@ -1565,18 +2015,348 @@ function prepareUpdateTab(data = null){
   * 
   * @param {boolean} first Whether or not it is the first load.
   */
+/**
+ * Proxy Settings (Proxy Tab)
+ */
+
+let settingsProxyForm
+
+function prepareProxySettings(){
+    if(settingsProxyForm == null){
+        settingsProxyForm = ProxyManager.bindForm(document.getElementById('settingsProxyForm'), ConfigManager)
+    } else {
+        settingsProxyForm.load()
+    }
+}
+
+/**
+ * Appearance Tab
+ */
+
+// Pack images shown in the drawer before "Show all".
+const AP_ART_PAGE = 6
+// Most pictures the preview cycles through (one dot each).
+const AP_PREVIEW_MAX = 8
+const AP_PREVIEW_MS = 4000
+// The modpack shown in the preview, and the one open in the drawer.
+let apPreviewServer = null
+let apDrawerServer = null
+let apArtExpanded = false
+let apToken = 0
+let apDrawerToken = 0
+
+/**
+ * Save appearance keys, then repaint the wallpaper and this tab.
+ *
+ * @param {Object} change The appearance keys to change.
+ */
+function setAppearance(change){
+    ConfigManager.setAppearance(change)
+    ConfigManager.save()
+    ThemeEngine.refresh()
+    renderAppearanceTab()
+    if(apDrawerServer != null) renderPackDrawer()
+}
+
+/**
+ * Change the settings of the modpack open in the drawer.
+ *
+ * @param {function(Object): void} edit Receives the pack's settings to change in place.
+ */
+function setPackAppearance(edit){
+    const packs = ConfigManager.getAppearance().packs
+    const pack = packs[apDrawerServer] || {}
+    edit(pack)
+    packs[apDrawerServer] = pack
+    setAppearance({ packs })
+}
+
+/**
+ * Mark the button of a segmented control whose value matches.
+ */
+function setSegment(id, value){
+    for(const btn of document.getElementById(id).children){
+        btn.toggleAttribute('selected', btn.value === value)
+        btn.setAttribute('aria-pressed', btn.value === value)
+    }
+}
+
+async function getAppearanceServers(){
+    const distro = await DistroAPI.getDistribution()
+    return distro != null ? distro.servers : []
+}
+
+/**
+ * Render the Appearance tab from the saved settings.
+ */
+async function renderAppearanceTab(){
+    const token = ++apToken
+    const appearance = ConfigManager.getAppearance()
+    setSegment('apInterval', String(appearance.interval))
+    document.getElementById('apMotion').checked = appearance.motion !== false
+
+    const servers = await getAppearanceServers()
+    if(!servers.some(s => s.rawServer.id === apPreviewServer)){
+        apPreviewServer = ConfigManager.getSelectedServer() || (servers[0] && servers[0].rawServer.id) || null
+    }
+    const rotations = await Promise.all(servers.map(s => ThemeEngine.packRotation(s.rawServer.id)))
+    if(token !== apToken) return
+
+    const list = document.getElementById('apPackList')
+    list.innerHTML = ''
+    servers.forEach((serv, i) => {
+        const id = serv.rawServer.id
+        const rot = rotations[i]
+        const art = rot.art.items.filter(it => !rot.hidden.has(it.key)).length
+        const shots = rot.shots.filter(it => !rot.hidden.has(it.key)).length
+
+        const row = document.createElement('div')
+        row.className = 'apPackRow'
+        row.setAttribute('role', 'listitem')
+        row.toggleAttribute('selected', id === apPreviewServer)
+        row.innerHTML = '<span class="serverListTile"></span><span class="apPackRowName"></span><span class="apPackRowMeta"></span>'
+            + '<button class="apEdit"><span></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>'
+        paintServerTile(row.firstChild, serv.rawServer, appearance, 'serverListTile')
+        row.querySelector('.apPackRowName').textContent = serv.rawServer.name
+        row.querySelector('.apPackRowMeta').textContent = Lang.queryJS('settings.appearance.packCounts', { art, shots })
+        const edit = row.querySelector('.apEdit')
+        edit.firstChild.textContent = Lang.queryEJS('settings.appearanceEdit')
+        edit.onclick = e => {
+            e.stopPropagation()
+            openPackDrawer(id)
+        }
+        row.onclick = () => {
+            if(apPreviewServer === id) return
+            apPreviewServer = id
+            renderAppearanceTab()
+        }
+        list.appendChild(row)
+    })
+
+    const preview = servers.find(s => s.rawServer.id === apPreviewServer)
+    setPreviewPlaylist(preview, preview != null ? rotations[servers.indexOf(preview)] : null)
+}
+
+/* Preview: the selected pack's rotation, cross-fading in a small frame. */
+
+let apPreview = { key: null, items: [], i: 0 }
+let apPreviewTimer = null
+
+function setPreviewPlaylist(server, rot){
+    document.getElementById('apPreviewCaption').textContent = server != null ? Lang.queryJS('settings.appearance.preview', { server: server.rawServer.name }) : ''
+    const items = rot != null ? rot.list.items.slice(0, AP_PREVIEW_MAX) : []
+    const key = (server != null ? server.rawServer.id : '') + '#' + items.map(it => it.key).join('|')
+    if(key === apPreview.key) return
+    apPreview = { key, items, i: 0 }
+    const dots = document.getElementById('apPreviewDots')
+    dots.innerHTML = items.length > 1 ? '<span></span>'.repeat(items.length) : ''
+    showPreviewItem()
+}
+
+async function showPreviewItem(){
+    clearTimeout(apPreviewTimer)
+    const { key, items, i } = apPreview
+    const frame = document.getElementById('apPreviewFrame')
+    const label = document.getElementById('apPreviewLabel')
+    Array.from(document.getElementById('apPreviewDots').children).forEach((d, n) => d.toggleAttribute('selected', n === i))
+    const item = items[i]
+    if(item == null){
+        Array.from(frame.getElementsByClassName('apPreviewImg')).forEach(el => el.remove())
+        label.hidden = true
+        return
+    }
+    const url = item.url || await Screenshots.preview(item.file)
+    if(key !== apPreview.key || i !== apPreview.i) return
+    const img = document.createElement('img')
+    img.className = 'apPreviewImg'
+    img.alt = ''
+    img.src = url || ''
+    try {
+        await img.decode()
+    } catch {
+        // Shown dark.
+    }
+    if(key !== apPreview.key || i !== apPreview.i) return
+    const old = Array.from(frame.getElementsByClassName('apPreviewImg'))
+    frame.insertBefore(img, label)
+    void img.offsetWidth
+    img.classList.add('apShown')
+    setTimeout(() => old.forEach(el => el.remove()), 700)
+    label.hidden = false
+    label.textContent = Lang.queryJS(item.kind === 'shot' ? 'settings.appearance.labelShot' : item.kind === 'gallery' ? 'settings.appearance.labelGallery' : 'settings.appearance.labelPack')
+    if(items.length > 1){
+        apPreviewTimer = setTimeout(() => {
+            // Hold still while nobody is looking at the tab.
+            if(document.getElementById('settingsTabAppearance').offsetParent != null && document.hasFocus()){
+                apPreview.i = (apPreview.i + 1) % apPreview.items.length
+            }
+            showPreviewItem()
+        }, AP_PREVIEW_MS)
+    }
+}
+
+/* Drawer: one modpack's source and pictures. */
+
+// Thumbnails are made only for tiles scrolled into view.
+const apThumbObserver = new IntersectionObserver(entries => {
+    for(const entry of entries){
+        if(!entry.isIntersecting) continue
+        apThumbObserver.unobserve(entry.target)
+        Screenshots.thumb(entry.target.getAttribute('data-src')).then(url => {
+            if(url == null) return
+            entry.target.style.backgroundImage = `url("${url}")`
+        })
+    }
+}, { rootMargin: '200px 0px' })
+
+/**
+ * A picture tile: ticked when it is in rotation.
+ */
+function buildPictureTile(item, picked){
+    const tile = document.createElement('button')
+    tile.className = 'apShot'
+    tile.toggleAttribute('selected', picked)
+    tile.setAttribute('aria-pressed', picked)
+    tile.title = item.file.split(/[\\/]/).pop()
+    const preview = document.createElement('span')
+    preview.className = 'apShotPreview'
+    preview.setAttribute('data-src', item.file)
+    const mark = document.createElement('span')
+    mark.className = 'apShotMark'
+    mark.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>'
+    preview.appendChild(mark)
+    tile.appendChild(preview)
+    tile.onclick = () => setPackAppearance(pack => {
+        const hidden = new Set(pack.hidden || [])
+        hidden.has(item.key) ? hidden.delete(item.key) : hidden.add(item.key)
+        pack.hidden = Array.from(hidden)
+    })
+    apThumbObserver.observe(preview)
+    return tile
+}
+
+function fillPictureGrid(grid, items, hidden){
+    // Keep tiles (and their loaded thumbnails) when only ticks changed.
+    const key = items.map(it => it.key).join('|')
+    if(grid.getAttribute('data-key') === key){
+        Array.from(grid.children).forEach((tile, i) => {
+            const picked = !hidden.has(items[i].key)
+            tile.toggleAttribute('selected', picked)
+            tile.setAttribute('aria-pressed', picked)
+        })
+        return
+    }
+    grid.innerHTML = ''
+    grid.setAttribute('data-key', key)
+    for(const item of items){
+        grid.appendChild(buildPictureTile(item, !hidden.has(item.key)))
+    }
+}
+
+async function renderPackDrawer(){
+    const token = ++apDrawerToken
+    const servers = await getAppearanceServers()
+    const server = servers.find(s => s.rawServer.id === apDrawerServer)
+    if(server == null){
+        closePackDrawer()
+        return
+    }
+    const rot = await ThemeEngine.packRotation(apDrawerServer)
+    if(token !== apDrawerToken) return
+    const appearance = ConfigManager.getAppearance()
+
+    const tile = document.getElementById('apDrawerTile')
+    if(tile.getAttribute('data-key') !== apDrawerServer){
+        paintServerTile(tile, server.rawServer, appearance, 'serverListTile')
+        tile.setAttribute('data-key', apDrawerServer)
+    }
+    document.getElementById('apDrawerName').textContent = server.rawServer.name
+    document.getElementById('apDrawerSub').textContent = Lang.queryJS('settings.appearance.serverPack')
+
+    const picked = items => items.filter(it => !rot.hidden.has(it.key)).length
+    const art = rot.art.items
+    document.getElementById('apArtTitle').textContent = Lang.queryJS('settings.appearance.artTitle')
+    document.getElementById('apArtCount').textContent = Lang.queryJS('settings.appearance.count', { count: picked(art), total: art.length })
+    const artAll = document.getElementById('apArtAll')
+    artAll.hidden = art.length <= AP_ART_PAGE
+    artAll.textContent = apArtExpanded ? Lang.queryJS('settings.appearance.showLess') : Lang.queryEJS('settings.appearanceShowAll')
+    fillPictureGrid(document.getElementById('apArtGrid'), apArtExpanded ? art : art.slice(0, AP_ART_PAGE), rot.hidden)
+
+    document.getElementById('apShotCount').textContent = Lang.queryJS('settings.appearance.count', { count: picked(rot.shots), total: rot.shots.length })
+    document.getElementById('apShotEmpty').hidden = rot.shots.length > 0
+    fillPictureGrid(document.getElementById('apShotGrid'), rot.shots, rot.hidden)
+}
+
+const apDrawer = document.getElementById('apDrawer')
+
+function openPackDrawer(id){
+    if(apDrawerServer !== id){
+        apArtExpanded = false
+        document.querySelector('#apDrawer .apDrawerBody').scrollTop = 0
+    }
+    apDrawerServer = id
+    apPreviewServer = id
+    renderAppearanceTab()
+    renderPackDrawer()
+    document.getElementById('settingsContainerRight').setAttribute('drawer', '')
+    apDrawer.setAttribute('aria-hidden', 'false')
+    // The drawer is still off to the right; scrolling it into view would shove the tab aside.
+    document.getElementById('apDrawerClose').focus({ preventScroll: true })
+}
+
+function closePackDrawer(){
+    if(apDrawerServer == null) return
+    apDrawerServer = null
+    document.getElementById('settingsContainerRight').removeAttribute('drawer')
+    apDrawer.setAttribute('aria-hidden', 'true')
+}
+
+/**
+ * Bind the Appearance tab's controls. Runs once.
+ */
+function prepareAppearanceTab(){
+    for(const btn of document.getElementById('apInterval').children){
+        btn.onclick = () => setAppearance({ interval: Number(btn.value) })
+    }
+    document.getElementById('apMotion').onchange = e => setAppearance({ motion: e.target.checked })
+
+    document.getElementById('apArtAll').onclick = () => {
+        apArtExpanded = !apArtExpanded
+        renderPackDrawer()
+    }
+    document.getElementById('apShotsFolder').onclick = async () => {
+        if(apDrawerServer == null) return
+        const dir = Screenshots.directory(apDrawerServer)
+        await fs.ensureDir(dir)
+        shell.openPath(dir)
+    }
+    document.getElementById('apDrawerClose').onclick = closePackDrawer
+    document.getElementById('apDrawerDone').onclick = closePackDrawer
+    document.getElementById('apDrawerScrim').onclick = closePackDrawer
+    apDrawer.addEventListener('keydown', e => {
+        if(e.key === 'Escape'){
+            e.stopPropagation()
+            closePackDrawer()
+        }
+    })
+}
+
 async function prepareSettings(first = false) {
     if(first){
         setupSettingsTabs()
         initSettingsValidators()
         prepareUpdateTab()
+        prepareAppearanceTab()
     } else {
         await prepareModsTab()
     }
     await initSettingsValues()
+    prepareProxySettings()
     prepareAccountsTab()
     await prepareJavaTab()
     prepareAboutTab()
+    prepareLanguageTab()
+    renderAppearanceTab()
 }
 
 // Prepare the settings UI on startup.

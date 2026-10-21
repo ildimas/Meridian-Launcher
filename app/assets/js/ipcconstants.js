@@ -26,3 +26,7 @@ exports.MSFT_ERROR = {
 exports.SHELL_OPCODE = {
     TRASH_ITEM: 'TRASH_ITEM'
 }
+
+exports.PROXY_OPCODE = {
+    SET: 'PROXY_SET'
+}

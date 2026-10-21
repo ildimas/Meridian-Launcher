@@ -109,7 +109,6 @@ jobs:
             dist/*.AppImage
             dist/*.deb
             dist/*.pacman
-            dist/*.tar.gz
             dist/*.yml
             dist/*.blockmap
 

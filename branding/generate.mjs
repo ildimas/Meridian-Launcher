@@ -2,7 +2,7 @@
 /**
  * Branding asset generator.
  *
- * Writes the placeholder logo + geode background SVGs (unless you replaced
+ * Writes the Meridian logo + geode background SVGs (unless you replaced
  * them with your own) and renders every raster the launcher and installers
  * need from them. Requires `rsvg-convert` and ImageMagick (`magick`).
  *
@@ -23,8 +23,8 @@ const LOGO = join(here, 'logo.svg')
 const BACKGROUND = join(here, 'background.svg')
 const regenerate = process.argv.includes('--svg')
 
-// Amethyst ramp, darkest to lightest. Keep in sync with --amethyst-* in launcher.css.
-const AMETHYST = ['#24133a', '#3b1d5c', '#5a2f8a', '#7d4fbf', '#a07ae0', '#c9b0f5', '#ece2ff']
+// Meridian ramp, darkest to lightest. Keep in sync with --meridian-* in launcher.css.
+const RAMP = ['#021a30', '#00335c', '#004477', '#0a508a', '#6a9ccd', '#b9d3ec', '#e8f1fa']
 
 /* Deterministic PRNG so the placeholder art is stable between runs. */
 function rng(seed) {
@@ -51,13 +51,13 @@ function crystal(bx, by, tx, ty, width, light, shade) {
     const C = [bx, by], SC = [sx + nx * w * 0.1, sy + ny * w * 0.1]
     // Facet brightness from the angle between the facet normal and the light (top-left).
     const lit = (dx, dy) => Math.max(0, (dx * -0.6 + dy * -0.8))
-    const idx = (v) => AMETHYST[Math.min(AMETHYST.length - 1, Math.max(0, Math.round(v)))]
+    const idx = (v) => RAMP[Math.min(RAMP.length - 1, Math.max(0, Math.round(v)))]
     const base = 0.2 + light * 3.6
     const fL = idx(base + lit(nx, ny) * 2.4)
     const fR = idx(base - 0.8 + lit(-nx, -ny) * 2.4)
     const tipL = idx(base + 0.9 + lit(nx, ny) * 2.4)
     const tipR = idx(base + lit(-nx, -ny) * 2)
-    const edge = len > 90 ? `<polyline points="${pt(...SC)} ${pt(tx, ty)}" stroke="${AMETHYST[6]}" stroke-opacity="${(0.18 + light * 0.3).toFixed(2)}" stroke-width="1.2" fill="none"/>` : ''
+    const edge = len > 90 ? `<polyline points="${pt(...SC)} ${pt(tx, ty)}" stroke="${RAMP[6]}" stroke-opacity="${(0.18 + light * 0.3).toFixed(2)}" stroke-width="1.2" fill="none"/>` : ''
     return `<g>
 <polygon points="${pt(...L)} ${pt(...SL)} ${pt(...SC)} ${pt(...C)}" fill="${fL}"/>
 <polygon points="${pt(...C)} ${pt(...SC)} ${pt(...SR)} ${pt(...R)}" fill="${fR}"/>
@@ -86,39 +86,39 @@ function backgroundSvg() {
     out.push(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">
 <defs>
   <radialGradient id="cave" cx="0.72" cy="0.48" r="0.9">
-    <stop offset="0" stop-color="#1a1424"/>
-    <stop offset="0.55" stop-color="#0e0b14"/>
-    <stop offset="1" stop-color="#07060a"/>
+    <stop offset="0" stop-color="#0a2440"/>
+    <stop offset="0.55" stop-color="#041729"/>
+    <stop offset="1" stop-color="#010d19"/>
   </radialGradient>
   <radialGradient id="hollow" cx="0.45" cy="0.42" r="0.7">
-    <stop offset="0" stop-color="#2a1442"/>
-    <stop offset="0.6" stop-color="#160b24"/>
-    <stop offset="1" stop-color="#0b0612"/>
+    <stop offset="0" stop-color="#0a3a66"/>
+    <stop offset="0.6" stop-color="#05223f"/>
+    <stop offset="1" stop-color="#021426"/>
   </radialGradient>
   <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
-    <stop offset="0" stop-color="#a07ae0" stop-opacity="0.22"/>
-    <stop offset="1" stop-color="#a07ae0" stop-opacity="0"/>
+    <stop offset="0" stop-color="#6a9ccd" stop-opacity="0.22"/>
+    <stop offset="1" stop-color="#6a9ccd" stop-opacity="0"/>
   </radialGradient>
   <linearGradient id="calcite" x1="0" y1="0" x2="1" y2="1">
-    <stop offset="0" stop-color="#d9d2e2"/>
-    <stop offset="1" stop-color="#6f6779"/>
+    <stop offset="0" stop-color="#d6e2ee"/>
+    <stop offset="1" stop-color="#5f7183"/>
   </linearGradient>
   <linearGradient id="scrim" x1="0" y1="0" x2="1" y2="0">
-    <stop offset="0" stop-color="#07060a" stop-opacity="0.85"/>
-    <stop offset="0.45" stop-color="#07060a" stop-opacity="0.15"/>
-    <stop offset="1" stop-color="#07060a" stop-opacity="0"/>
+    <stop offset="0" stop-color="#010d19" stop-opacity="0.85"/>
+    <stop offset="0.45" stop-color="#010d19" stop-opacity="0.15"/>
+    <stop offset="1" stop-color="#010d19" stop-opacity="0"/>
   </linearGradient>
   <linearGradient id="floor" x1="0" y1="0" x2="0" y2="1">
-    <stop offset="0.6" stop-color="#07060a" stop-opacity="0"/>
-    <stop offset="1" stop-color="#07060a" stop-opacity="0.7"/>
+    <stop offset="0.6" stop-color="#010d19" stop-opacity="0"/>
+    <stop offset="1" stop-color="#010d19" stop-opacity="0.7"/>
   </linearGradient>
-  <filter id="grain"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="4"/><feColorMatrix values="0 0 0 0 0.5  0 0 0 0 0.45  0 0 0 0 0.6  0 0 0 0.08 0"/></filter>
+  <filter id="grain"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="4"/><feColorMatrix values="0 0 0 0 0.45  0 0 0 0 0.55  0 0 0 0 0.65  0 0 0 0.08 0"/></filter>
 </defs>
 <rect width="${W}" height="${H}" fill="url(#cave)"/>`)
 
     // Smooth basalt rind, then calcite, then the hollow.
-    out.push(`<polygon points="${ring(cx, cy, rx * 1.13, ry * 1.13, 0.05, rand)}" fill="#2a2731"/>`)
-    out.push(`<polygon points="${ring(cx, cy, rx * 1.07, ry * 1.07, 0.035, rand)}" fill="#3c3843"/>`)
+    out.push(`<polygon points="${ring(cx, cy, rx * 1.13, ry * 1.13, 0.05, rand)}" fill="#1b2633"/>`)
+    out.push(`<polygon points="${ring(cx, cy, rx * 1.07, ry * 1.07, 0.035, rand)}" fill="#2c3a49"/>`)
     out.push(`<polygon points="${ring(cx, cy, rx * 1.02, ry * 1.02, 0.03, rand)}" fill="url(#calcite)"/>`)
     out.push(`<polygon points="${ring(cx, cy, rx * 0.97, ry * 0.97, 0.025, rand)}" fill="url(#hollow)"/>`)
     out.push(`<ellipse cx="${cx - 40}" cy="${cy - 30}" rx="${rx * 0.75}" ry="${ry * 0.7}" fill="url(#glow)"/>`)
@@ -165,25 +165,31 @@ function backgroundSvg() {
     return out.join('\n')
 }
 
-/* Faceted amethyst point on a basalt tile: the placeholder mark. */
+// Corner radius of the logo's tile, out of its 480 side. 240 makes it a disc,
+// matching the round modpack icons and pill controls in the launcher.
+const TILE_RADIUS = 240
+
+/* Meridian compass rose on a navy tile: the app icon (no text). */
 function logoSvg() {
+    const [navy, face, mid, light] = ['#004477', '#0a508a', '#6a9ccd', '#b9d3ec']
+    const deg = (d) => (d - 90) * Math.PI / 180
+    const at = (d, r) => pt(Math.cos(deg(d)) * r, Math.sin(deg(d)) * r)
+    // One point of the rose as two halves: the clockwise half takes the shade.
+    const point = (d, len, waist, lit, shade) =>
+        `<polygon points="0,0 ${at(d, len)} ${at(d - 45, waist)}" fill="${lit}"/>` +
+        `<polygon points="0,0 ${at(d, len)} ${at(d + 45, waist)}" fill="${shade}"/>`
+    const ticks = [30, 60, 120, 150, 210, 240, 300, 330]
+        .map(d => `<line x1="${at(d, 146).split(',')[0]}" y1="${at(d, 146).split(',')[1]}" x2="${at(d, 160).split(',')[0]}" y2="${at(d, 160).split(',')[1]}"/>`)
+        .join('')
     return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-<defs>
-  <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1">
-    <stop offset="0" stop-color="#2b2633"/>
-    <stop offset="1" stop-color="#121016"/>
-  </linearGradient>
-</defs>
-<rect x="16" y="16" width="480" height="480" rx="112" fill="url(#tile)"/>
-<rect x="17.5" y="17.5" width="477" height="477" rx="110.5" fill="none" stroke="#ffffff" stroke-opacity="0.12" stroke-width="3"/>
-<g transform="translate(256 268)">
-  <polygon points="0,-196 -98,-86 -98,112 0,186" fill="${AMETHYST[4]}"/>
-  <polygon points="0,-196 98,-86 98,112 0,186" fill="${AMETHYST[2]}"/>
-  <polygon points="0,-196 -98,-86 -30,-60" fill="${AMETHYST[6]}"/>
-  <polygon points="0,-196 -30,-60 0,186 -98,112 -98,-86" fill="${AMETHYST[5]}" fill-opacity="0.55"/>
-  <polygon points="0,-196 98,-86 30,-60" fill="${AMETHYST[3]}"/>
-  <polygon points="-30,-60 30,-60 0,186" fill="${AMETHYST[3]}"/>
-  <polygon points="-30,-60 0,-196 30,-60" fill="${AMETHYST[5]}"/>
+<rect x="16" y="16" width="480" height="480" rx="${TILE_RADIUS}" fill="${navy}"/>
+<g transform="translate(256 256)">
+  <circle r="172" fill="${face}" stroke="#ffffff" stroke-width="20"/>
+  <g stroke="${mid}" stroke-width="7" stroke-linecap="round" opacity="0.9">${ticks}</g>
+  ${[45, 135, 225, 315].map(d => point(d, 128, 30, mid, '#4f86bd')).join('\n  ')}
+  ${[0, 90, 180, 270].map(d => point(d, 206, 30, '#ffffff', light)).join('\n  ')}
+  <circle r="23" fill="#ffffff"/>
+  <circle r="12" fill="${navy}"/>
 </g>
 </svg>`
 }

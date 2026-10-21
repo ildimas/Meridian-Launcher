@@ -1,0 +1,488 @@
+# Қазақ тілі (Қазақстан). Community translation.
+# Lines missing here fall back to en_US.toml.
+
+[ejs.landing]
+wallpaperCreditBy = "автор:"
+updateAvailableTooltip = "Жаңарту қолжетімді"
+usernamePlaceholder = "Пайдаланушы аты"
+usernameEditButton = "Өзгерту"
+settingsTooltip = "Баптаулар"
+serverStatusPlaceholder = "Желіден тыс"
+mojangStatus = "Mojang"
+mojangStatusChecking = "Тексерілуде"
+mojangStatusTooltipTitle = "Mojang қызметтері"
+mojangStatusTooltipDesc = "Кіру, скиндер және желілік ойындағы авторизация. Олар істемесе, аккаунтқа немесе серверге кіру мүмкін болмауы мүмкін."
+mojangStatusNETitle = "Қосымша"
+newsButton = "Жаңалықтар"
+launchButton = "ОЙНАУ"
+gameRunning = "Іске қосылған"
+launchButtonPlaceholder = "Сервер таңдалмаған"
+launchDetails = "Күте тұрыңыз…"
+newsNavigationStatus = "{currentPage} / {totalPages}"
+newsErrorLoadSpan = "Жаңалықтарды тексеріп жатырмыз…"
+newsErrorFailedSpan = "Жаңалықтарды жүктеу мүмкін болмады"
+newsErrorRetryButton = "Қайталау"
+brandTagline = "Модтары бар серверлер"
+serverHeroLabel = "Таңдалған сервер"
+serverHeroLoading = "Серверлерді жүктеп жатырмыз…"
+newsErrorNoneSpan = "Жаңалық жоқ"
+newsDrawerTitle = "Жаңалықтар"
+newsDrawerDesc = "Команда хабарландырулары"
+newsClose = "Жаңалықтарды жабу"
+launchingButton = "ІСКЕ ҚОСУ"
+serverPickerLabel = "Сервер"
+serverDialLabel = "Серверлер"
+serverMenuHeading = "Сервер жинақтары"
+serverDialPrev = "Алдыңғы сервер"
+serverDialNext = "Келесі сервер"
+
+[ejs.login]
+loginCancelText = "Бас тарту"
+loginSubheader = "MINECRAFT-ҚА КІРУ"
+loginEmailError = "* Қате мән"
+loginEmailPlaceholder = "ПОШТА НЕМЕСЕ ПАЙДАЛАНУШЫ АТЫ"
+loginPasswordError = "* Міндетті"
+loginPasswordPlaceholder = "ҚҰПИЯСӨЗ"
+loginForgotPasswordText = "құпиясөзді ұмыттыңыз ба?"
+loginRememberMeText = "мені есте сақтау"
+loginButtonText = "КІРУ"
+loginNeedAccountText = "Аккаунт жоқ па?"
+loginPasswordDisclaimer1 = "Құпиясөз тікелей Mojang-қа жіберіледі және ешқайда сақталмайды."
+loginPasswordDisclaimer2 = "{appName} Mojang AB-мен байланысты емес."
+
+[ejs.loginOptions]
+loginOptionsTitle = "Кіру тәсілі"
+loginWithMicrosoft = "Microsoft арқылы кіру"
+loginWithMojang = "Mojang арқылы кіру"
+or = "немесе"
+playOffline = "Кірмей ойнау"
+offlineNameLabel = "Ойыншы аты"
+offlineNamePlaceholder = "Steve"
+offlineContinue = "Жалғастыру"
+offlineHint = "3–16 латын әрпі, сан немесе _. online-mode өшірілген серверлерде жұмыс істейді; ресми серверлер мен скиндер үшін Microsoft аккаунты керек."
+proxyButton = "Прокси баптаулары"
+cancelButton = "Бас тарту"
+
+[ejs.proxy]
+enableTitle = "Прокси-серверді пайдалану"
+enableDesc = "Лаунчер трафигін прокси арқылы жіберу: Microsoft пен Mojang-қа кіру, жинақтар мен Java жүктеу, жаңартулар."
+gameTitle = "Minecraft үшін проксиді пайдалану"
+gameDesc = "Әдепкіде өшірулі: ойын серверлерге тікелей қосылады. Қосылса, ойын кіру және скин сұрауларын прокси арқылы жібереді (тек SOCKS5)."
+hostPlaceholder = "Мекенжай"
+portPlaceholder = "Порт"
+usernamePlaceholder = "Логин (міндетті емес)"
+passwordPlaceholder = "Құпиясөз (міндетті емес)"
+testButton = "Тексеру"
+saveButton = "Сақтау"
+
+[ejs.overlay]
+serverSelectHeader = "Қолжетімді серверлер"
+serverSelectConfirm = "Таңдау"
+serverSelectCancel = "Бас тарту"
+accountSelectHeader = "Аккаунтты таңдаңыз"
+accountSelectConfirm = "Таңдау"
+accountSelectCancel = "Бас тарту"
+
+[ejs.settings]
+navHeaderText = "Баптаулар"
+navAppearance = "Безендіру"
+appearanceHeaderText = "Безендіру"
+appearanceHeaderDesc = "Лаунчердің артында не көрсетіледі"
+appearanceBackgroundTitle = "Фон"
+appearanceSourcePack = "Жинақ арты"
+appearanceSourceMix = "Аралас"
+appearanceSourceShots = "Менің скриншоттарым"
+appearanceIntervalTitle = "Ауыстыру аралығы"
+appearanceInterval15 = "15 с"
+appearanceInterval30 = "30 с"
+appearanceInterval60 = "1 мин"
+appearanceInterval300 = "5 мин"
+appearanceMotionTitle = "Қозғалыс"
+appearanceMotionDesc = "Әр суреттің баяу жылжуы"
+appearancePacksTitle = "Жинақтар"
+appearanceThisPack = "Бұл жинақ көрсетеді"
+appearanceThisPackDefault = "Әдепкі"
+appearanceThisPackMine = "Менікі"
+appearanceShowAll = "Барлығын көрсету"
+appearanceEdit = "Өзгерту"
+appearanceShotsTitle = "Менің скриншоттарым"
+appearanceShotsFolder = "Буманы ашу"
+appearanceShotsEmpty = "Әзірге жоқ. Ойында F2 басыңыз"
+appearanceDrawerClose = "Жабу"
+appearanceDrawerDone = "Дайын"
+navAccount = "Аккаунт"
+navMinecraft = "Minecraft"
+navMods = "Модтар"
+navJava = "Java"
+navLauncher = "Лаунчер"
+navLanguage = "Тіл"
+navProxy = "Прокси"
+navAbout = "Бағдарлама туралы"
+navDone = "Дайын"
+tabAccountHeaderText = "Аккаунттар"
+tabAccountHeaderDesc = "Жаңа аккаунттар қосыңыз немесе барларын басқарыңыз."
+microsoftAccount = "Microsoft"
+offlineAccount = "Офлайн"
+addOfflineAccount = "+ Офлайн аккаунт қосу"
+addMicrosoftAccount = "+ Microsoft аккаунтын қосу"
+mojangAccount = "Mojang"
+addMojangAccount = "+ Mojang аккаунтын қосу"
+minecraftTabHeaderText = "Minecraft баптаулары"
+minecraftTabHeaderDesc = "Ойынды іске қосу параметрлері."
+gameResolutionTitle = "Ойын ажыратымдылығы"
+launchFullscreenTitle = "Толық экранда іске қосу."
+autoConnectTitle = "Іске қосқанда серверге бірден қосылу."
+launchDetachedTitle = "Ойынды лаунчерден бөлек іске қосу."
+launchDetachedDesc = "Ойын бөлек болмаса, лаунчерді жапқанда ойын да жабылады."
+tabModsHeaderText = "Модтар"
+tabModsHeaderDesc = "Модтарды қосыңыз немесе өшіріңіз."
+switchServerButton = "Ауыстыру"
+requiredMods = "Міндетті модтар"
+optionalMods = "Міндетті емес модтар"
+dropinMods = "Өз модтарым"
+addMods = "Мод қосу"
+dropinRefreshNote = "(F5 — жаңарту)"
+shaderpacks = "Шейдерлер"
+shaderpackDesc = "Бір уақытта тек бір шейдер жинағын қосуға болады. Шейдерлер үшін жинақта Iris немесе OptiFine керек, ал олар тек қуатты компьютерлерде бірқалыпты жұмыс істейді."
+addShaderpacks = "Шейдер қосу"
+resourcepacks = "Ресурс жинақтары"
+resourcepackDesc = "Мұнда қосылған ресурс жинақтары ойынды келесі іске қосқанда қолданылады."
+addResourcepacks = "Ресурс жинағын қосу"
+packDropNote = "(.zip файлдарын осында сүйреңіз, F5 — жаңарту)"
+tabJavaHeaderText = "Java баптаулары"
+tabJavaHeaderDesc = "Java конфигурациясы (тәжірибелілерге)."
+memoryTitle = "Жад"
+maxRAM = "Ең көп ЖЖҚ"
+minRAM = "Ең аз ЖЖҚ"
+memoryDesc = "Ұсынылатын ең аз көлем — 3 ГБ. Ең аз және ең көп мәндердің бірдей болуы кідірістерді азайтуы мүмкін."
+memoryTotalTitle = "Барлығы"
+memoryAvailableTitle = "Бос"
+javaExecutableTitle = "Java орындалатын файлы"
+javaExecSelDialogTitle = "Java орындалатын файлын таңдаңыз"
+javaExecSelButtonText = "Файлды таңдау"
+javaExecDesc = "Java ойынды іске қосар алдында тексеріледі."
+javaPathDesc = "Жол <strong>{pathSuffix}</strong> деп аяқталуы керек."
+jvmOptsTitle = "Қосымша JVM параметрлері"
+jvmOptsDesc = "Іске қосқанда JVM-ге берілетін параметрлер. <em>-Xms</em> және <em>-Xmx</em> көрсетудің қажеті жоқ."
+launcherTabHeaderText = "Лаунчер баптаулары"
+launcherTabHeaderDesc = "Лаунчердің өз параметрлері."
+proxyTabHeaderText = "Прокси баптаулары"
+proxyTabHeaderDesc = "Прокси қосулы болса, жүктеулер ол арқылы, әйтпесе тікелей жүреді. Төмендегі параметрді қоспасаңыз, Minecraft әрқашан тікелей қосылады."
+allowPrereleaseTitle = "Алдын ала нұсқаларды алу."
+allowPrereleaseDesc = "Алдын ала нұсқаларда толық тексерілмеген жаңа мүмкіндіктер болуы мүмкін.<br>Алдын ала нұсқаны пайдаланып жүрсеңіз, әрқашан қосулы."
+dataDirectoryTitle = "Деректер бумасы"
+selectDataDirectory = "Деректер бумасын таңдаңыз"
+chooseFolder = "Буманы таңдау"
+dataDirectoryDesc = "Барлық ойын файлдары мен жергілікті Java орнатулары деректер бумасында сақталады.<br>Скриншоттар мен әлем сақталымдары тиісті сервердің экземпляр бумасында сақталады."
+aboutTabHeaderText = "Бағдарлама және жаңартулар"
+aboutTabHeaderDesc = "Нұсқа, лаунчер жаңартулары және өзгерістер тізімі."
+stableRelease = "Тұрақты нұсқа"
+versionText = "Нұсқа "
+sourceGithub = "Бастапқы код (GitHub)"
+support = "Қолдау"
+devToolsConsole = "DevTools консолі"
+releaseNotes = "Не жаңа"
+changelog = "Өзгерістер тізімі"
+noReleaseNotes = "Өзгерістер сипаттамасы жоқ"
+viewReleaseNotes = "Өзгерістер тізімін GitHub-та ашу"
+checkForUpdates = "Жаңартуларды тексеру"
+languageHeaderText = "Тіл"
+languageHeaderDesc = "Интерфейс тілі және күн мен сан пішіміне арналған ел"
+languageApplied = "Бірден қолданылады, қайта іске қосу қажет емес"
+languageSystemTitle = "Жүйе тілі"
+languageMinecraftTitle = "Minecraft-та да осы тіл"
+languageAllTitle = "Барлық тілдер"
+languageAllDesc = "Ел жазылуды, күн және сан пішімін анықтайды"
+languageSearch = "Тілді немесе елді іздеу"
+languageFooter = "Аударылмаған жолдар ағылшынша көрсетіледі."
+languageHelp = "Аударуға көмектесу"
+
+[ejs.waiting]
+waitingText = "Microsoft-ты күтіп жатырмыз…"
+
+[ejs.welcome]
+continueButton = "ЖАЛҒАСТЫРУ"
+welcomeHeader = "Қош келдіңіз"
+welcomeDescription = "Лаунчер біздің серверлерге керектің бәрін өзі дайындайды: қажетті Minecraft нұсқасын, мод жүктегішін, барлық модтар мен баптауларды. Жинақ жаңарғанда, ол да жаңарады, сондықтан модтармен қолмен әуре болудың қажеті жоқ."
+welcomeDescCTA = "Бір рет кіріңіз, серверді таңдап, «Ойнау» түймесін басыңыз."
+
+
+[js.discord]
+waiting = "Клиентті күту…"
+state = "Сервер: {shortId}"
+
+[js.index]
+microsoftLoginTitle = "Microsoft-қа кіру"
+microsoftLogoutTitle = "Microsoft-тан шығу"
+
+[js.login]
+login = "КІРУ"
+loggingIn = "КІРІП ЖАТЫРМЫЗ"
+success = "ДАЙЫН"
+tryAgain = "Қайталау"
+
+[js.login.error]
+invalidValue = "* Қате мән"
+requiredValue = "* Міндетті"
+
+[js.login.error.unknown]
+title = "Кіру кезіндегі белгісіз қате"
+desc = "Белгісіз қате орын алды. Толығырақ консольде."
+
+[js.landing.launch]
+pleaseWait = "Күте тұрыңыз…"
+failureTitle = "Іске қосу қатесі"
+failureText = "Толығырақ консольде (CTRL + Shift + i)."
+okay = "Жарайды"
+
+[js.landing.selectedAccount]
+noAccountSelected = "Аккаунт таңдалмаған"
+
+[js.landing.selectedServer]
+noSelection = "Сервер таңдалмаған"
+loading = "Жүктелуде…"
+
+[js.landing.serverStatus]
+offline = "Желіден тыс"
+playerCount = "Ойыншылар: {online}/{max}"
+checking = "Тексерілуде"
+
+[js.landing.running]
+play = "ОЙНАУ"
+download = "ЖҮКТЕУ"
+button = "ІСКЕ ҚОСЫЛҒАН"
+badge = "Іске қосылған"
+
+[js.landing.serverHero]
+minecraftVersion = "MC {version}"
+modpackRevision = "Жинақ v{version}"
+vanilla = "Ванилла"
+position = "{current} / {total}"
+
+[js.landing.mojang]
+aria = "Mojang қызметтері"
+
+[js.landing.mojangStatusLabel]
+green = "Жұмыс істейді"
+yellow = "Ақаулар бар"
+red = "Істемейді"
+grey = "Белгісіз"
+
+[js.landing.systemScan]
+checking = "Жүйені тексеріп жатырмыз…"
+noCompatibleJava = "Сәйкес келетін<br>Java табылмады"
+installJavaMessage = "Minecraft-ты іске қосу үшін 64 биттік Java {major} керек. Оны орнатамыз ба?"
+installJava = "Java орнату"
+installJavaManually = "Қолмен орнату"
+javaDownloadPrepare = "Java жүктеуге дайындалып жатырмыз…"
+javaDownloadFailureTitle = "Java жүктеу қатесі"
+javaDownloadFailureText = "Толығырақ консольде (CTRL + Shift + i)."
+javaRequired = "Іске қосу үшін<br>Java керек"
+javaRequiredMessage = 'Іске қосу үшін 64 биттік Java {major} керек.<br><br>Java-ны қолмен қалай орнату керектігі <a href="https://github.com/dscalzi/HeliosLauncher/wiki/Java-Management#manually-installing-a-valid-version-of-java">Java нұсқаулығында</a> сипатталған.'
+javaRequiredDismiss = "Түсінікті"
+javaRequiredCancel = "Артқа"
+
+[js.landing.downloadJava]
+findJdkFailure = "OpenJDK дистрибутивін табу мүмкін болмады."
+javaDownloadCorruptedError = "Жүктелген JDK бақылау сомасы қате, файл зақымдалған болуы мүмкін."
+extractingJava = "Java ашылуда"
+javaInstalled = "Java орнатылды!"
+
+[js.landing.dlAsync]
+loadingServerInfo = "Сервер деректерін жүктеп жатырмыз…"
+fatalError = "Маңызды қате"
+unableToLoadDistributionIndex = "Дистрибутив индексін жүктеу мүмкін болмады. Толығырақ консольде (CTRL + Shift + i)."
+pleaseWait = "Күте тұрыңыз…"
+errorDuringLaunchTitle = "Іске қосу қатесі"
+seeConsoleForDetails = "Толығырақ консольде (CTRL + Shift + i)."
+validatingFileIntegrity = "Файлдардың тұтастығын тексеріп жатырмыз…"
+errorDuringFileVerificationTitle = "Файлдарды тексеру қатесі"
+downloadingFiles = "Файлдарды жүктеп жатырмыз…"
+errorDuringFileDownloadTitle = "Файлдарды жүктеу қатесі"
+downloadTimedOutHint = "Жүктеу сервері жауап беруді тоқтатты. Ол сіздің желіңізде бұғатталған немесе баяулатылған болса, Баптаулар &gt; Прокси бөлімінде прокси көрсетіп, қайталап көріңіз."
+preparingToLaunch = "Іске қосуға дайындалып жатырмыз…"
+launchingGame = "Ойынды іске қосып жатырмыз…"
+launchWrapperNotDownloaded = "Басты файл, LaunchWrapper, қатемен жүктелді, сондықтан ойын іске қосыла алмайды.<br><br>Мұны түзету үшін антивирусты уақытша өшіріп, ойынды қайта іске қосыңыз.<br><br>Уақытыңыз болса, <a href=\"https://github.com/ildimas/Helios-Custom-Worlds/issues\">issue жасап</a>, қай антивирусты пайдаланатыныңызды жазыңыз. Біз оның әзірлеушілерімен байланысып, мәселені шешуге тырысамыз."
+doneEnjoyServer = "Дайын. Ойыныңыз көңілді болсын!"
+checkConsoleForDetails = "Толығырақ консольде (CTRL + Shift + i)."
+
+[js.landing.news]
+checking = "Жаңалықтарды тексеріп жатырмыз"
+
+[js.landing.discord]
+loading = "Ойын жүктелуде…"
+joining = "Вестероске жүзіп барамыз!"
+joined = "Корольдікті зерттеуде!"
+
+[js.proxy]
+invalidType = "HTTP немесе SOCKS5 таңдаңыз."
+invalidHost = "Прокси мекенжайын көрсетіңіз."
+invalidPort = "Порт — 1-ден 65535-ке дейінгі сан."
+testing = "Microsoft және Mojang қызметтерін тексеріп жатырмыз…"
+testOk = "Microsoft және Mojang қызметтері қолжетімді."
+testFailed = "Қосылу мүмкін болмады: {error}"
+saved = "Прокси баптаулары сақталды."
+socksAuthWarning = "Сақталды. Microsoft кіру терезесі SOCKS5 проксиде авторизациялана алмайды; HTTP немесе құпиясөзсіз проксиді пайдаланыңыз."
+
+[js.overlay]
+dismiss = "Жабу"
+
+[js.settings.appearance]
+sourcePackDesc = "Әр жинақпен бірге келетін тұсқағаздар мен скриншоттар."
+sourceMixDesc = "Жинақ суреттері F2 скриншоттарыңызбен араласады."
+sourceShotsDesc = "Тек F2 скриншоттарыңыз. Олар болмаса, жинақ суреттері көрсетіледі."
+packCounts = "жинақ: {art} · менікі: {shots}"
+galleryCounts = "галерея: {art} · менікі: {shots}"
+serverPack = "Сервер жинағы"
+artTitle = "Жинақ суреттері"
+galleryTitle = "Галерея"
+count = "{count} / {total}"
+showLess = "Жию"
+labelPack = "Жинақ суреті"
+labelGallery = "Галерея"
+labelShot = "Сіздің скриншотыңыз"
+preview = "Алдын ала қарау · {server}"
+
+[js.settings.fileSelectors]
+executables = "Орындалатын файлдар"
+allFiles = "Барлық файлдар"
+
+[js.settings.mstfLogin]
+errorTitle = "Бірдеңе дұрыс болмады"
+errorMessage = "Microsoft арқылы кіру мүмкін болмады. Қайталап көріңіз."
+okButton = "Жарайды"
+
+[js.settings.mstfLogout]
+errorTitle = "Бірдеңе дұрыс болмады"
+errorMessage = "Microsoft-тан шығу мүмкін болмады. Қайталап көріңіз."
+okButton = "Жарайды"
+
+[js.settings.authAccountSelect]
+selectButton = "Аккаунтты таңдау"
+selectedButton = "Таңдалған аккаунт &#10004;"
+
+[js.settings.authAccountLogout]
+lastAccountWarningTitle = "Назар аударыңыз<br>Бұл соңғы аккаунтыңыз"
+lastAccountWarningMessage = "Лаунчерді пайдалану үшін кемінде бір аккаунтқа кіру керек. Шыққаннан кейін қайта кіруге тура келеді.<br><br>Шынымен шығасыз ба?"
+confirmButton = "Иә, шығу"
+cancelButton = "Бас тарту"
+
+[js.settings.authAccountPopulate]
+username = "Аты"
+uuid = "UUID"
+selectAccount = "Аккаунтты таңдау"
+selectedAccount = "Таңдалған аккаунт ✓"
+logout = "Шығу"
+
+[js.settings.dropinMods]
+removeButton = "Жою"
+deleteFailedTitle = "{fullName} модын<br>жою мүмкін болмады"
+deleteFailedMessage = "Файлдың пайдаланылып жатпағанына көз жеткізіп, қайталап көріңіз."
+failedToggleTitle = "Бір немесе бірнеше модты<br>ауыстыру мүмкін болмады"
+okButton = "Жарайды"
+
+[js.settings.packs]
+noShaderpacks = "Әзірге шейдер жоқ. .zip файлын shaderpacks бумасына салыңыз."
+noResourcepacks = "Әзірге ресурс жинағы жоқ. .zip файлын resourcepacks бумасына салыңыз."
+folder = "Бума"
+zip = "Zip"
+
+[js.settings.language]
+systemDesc = "Операциялық жүйедегідей. Анықталды: {language}"
+minecraftDesc = "Келесі іске қосуда барлық жинақтар {language} ({code}) тілінде ашылады"
+countries = "{count} ел"
+pending = "Minecraft жабылғанда қолданылады"
+noResults = "Ондай тіл жоқ."
+inProgress = "Әзірленуде"
+
+[js.settings.serverListing]
+mainServer = "Негізгі сервер"
+
+[js.settings.java]
+selectedJava = "Таңдалды: Java {version} ({vendor})"
+invalidSelection = "Қате таңдау"
+requiresJava = "64 биттік Java {major} керек."
+availableOptions = "Java {major} қолжетімді параметрлері (HotSpot VM)"
+
+[js.settings.about]
+preReleaseTitle = "Алдын ала нұсқа"
+stableReleaseTitle = "Тұрақты нұсқа"
+releaseNotesFailed = "Өзгерістер тізімін жүктеу мүмкін болмады."
+
+[js.settings.updates]
+newReleaseTitle = "{version} нұсқасы қолжетімді"
+newPreReleaseTitle = "{version} алдын ала нұсқасы қолжетімді"
+whatsNew = "{version} нұсқасында не жаңа"
+downloadingButton = "Жүктелуде…"
+downloadButton = 'GitHub-тан жүктеу<span style="font-size: 10px;color: gray;text-shadow: none !important;">Жаңарту үшін лаунчерді жауып, dmg файлын іске қосыңыз.</span>'
+latestVersionTitle = "Сізде соңғы нұсқа"
+checkForUpdatesButton = "Жаңартуларды тексеру"
+checkingForUpdatesButton = "Жаңартуларды тексеріп жатырмыз…"
+
+[js.settings.msftLogin]
+errorTitle = "Microsoft арқылы кіру мүмкін болмады"
+errorMessage = "Microsoft аккаунтыңызды авторизациялау мүмкін болмады. Қайталап көріңіз."
+okButton = "Жарайды"
+
+[js.uibinder.startup]
+fatalErrorTitle = "Маңызды қате: дистрибутив индексін жүктеу мүмкін болмады"
+fatalErrorMessage = "Дистрибутив индексін жүктеу үшін біздің серверлерге қосылу мүмкін болмады, ал жергілікті көшірме жоқ. <br><br>Дистрибутив индексінде серверлер туралы өзекті деректер бар, онсыз лаунчер іске қосыла алмайды. Интернетке қосылымды тексеріп, қолданбаны қайта іске қосыңыз."
+closeButton = "Жабу"
+
+[js.uibinder.validateAccount]
+failedMessageTitle = "Кіруді жаңарту мүмкін болмады"
+failedMessage = "<strong>{account}</strong> үшін кіруді жаңарту мүмкін болмады. Басқа аккаунтты таңдаңыз немесе қайта кіріңіз."
+failedMessageSelectAnotherAccount = "<strong>{account}</strong> үшін кіруді жаңарту мүмкін болмады. Қайта кіріңіз."
+loginButton = "Кіру"
+selectAnotherAccountButton = "Басқа аккаунтты таңдау"
+
+[js.uicore.autoUpdate]
+checkingForUpdateButton = "Жаңартуларды тексеріп жатырмыз…"
+installNowButton = "Қазір орнату"
+checkForUpdatesButton = "Жаңартуларды тексеру"
+
+[js.auth.offline]
+invalidNameTitle = "Ойыншы аты жарамсыз"
+invalidNameDesc = "3–16 таңба пайдаланыңыз: латын әріптері, сандар немесе астын сызу."
+
+[js.auth.microsoft.error]
+noProfileTitle = "Кіру қатесі:<br>профиль жасалмаған"
+noProfileDesc = "Microsoft аккаунтыңызда әлі Minecraft профилі жоқ. Ойынды жақында сатып алсаңыз немесе Xbox Game Pass арқылы алсаңыз, профильді <a href=\"https://minecraft.net/\">Minecraft.net</a> сайтында жасаңыз.<br><br>Ойынды әлі сатып алмаған болсаңыз, мұны да <a href=\"https://minecraft.net/\">Minecraft.net</a> сайтында жасауға болады."
+noXboxAccountTitle = "Кіру қатесі:<br>Xbox аккаунты жоқ"
+noXboxAccountDesc = "Microsoft аккаунтыңызға Xbox аккаунты байланыстырылмаған."
+xblBannedTitle = "Кіру қатесі:<br>Xbox Live қолжетімсіз"
+xblBannedDesc = "Microsoft аккаунтыңыз Xbox Live қолжетімсіз немесе тыйым салынған елде тіркелген."
+under18Title = "Кіру қатесі:<br>ата-ана рұқсаты керек"
+under18Desc = "18 жасқа толмаған пайдаланушылардың аккаунттарын отбасы тобына ересек адам қосуы керек."
+unknownTitle = "Кіру кезіндегі белгісіз қате"
+unknownDesc = "Белгісіз қате орын алды. Толығырақ консольде."
+
+[js.auth.mojang.error]
+methodNotAllowedTitle = "Ішкі қате:<br>әдіске рұқсат жоқ"
+methodNotAllowedDesc = "Әдіске рұқсат жоқ. Бұл қате туралы хабарлаңыз."
+notFoundTitle = "Ішкі қате:<br>табылмады"
+notFoundDesc = "Авторизация мекенжайы табылмады. Бұл қате туралы хабарлаңыз."
+accountMigratedTitle = "Кіру қатесі:<br>аккаунт көшірілген"
+accountMigratedDesc = "Сіз көшірілген аккаунтқа кіруге тырысып жатырсыз. Аттың орнына аккаунт поштасын көрсетіп, қайталап көріңіз."
+invalidCredentialsTitle = "Кіру қатесі:<br>деректер қате"
+invalidCredentialsDesc = "Пошта немесе құпиясөз қате енгізілді. Қайталап көріңіз."
+tooManyAttemptsTitle = "Кіру қатесі:<br>тым көп әрекет"
+tooManyAttemptsDesc = "Бұл аккаунтқа жақында тым көп рет кіруге тырысты. Кейінірек қайталап көріңіз."
+invalidTokenTitle = "Кіру қатесі:<br>токен жарамсыз"
+invalidTokenDesc = "Берілген қолжетімділік токені жарамсыз."
+tokenHasProfileTitle = "Кіру қатесі:<br>токенде профиль бар"
+tokenHasProfileDesc = "Қолжетімділік токеніне профиль тағайындалған. Профильді таңдау әзірге қолдау көрсетілмейді."
+credentialsMissingTitle = "Кіру қатесі:<br>кіру деректері жоқ"
+credentialsMissingDesc = "Аты немесе құпиясөз көрсетілмеген, не құпиясөз 3 таңбадан қысқа."
+invalidSaltVersionTitle = "Кіру қатесі:<br>тұз нұсқасы қате"
+invalidSaltVersionDesc = "Тұз нұсқасы қате."
+unsupportedMediaTypeTitle = "Ішкі қате:<br>қолдау көрсетілмейтін дерек түрі"
+unsupportedMediaTypeDesc = "Қолдау көрсетілмейтін дерек түрі. Бұл қате туралы хабарлаңыз."
+accountGoneTitle = "Кіру қатесі:<br>аккаунт көшірілген"
+accountGoneDesc = "Аккаунт Microsoft-қа көшірілген. Microsoft арқылы кіріңіз."
+unreachableTitle = "Кіру қатесі:<br>сервер қолжетімсіз"
+unreachableDesc = "Авторизация серверлерімен байланысу мүмкін болмады. Олардың жұмыс істеп тұрғанына және интернетке қосылғаныңызға көз жеткізіңіз."
+gameNotPurchasedTitle = "Кіру қатесі:<br>ойын сатып алынбаған"
+gameNotPurchasedDesc = "Кіріп жатқан аккаунтта Minecraft сатып алынбаған. Ойынды <a href=\"https://minecraft.net/\">Minecraft.net</a> сайтында сатып алуға болады"
+unknownErrorTitle = "Кіру кезіндегі белгісіз қате"
+unknownErrorDesc = "Белгісіз қате орын алды. Толығырақ консольде."
