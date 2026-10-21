@@ -1,9 +1,10 @@
-<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<html lang="<%= langTag() %>" xmlns="http://www.w3.org/1999/xhtml">
 <head>
     <meta charset="utf-8" http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-In6B8teKZQll5heMl9bS7CESTbGvuAt3VVV86BUQBDk='"/>
     <title><%= lang('app.title') %></title>
     <script src="./assets/js/scripts/uicore.js"></script>
     <script src="./assets/js/scripts/uibinder.js"></script>
+    <script src="./assets/js/scripts/zoom.js"></script>
     <link type="text/css" rel="stylesheet" href="./assets/css/launcher.css">
     <style>
         body {
@@ -36,12 +37,11 @@
     </div>
     <%- include('overlay') %>
     <div id="loadingContainer">
-        <div id="loadingContent">
-            <div id="loadSpinnerContainer">
-                <img id="loadCenterImage" src="assets/images/logo.svg">
-                <img id="loadSpinnerImage" class="rotating" src="assets/images/loading-ring.svg">
-            </div>
-        </div>
+        <canvas id="splashBack" aria-hidden="true"></canvas>
+        <svg id="splashLogo" aria-hidden="true"></svg>
+        <canvas id="splashFront" aria-hidden="true"></canvas>
+        <div id="splashWordmark"><%= lang('app.title') %></div>
     </div>
+    <script src="./assets/js/scripts/splash.js"></script>
 </body>
 </html>

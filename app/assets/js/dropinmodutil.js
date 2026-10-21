@@ -1,6 +1,6 @@
 const fs        = require('fs-extra')
 const path      = require('path')
-const { ipcRenderer, shell } = require('electron')
+const { ipcRenderer, shell, webUtils } = require('electron')
 const { SHELL_OPCODE } = require('./ipcconstants')
 
 // Group #1: File Name (without .disabled, if any)
@@ -14,6 +14,10 @@ const SHADER_OPTION = /shaderPack=(.+)/
 const SHADER_DIR = 'shaderpacks'
 const SHADER_CONFIG = 'optionsshaders.txt'
 
+const RESOURCEPACK_DIR = 'resourcepacks'
+const GAME_OPTIONS = 'options.txt'
+const RESOURCEPACK_OPTION = /^resourcePacks:(.*)$/m
+
 /**
  * Validate that the given directory exists. If not, it is
  * created.
@@ -22,6 +26,15 @@ const SHADER_CONFIG = 'optionsshaders.txt'
  */
 exports.validateDir = function(dir) {
     fs.ensureDirSync(dir)
+}
+
+/**
+ * The path of a dropped file. Electron 32 removed File.path.
+ *
+ * @param {File} f The dropped file.
+ */
+function droppedPath(f){
+    return webUtils != null && webUtils.getPathForFile != null ? webUtils.getPathForFile(f) : f.path
 }
 
 /**
@@ -81,7 +94,7 @@ exports.addDropinMods = function(files, modsdir) {
 
     for(let f of files) {
         if(MOD_REGEX.exec(f.name) != null) {
-            fs.moveSync(f.path, path.join(modsdir, f.name))
+            fs.moveSync(droppedPath(f), path.join(modsdir, f.name))
         }
     }
 
@@ -165,7 +178,15 @@ exports.scanForShaderpacks = function(instanceDir){
             if(match != null){
                 packsDiscovered.push({
                     fullName: match[0],
-                    name: match[1]
+                    name: match[1],
+                    dir: false
+                })
+            } else if(isDirectory(path.join(shaderDir, file))){
+                // Iris and OptiFine also load unpacked shaderpacks.
+                packsDiscovered.push({
+                    fullName: file,
+                    name: file,
+                    dir: true
                 })
             }
         }
@@ -231,8 +252,169 @@ exports.addShaderpacks = function(files, instanceDir) {
 
     for(let f of files) {
         if(SHADER_REGEX.exec(f.name) != null) {
-            fs.moveSync(f.path, path.join(p, f.name))
+            fs.moveSync(droppedPath(f), path.join(p, f.name))
         }
     }
 
+}
+
+function isDirectory(p){
+    try {
+        return fs.statSync(p).isDirectory()
+    } catch {
+        return false
+    }
+}
+
+/**
+ * Scan for resource packs inside the resourcepacks folder: zips, and
+ * folders with a pack.mcmeta.
+ *
+ * @param {string} instanceDir The path to the server instance directory.
+ *
+ * @returns {{fullName: string, name: string, dir: boolean}[]}
+ * An array of objects storing metadata about each discovered resource pack.
+ */
+exports.scanForResourcepacks = function(instanceDir){
+    const packDir = path.join(instanceDir, RESOURCEPACK_DIR)
+    const packsDiscovered = []
+    if(fs.existsSync(packDir)){
+        for(let file of fs.readdirSync(packDir)){
+            const full = path.join(packDir, file)
+            if(isDirectory(full)){
+                if(fs.existsSync(path.join(full, 'pack.mcmeta'))){
+                    packsDiscovered.push({ fullName: file, name: file, dir: true })
+                }
+            } else if(/\.zip$/i.test(file)){
+                packsDiscovered.push({ fullName: file, name: file.replace(/\.zip$/i, ''), dir: false })
+            }
+        }
+    }
+    return packsDiscovered.sort((a, b) => a.name.localeCompare(b.name))
+}
+
+/**
+ * Read the resourcePacks list from the game's options.txt.
+ *
+ * @param {string} instanceDir The path to the server instance directory.
+ * @returns {string[] | null} The raw entries, or null when there is no list.
+ */
+function readResourcepackOption(instanceDir){
+    const options = path.join(instanceDir, GAME_OPTIONS)
+    if(!fs.existsSync(options)){
+        return null
+    }
+    const match = RESOURCEPACK_OPTION.exec(fs.readFileSync(options, {encoding: 'utf-8'}))
+    if(match == null){
+        return null
+    }
+    try {
+        const list = JSON.parse(match[1])
+        return Array.isArray(list) ? list.filter(e => typeof e === 'string') : null
+    } catch {
+        return null
+    }
+}
+
+/**
+ * Whether options.txt names a pack. Since 1.13 the entries carry a file/ prefix.
+ */
+function isPackEntry(entry, fullName){
+    return entry === 'file/' + fullName || entry === fullName
+}
+
+/**
+ * The resource packs the game has enabled.
+ *
+ * @param {string} instanceDir The path to the server instance directory.
+ * @param {{fullName: string}[]} packs The packs from scanForResourcepacks.
+ * @returns {string[]} The fullName of each enabled pack.
+ */
+exports.getEnabledResourcepacks = function(instanceDir, packs){
+    const list = readResourcepackOption(instanceDir) || []
+    return packs.filter(p => list.some(e => isPackEntry(e, p.fullName))).map(p => p.fullName)
+}
+
+/**
+ * Enable or disable resource packs in options.txt. Packs that stay enabled
+ * keep their order, newly enabled ones go on top, and built-in entries such
+ * as vanilla are left alone.
+ *
+ * @param {string} instanceDir The path to the server instance directory.
+ * @param {{fullName: string}[]} packs The packs from scanForResourcepacks.
+ * @param {string[]} enabled The fullName of each pack that should be enabled.
+ * @param {string} mcVersion The server's Minecraft version.
+ */
+exports.setEnabledResourcepacks = function(instanceDir, packs, enabled, mcVersion){
+    const current = readResourcepackOption(instanceDir)
+    const list = current != null ? current : ['vanilla']
+    const minor = /^1\.(\d+)/.exec(mcVersion)
+    const prefix = minor == null || Number(minor[1]) >= 13 ? 'file/' : ''
+
+    const next = list.filter(e => {
+        const pack = packs.find(p => isPackEntry(e, p.fullName))
+        return pack == null || enabled.includes(pack.fullName)
+    })
+    for(const fullName of enabled){
+        if(!next.some(e => isPackEntry(e, fullName))){
+            next.push(prefix + fullName)
+        }
+    }
+    if(current != null && JSON.stringify(current) === JSON.stringify(next)){
+        return
+    }
+
+    exports.validateDir(instanceDir)
+    const options = path.join(instanceDir, GAME_OPTIONS)
+    const line = `resourcePacks:${JSON.stringify(next)}`
+    let buf = fs.existsSync(options) ? fs.readFileSync(options, {encoding: 'utf-8'}) : ''
+    if(RESOURCEPACK_OPTION.test(buf)){
+        buf = buf.replace(RESOURCEPACK_OPTION, line)
+    } else {
+        buf += (buf.length > 0 && !buf.endsWith('\n') ? '\n' : '') + line + '\n'
+    }
+    fs.writeFileSync(options, buf, {encoding: 'utf-8'})
+}
+
+/**
+ * Add resource packs.
+ *
+ * @param {FileList} files The files to add.
+ * @param {string} instanceDir The path to the server instance directory.
+ */
+exports.addResourcepacks = function(files, instanceDir) {
+
+    const p = path.join(instanceDir, RESOURCEPACK_DIR)
+
+    exports.validateDir(p)
+
+    for(let f of files) {
+        if(/\.zip$/i.test(f.name)) {
+            fs.moveSync(droppedPath(f), path.join(p, f.name))
+        }
+    }
+
+}
+
+/**
+ * Set the game's language in options.txt, leaving every other option alone.
+ *
+ * @param {string} instanceDir The path to the server instance directory.
+ * @param {string} code Minecraft's language code, e.g. ru_ru.
+ */
+exports.setGameLanguage = function(instanceDir, code){
+    exports.validateDir(instanceDir)
+    const options = path.join(instanceDir, GAME_OPTIONS)
+    const line = `lang:${code}`
+    let buf = fs.existsSync(options) ? fs.readFileSync(options, {encoding: 'utf-8'}) : ''
+    const match = buf.match(/^lang:.*$/m)
+    if(match != null){
+        if(match[0] === line){
+            return
+        }
+        buf = buf.replace(/^lang:.*$/m, line)
+    } else {
+        buf += (buf.length > 0 && !buf.endsWith('\n') ? '\n' : '') + line + '\n'
+    }
+    fs.writeFileSync(options, buf, {encoding: 'utf-8'})
 }

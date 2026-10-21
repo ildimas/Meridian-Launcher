@@ -86,6 +86,7 @@ const DEFAULT_CONFIG = {
         },
         launcher: {
             allowPrerelease: false,
+            hardwareAcceleration: true, // Read by the main process at startup.
             dataDirectory: dataPath,
             proxy: {
                 enabled: false,
@@ -93,25 +94,24 @@ const DEFAULT_CONFIG = {
                 host: '',
                 port: '',
                 username: '',
-                password: ''
+                password: '',
+                useForGame: false // Minecraft itself connects directly unless enabled.
             },
             appearance: {
-                theme: 'geometry', // landscapes | geometry | photo
-                scene: {
-                    landscapes: 'alpine',
-                    geometry: 'orbit'
-                },
-                palette: {
-                    landscapes: 'natural',
-                    geometry: 'meridian'
-                },
-                timeOfDay: 'auto', // auto | dawn | day | dusk | night
+                interval: 30, // Seconds each picture stays.
                 motion: true,
-                perServerWallpaper: true,
                 serverPicker: 'dial', // dial | dropdown
-                photo: null, // Selected photo path.
-                photos: [] // Photos the user added.
-            }
+                // Per server id: { hidden: [picture keys left out], added: [picture paths] }.
+                packs: {}
+            },
+            language: {
+                system: true, // Follow the operating system; language and country are ignored then.
+                language: null, // A language id from LangLoader.LANGUAGES, e.g. 'ru'.
+                country: null, // One of that language's countries, e.g. 'RU'.
+                minecraft: true // Also set this language in the game's options.txt on launch.
+            },
+            zoom: 1, // Interface scale, changed with Ctrl + and Ctrl -.
+            curseForgeApiKey: '' // For CurseForge search and installs on the Modpacks tab.
         }
     },
     newsCache: {
@@ -820,6 +820,25 @@ exports.setLaunchDetached = function(launchDetached){
 // Launcher Settings
 
 /**
+ * Check whether the launcher draws with the GPU.
+ *
+ * @param {boolean} def Optional. If true, the default value will be returned.
+ * @returns {boolean} Whether hardware acceleration is on.
+ */
+exports.getHardwareAcceleration = function(def = false){
+    return !def ? config.settings.launcher.hardwareAcceleration : DEFAULT_CONFIG.settings.launcher.hardwareAcceleration
+}
+
+/**
+ * Change whether the launcher draws with the GPU. Applies after a restart.
+ *
+ * @param {boolean} hardwareAcceleration Whether to use the GPU.
+ */
+exports.setHardwareAcceleration = function(hardwareAcceleration){
+    config.settings.launcher.hardwareAcceleration = hardwareAcceleration
+}
+
+/**
  * Check if the launcher should download prerelease versions.
  * 
  * @param {boolean} def Optional. If true, the default value will be returned.
@@ -858,8 +877,8 @@ exports.setProxy = function(proxy){
 }
 
 /**
- * Retrieve the launcher appearance (wallpaper theme, colour, time of day,
- * motion and server picker).
+ * Retrieve the launcher appearance (rotation, motion, per-modpack picks and
+ * server picker).
  * 
  * @param {boolean} def Optional. If true, the default value will be returned.
  * @returns {Object} A copy of the appearance settings.
@@ -875,4 +894,61 @@ exports.getAppearance = function(def = false){
  */
 exports.setAppearance = function(appearance){
     config.settings.launcher.appearance = Object.assign(exports.getAppearance(), appearance)
+}
+
+/**
+ * Retrieve the CurseForge API key used by the Modpacks tab.
+ *
+ * @returns {string} The key, or an empty string when none is set.
+ */
+exports.getCurseForgeApiKey = function(){
+    return config.settings.launcher.curseForgeApiKey || ''
+}
+
+/**
+ * Change the CurseForge API key used by the Modpacks tab.
+ *
+ * @param {string} key The key; empty to remove it.
+ */
+exports.setCurseForgeApiKey = function(key){
+    config.settings.launcher.curseForgeApiKey = String(key || '').trim()
+}
+
+/**
+ * Retrieve the interface language selection.
+ * 
+ * @param {boolean} def Optional. If true, the default value will be returned.
+ * @returns {Object} The selection (system, language, country, minecraft).
+ */
+exports.getLanguage = function(def = false){
+    return Object.assign({}, DEFAULT_CONFIG.settings.launcher.language, !def ? config.settings.launcher.language : null)
+}
+
+/**
+ * Change the interface language selection. Only the given keys are replaced.
+ * 
+ * @param {Object} language The selection keys to change.
+ */
+exports.setLanguage = function(language){
+    config.settings.launcher.language = Object.assign(exports.getLanguage(), language)
+}
+
+/**
+ * Retrieve the interface scale.
+ * 
+ * @param {boolean} def Optional. If true, the default value will be returned.
+ * @returns {number} The zoom factor, 1 being 100%.
+ */
+exports.getZoom = function(def = false){
+    const zoom = !def ? config.settings.launcher.zoom : null
+    return typeof zoom === 'number' && zoom > 0 ? zoom : DEFAULT_CONFIG.settings.launcher.zoom
+}
+
+/**
+ * Change the interface scale.
+ * 
+ * @param {number} zoom The zoom factor, 1 being 100%.
+ */
+exports.setZoom = function(zoom){
+    config.settings.launcher.zoom = zoom
 }

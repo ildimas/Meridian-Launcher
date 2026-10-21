@@ -11,7 +11,6 @@ const ConfigManager = require('./assets/js/configmanager')
 const { DistroAPI } = require('./assets/js/distromanager')
 const ProxyManager  = require('./assets/js/proxymanager')
 const ThemeEngine   = require('./assets/js/themeengine')
-const Wallpaper     = require('./assets/js/wallpaper')
 const IconCache     = require('./assets/js/iconcache')
 
 let rscShouldLoad = false
@@ -35,8 +34,80 @@ document.addEventListener('DOMContentLoaded', () => {
     ThemeEngine.init(document.getElementById('wallpaper'))
 })
 
+// View transitions run on the compositor (opacity and transform only), so
+// work happening on the page at the same time can't make them stutter.
+const VIEW_OUT_MS = 180
+const VIEW_IN_MS = 360
+const EASE_OUT_EXPO = 'cubic-bezier(0.16, 1, 0.3, 1)'
+const EASE_IN_QUAD = 'cubic-bezier(0.5, 0, 0.75, 0)'
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
+
 /**
- * Switch launcher views.
+ * Fade an element out and hide it. Resolves once it is hidden.
+ *
+ * @param {HTMLElement} el The element.
+ * @param {number} ms Duration; 0 hides at once.
+ * @param {Object} opts `lift` slides it up as it goes, `float` takes it out
+ * of the layout while it fades so whatever replaces it can take its place.
+ */
+async function animateOut(el, ms, { lift = 0, scale = 1, float = false } = {}){
+    if(el == null || getComputedStyle(el).display === 'none') return
+    el.getAnimations().forEach(a => a.cancel())
+    if(ms > 0 && !reduceMotion.matches){
+        if(float){
+            const { offsetLeft, offsetTop, offsetWidth, offsetHeight } = el
+            Object.assign(el.style, {
+                position: 'absolute',
+                left: offsetLeft + 'px',
+                top: offsetTop + 'px',
+                width: offsetWidth + 'px',
+                height: offsetHeight + 'px',
+                pointerEvents: 'none'
+            })
+        }
+        const fade = el.animate([
+            { opacity: 1, transform: 'none' },
+            { opacity: 0, transform: `translateY(${-lift}px) scale(${scale})` }
+        ], { duration: ms, easing: EASE_IN_QUAD, fill: 'forwards' })
+        const done = await fade.finished.then(() => true, () => false)
+        for(const k of ['position', 'left', 'top', 'width', 'height', 'pointerEvents']){
+            el.style[k] = ''
+        }
+        if(!done){
+            // Cancelled because it is being shown again; leave it visible.
+            return
+        }
+        fade.cancel()
+    }
+    el.style.display = 'none'
+}
+
+/**
+ * Show an element and fade it in.
+ *
+ * @param {HTMLElement} el The element.
+ * @param {number} ms Duration; 0 shows at once.
+ * @param {Object} opts `rise` slides it up into place, `scale` grows it to 1,
+ * `delay` holds it invisible for a moment first.
+ */
+async function animateIn(el, ms, { rise = 0, scale = 1, delay = 0 } = {}){
+    if(el == null) return
+    el.getAnimations().forEach(a => a.cancel())
+    el.style.display = ''
+    if(getComputedStyle(el).display === 'none'){
+        el.style.display = 'block'
+    }
+    if(ms > 0 && !reduceMotion.matches){
+        await el.animate([
+            { opacity: 0, transform: `translateY(${rise}px) scale(${scale})` },
+            { opacity: 1, transform: 'none' }
+        ], { duration: ms, delay, easing: EASE_OUT_EXPO, fill: 'backwards' }).finished.catch(() => {})
+    }
+}
+
+/**
+ * Switch launcher views. The next view starts coming in while the current
+ * one is still leaving, so there is never an empty frame in between.
  * 
  * @param {string} current The ID of the current view container. 
  * @param {*} next The ID of the next view container.
@@ -47,16 +118,31 @@ document.addEventListener('DOMContentLoaded', () => {
  * @param {*} onNextFade Optional. Callback function to execute when the next view
  * fades in.
  */
-function switchView(current, next, currentFadeTime = 500, nextFadeTime = 500, onCurrentFade = () => {}, onNextFade = () => {}){
+async function switchView(current, next, currentFadeTime = 500, nextFadeTime = 500, onCurrentFade = () => {}, onNextFade = () => {}){
     currentView = next
-    // Settings always shows the user's own wallpaper, not the server's.
-    ThemeEngine.setPreferDefault(next === VIEWS.settings)
-    $(`${current}`).fadeOut(currentFadeTime, async () => {
-        await onCurrentFade()
-        $(`${next}`).fadeIn(nextFadeTime, async () => {
-            await onNextFade()
-        })
-    })
+    const cur = document.querySelector(current)
+    const nxt = document.querySelector(next)
+    const outMs = Math.min(currentFadeTime, VIEW_OUT_MS)
+    const inMs = Math.min(nextFadeTime, VIEW_IN_MS)
+    // Settings opens like a sheet over the launcher; everything else crossfades.
+    const toSettings = next === VIEWS.settings
+    const fromSettings = current === VIEWS.settings
+    // The wallpaper blurs itself under settings (see #settingsContainer in launcher.css).
+    document.body.toggleAttribute('settingsOpen', toSettings)
+    ThemeEngine.setBlurred(toSettings)
+    const leaving = animateOut(cur, outMs, { float: true, scale: toSettings ? 0.985 : 1 })
+    // Let the outgoing view get a head start, and the caller finish its work.
+    await Promise.all([
+        new Promise(r => setTimeout(r, outMs * 0.45)),
+        Promise.resolve(onCurrentFade())
+    ])
+    if(currentView !== next){
+        // Another switch was asked for meanwhile.
+        return
+    }
+    await animateIn(nxt, inMs, toSettings ? { scale: 1.015 } : fromSettings ? { scale: 0.985 } : { rise: 10 })
+    await leaving
+    await onNextFade()
 }
 
 /**
@@ -78,6 +164,16 @@ async function showMainUI(data){
     await prepareSettings(true)
     updateSelectedServer(data.getServerById(ConfigManager.getSelectedServer()))
     refreshServerStatus()
+
+    const reopen = takeReopenState()
+    if(reopen != null){
+        await showMainUIAfterReload(reopen)
+        initNews().then(() => {
+            $('#newsContainer *').attr('tabindex', '-1')
+        })
+        return
+    }
+
     setTimeout(() => {
         document.getElementById('frameBar').style.backgroundColor = 'rgba(0, 0, 0, 0.5)'
         $('#main').show()
@@ -108,20 +204,65 @@ async function showMainUI(data){
 
         setTimeout(() => {
             $('#loadingContainer').fadeOut(500, () => {
-                $('#loadSpinnerImage').removeClass('rotating')
+                MeridianSplash.stop()
             })
         }, 250)
         
-    }, 750)
+    }, Math.max(750, MeridianSplash.remaining()))
     // Disable tabbing to the news container.
     initNews().then(() => {
         $('#newsContainer *').attr('tabindex', '-1')
     })
 }
 
+/**
+ * Where the launcher was before it reloaded to change the language, if it did.
+ *
+ * @returns {{view: string, tab: string, scroll: number} | null}
+ */
+function takeReopenState(){
+    try {
+        const raw = sessionStorage.getItem('meridian.reopen')
+        sessionStorage.removeItem('meridian.reopen')
+        return raw != null ? JSON.parse(raw) : null
+    } catch {
+        return null
+    }
+}
+
+/**
+ * Show the launcher where it was before the reload, without the splash.
+ */
+async function showMainUIAfterReload(state){
+    document.getElementById('frameBar').style.backgroundColor = 'rgba(0, 0, 0, 0.5)'
+    $('#loadingContainer').hide()
+    MeridianSplash.stop()
+    $('#main').show()
+
+    const view = Object.values(VIEWS).includes(state.view) ? state.view : VIEWS.landing
+    currentView = view
+    if(view === VIEWS.settings){
+        await prepareSettings()
+        document.body.setAttribute('settingsOpen', '')
+        ThemeEngine.setBlurred(true)
+        const nav = document.querySelector(`.settingsNavItem[rSc="${state.tab}"]`)
+        if(nav != null){
+            settingsNavItemListener(nav, false)
+        }
+    }
+    const el = document.querySelector(view)
+    const shown = animateIn(el, 200)
+    const tab = document.getElementById(selectedSettingsTab)
+    if(view === VIEWS.settings && tab != null){
+        tab.scrollTop = state.scroll || 0
+    }
+    await shown
+}
+
 function showFatalStartupError(){
     setTimeout(() => {
         $('#loadingContainer').fadeOut(250, () => {
+            MeridianSplash.stop()
             document.getElementById('overlayContainer').style.background = 'none'
             setOverlayContent(
                 Lang.queryJS('uibinder.startup.fatalErrorTitle'),

@@ -1,74 +1,54 @@
 /**
  * Theme engine.
  *
- * Owns the wallpaper behind every view and the accent colour derived from it.
- * The wallpaper is either a vector scene (see wallpaper.js) or a photo. A
- * server may bring its own wallpaper through a `launcherTheme` block in
- * distribution.json; that wins while the per-server option is on, except in
- * Settings where the user always sees their own default.
+ * Owns the wallpaper behind every view. Each modpack has one set of pictures:
+ *   - its pack images: what ships in images/modpacks/<server id>/ plus
+ *     pictures the player added. A pack with neither gets a few pictures
+ *     from the bundled Photon Shaders gallery (images/wallpapers/), always
+ *     the same ones for that pack.
+ *   - the player's screenshots of that modpack (F2 in game).
+ * Every picture is in rotation unless the player unticked it (Settings >
+ * Appearance). They take turns in a shuffled order, and pictures with a
+ * known author are credited on the landing screen. Colours stay Meridian
+ * whatever is shown.
  */
-/* global document, Image */
+/* global document, window, Image */
 const fs = require('fs-extra')
 const path = require('path')
 const { pathToFileURL } = require('url')
 
 const ConfigManager = require('./configmanager')
-const Wallpaper = require('./wallpaper')
+const Screenshots = require('./screenshots')
+const GALLERY = require('../images/wallpapers/wallpapers.json')
 
 const FADE_MS = 900
+// Turning the dial fast only paints the server it stops on.
+const SERVER_SETTLE_MS = 140
+// Gallery pictures a pack without its own art gets.
+const GALLERY_SAMPLE = 5
+const INTERVALS = [15, 30, 60, 300]
 const PHOTO_EXT = ['.png', '.jpg', '.jpeg', '.webp', '.gif', '.bmp', '.avif']
-
-// Photos that ship with the launcher. Paths are relative to app/.
-const BUILTIN_PHOTOS = [
-    'assets/images/backgrounds/0.jpg'
-]
+// Paths are relative to app/, where app.ejs lives.
+const GALLERY_DIR = 'assets/images/wallpapers'
+const GALLERY_FILES = path.join(__dirname, '..', 'images', 'wallpapers')
+// Screenshots shipped for each modpack, one folder per server id.
+const MODPACK_DIR = path.join(__dirname, '..', 'images', 'modpacks')
 
 let root = null
-let serverTheme = null
-let preferDefault = false
+let serverId = null
+let serverTimer = null
+let cycleTimer = null
 let currentKey = null
-let clock = null
-const accentCache = new Map()
-
-function hexToRgb(hex){
-    const h = hex.replace('#', '')
-    return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)]
-}
-
-function rgbToHex(r, g, b){
-    const f = (v) => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')
-    return '#' + f(r) + f(g) + f(b)
-}
-
-function rgbToHsl(r, g, b){
-    r /= 255; g /= 255; b /= 255
-    const max = Math.max(r, g, b)
-    const min = Math.min(r, g, b)
-    const l = (max + min) / 2
-    if(max === min) return [0, 0, l]
-    const d = max - min
-    const s = l > 0.5 ? d / (2 - max - min) : d / (max + min)
-    let h
-    if(max === r) h = (g - b) / d + (g < b ? 6 : 0)
-    else if(max === g) h = (b - r) / d + 2
-    else h = (r - g) / d + 4
-    return [h / 6, s, l]
-}
-
-function hslToRgb(h, s, l){
-    if(s === 0) return [l * 255, l * 255, l * 255]
-    const hue = (p, q, t) => {
-        if(t < 0) t += 1
-        if(t > 1) t -= 1
-        if(t < 1 / 6) return p + (q - p) * 6 * t
-        if(t < 1 / 2) return q
-        if(t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6
-        return p
-    }
-    const q = l < 0.5 ? l * (1 + s) : l + s - l * s
-    const p = 2 * l - q
-    return [hue(p, q, h + 1 / 3) * 255, hue(p, q, h) * 255, hue(p, q, h - 1 / 3) * 255]
-}
+let refreshToken = 0
+let lastCount = 0
+// Settings is open: show a blurred copy of the wallpaper.
+let blurred = false
+// Order and position per picture pool.
+const rotations = new Map()
+// Pictures per modpack folder, read once.
+const modpackCache = new Map()
+// Files that couldn't be read this session.
+const badFiles = new Set()
 
 /**
  * Whether a path points at an image we can show.
@@ -83,7 +63,6 @@ function isPhotoPath(p){
 function photoUrl(p){
     if(p == null) return null
     if(/^(https?|file|data):/i.test(p)) return p
-    if(BUILTIN_PHOTOS.includes(p)) return p
     return pathToFileURL(p).href
 }
 
@@ -91,208 +70,350 @@ function getPhotosDirectory(){
     return path.join(ConfigManager.getLauncherDirectory(), 'wallpapers')
 }
 
+function galleryCredit(w){
+    return { author: w.author, source: GALLERY.shader, link: GALLERY.gallery, detail: w.resourcePack }
+}
+
+function galleryItems(){
+    return GALLERY.wallpapers.map(w => ({
+        key: `gallery|${w.id}`,
+        kind: 'gallery',
+        url: `${GALLERY_DIR}/${w.id}.webp`,
+        file: path.join(GALLERY_FILES, `${w.id}.webp`),
+        credit: galleryCredit(w)
+    }))
+}
+
 /**
- * Pick a light, readable accent out of a photo: the average of its most
- * colourful pixels, lifted so dark text (#021a30) stays legible on it.
+ * The screenshots shipped for a modpack. An optional credits.json in the
+ * folder names authors: { "file.png": "Author" }, or "*" for all of them.
  */
-function extractAccent(url){
-    if(accentCache.has(url)) return Promise.resolve(accentCache.get(url))
-    return new Promise((resolve) => {
-        const img = new Image()
-        img.onload = () => {
-            try {
-                const size = 48
-                const canvas = document.createElement('canvas')
-                canvas.width = size
-                canvas.height = size
-                const ctx = canvas.getContext('2d', { willReadFrequently: true })
-                ctx.drawImage(img, 0, 0, size, size)
-                const data = ctx.getImageData(0, 0, size, size).data
-                let r = 0, g = 0, b = 0, w = 0
-                for(let i = 0; i < data.length; i += 4){
-                    const [, s, l] = rgbToHsl(data[i], data[i + 1], data[i + 2])
-                    // Favour saturated mid-tones over greys, blacks and whites.
-                    const weight = s * (1 - Math.abs(l - 0.5) * 1.6) + 0.02
-                    r += data[i] * weight
-                    g += data[i + 1] * weight
-                    b += data[i + 2] * weight
-                    w += weight
-                }
-                const [h, s] = rgbToHsl(r / w, g / w, b / w)
-                const accent = rgbToHex(...hslToRgb(h, Math.min(0.85, Math.max(0.35, s)), 0.76))
-                accentCache.set(url, accent)
-                resolve(accent)
-            } catch {
-                resolve(Wallpaper.accentFor('alpine', 'natural'))
-            }
+function modpackShots(id){
+    if(modpackCache.has(id)) return modpackCache.get(id)
+    const dir = path.join(MODPACK_DIR, id)
+    let list = []
+    try {
+        let credits = {}
+        try {
+            credits = fs.readJsonSync(path.join(dir, 'credits.json'))
+        } catch {
+            // Credits are optional.
         }
-        img.onerror = () => resolve(Wallpaper.accentFor('alpine', 'natural'))
-        img.src = url
-    })
+        list = fs.readdirSync(dir)
+            .filter(isPhotoPath)
+            .sort()
+            .map(name => {
+                const author = credits[name] || credits['*']
+                return { key: `pack|${id}|${name}`, kind: 'pack', file: path.join(dir, name), credit: author ? { author } : null }
+            })
+    } catch {
+        // No folder: this modpack uses the gallery.
+    }
+    modpackCache.set(id, list)
+    return list
+}
+
+function packSettings(appearance, id){
+    return appearance.packs[id] || {}
 }
 
 /**
- * Apply an accent colour to the launcher's CSS tokens.
+ * The gallery pictures for a pack without art of its own: a few picked by
+ * its id, so each pack keeps the same ones and packs differ from each other.
  */
-function applyAccent(hex){
-    const [r, g, b] = hexToRgb(hex)
-    const style = document.documentElement.style
-    style.setProperty('--accent', hex)
-    style.setProperty('--accent-hi', Wallpaper.mix(hex, '#ffffff', 0.35))
-    style.setProperty('--accent-lo', Wallpaper.mix(hex, '#021a30', 0.22))
-    style.setProperty('--accent-soft', `rgba(${r}, ${g}, ${b}, 0.16)`)
-    style.setProperty('--accent-line', `rgba(${r}, ${g}, ${b}, 0.45)`)
-}
-
-function currentTod(appearance){
-    return appearance.timeOfDay === 'auto' || !Wallpaper.TODS.includes(appearance.timeOfDay)
-        ? Wallpaper.autoTod()
-        : appearance.timeOfDay
+function gallerySample(id){
+    const items = galleryItems()
+    let seed = 0
+    for(const c of id) seed = (seed * 31 + c.charCodeAt(0)) >>> 0
+    // xorshift never leaves zero.
+    seed = seed || 1
+    const out = []
+    while(out.length < Math.min(GALLERY_SAMPLE, items.length)){
+        // xorshift: a small seeded generator.
+        seed ^= seed << 13; seed >>>= 0
+        seed ^= seed >>> 17
+        seed ^= seed << 5; seed >>>= 0
+        const item = items[seed % items.length]
+        if(!out.includes(item)) out.push(item)
+    }
+    return out
 }
 
 /**
- * Resolve what the user's own settings ask for, ignoring any server theme.
+ * A modpack's pack images: what ships with it plus what the player added,
+ * or a few gallery pictures when it has neither.
  *
- * @param {Object} appearance Appearance settings (defaults to the saved ones).
+ * @returns {{borrowed: boolean, items: Array.<Object>}}
  */
-function resolveDefault(appearance = ConfigManager.getAppearance()){
-    const tod = currentTod(appearance)
-    const motion = appearance.motion !== false
-    if(appearance.theme === 'photo' && appearance.photo != null){
-        return { kind: 'photo', url: photoUrl(appearance.photo), tod, motion }
+function packArt(id){
+    const added = (packSettings(ConfigManager.getAppearance(), id).added || [])
+        .filter(p => fs.existsSync(p))
+        .map(p => ({ key: `photo|${p}`, kind: 'added', file: p }))
+    const own = modpackShots(id).concat(added)
+    if(own.length > 0){
+        return { borrowed: false, items: own }
     }
-    const family = appearance.theme === 'geometry' ? 'geometry' : 'landscapes'
-    return {
-        kind: 'vector',
-        scene: appearance.scene[family],
-        palette: appearance.palette[family],
-        tod,
-        motion
-    }
+    return { borrowed: true, items: gallerySample(id) }
 }
 
 /**
- * Resolve the wallpaper to show right now.
+ * The player's screenshots of a modpack, newest first.
  */
-function resolve(){
-    const appearance = ConfigManager.getAppearance()
-    if(!preferDefault && appearance.perServerWallpaper !== false && serverTheme != null){
-        const tod = currentTod(appearance)
-        const motion = appearance.motion !== false
-        const images = serverTheme.images
-        if(images != null && typeof images === 'object'){
-            const url = images[tod] || images.day || Object.values(images)[0]
-            if(url) return { kind: 'photo', url, tod, motion }
-        }
-        if(serverTheme.scene){
-            return {
-                kind: 'vector',
-                scene: serverTheme.scene,
-                palette: serverTheme.palette || (Wallpaper.isGeo(serverTheme.scene) ? appearance.palette.geometry : appearance.palette.landscapes),
-                tod,
-                motion
+async function packShots(id){
+    return (await Screenshots.list(id)).map(s => ({ key: `shot|${s.path}`, kind: 'shot', file: s.path, time: s.time }))
+}
+
+/**
+ * What a modpack puts in rotation: every picture it has, the ones unticked,
+ * and the pictures actually cycled.
+ *
+ * @param {string} id The server id.
+ * @returns {Promise.<{art: Object, shots: Array.<Object>, hidden: Set.<string>, list: {id: string, items: Array.<Object>}}>}
+ */
+async function packRotation(id){
+    const hidden = new Set(packSettings(ConfigManager.getAppearance(), id).hidden || [])
+    const usable = it => !badFiles.has(it.file)
+    const art = packArt(id)
+    const shots = await packShots(id)
+    let items = art.items.concat(shots).filter(it => usable(it) && !hidden.has(it.key))
+    // Everything unticked: show the pack images anyway rather than nothing.
+    if(items.length === 0){
+        items = art.items.filter(usable)
+    }
+    return { art, shots, hidden, list: { id: `pack|${id}`, items } }
+}
+
+/**
+ * The pictures to cycle through right now.
+ */
+async function playlist(){
+    if(serverId == null){
+        return { id: 'gallery', items: galleryItems().filter(it => !badFiles.has(it.file)) }
+    }
+    return (await packRotation(serverId)).list
+}
+
+function shuffle(list){
+    const out = list.slice()
+    for(let i = out.length - 1; i > 0; i--){
+        const j = Math.floor(Math.random() * (i + 1))
+        ;[out[i], out[j]] = [out[j], out[i]]
+    }
+    return out
+}
+
+/**
+ * A pool's current picture, optionally moving on to the next one.
+ */
+function pick(list, advance){
+    const keys = list.items.map(it => it.key)
+    const known = new Set(keys)
+    let rot = rotations.get(list.id)
+    // New pool, or its pictures changed: start a fresh shuffle.
+    if(rot == null || rot.order.length !== keys.length || rot.order.some(k => !known.has(k))){
+        rot = { order: shuffle(keys), i: 0 }
+        rotations.set(list.id, rot)
+    } else if(advance){
+        rot.i++
+        if(rot.i >= rot.order.length){
+            const last = rot.order[rot.order.length - 1]
+            rot.order = shuffle(keys)
+            // Never show the same picture twice in a row across rounds.
+            if(rot.order.length > 1 && rot.order[0] === last){
+                rot.order.push(rot.order.shift())
             }
+            rot.i = 0
         }
     }
-    return resolveDefault(appearance)
-}
-
-function keyOf(d){
-    return d.kind === 'photo' ? `photo|${d.url}` : `vector|${d.scene}|${d.palette}|${d.tod}|${d.motion}`
+    return list.items.find(it => it.key === rot.order[rot.i])
 }
 
 /**
- * Build a wallpaper layer element for a resolved descriptor.
+ * Load and decode an image off the main thread before it is shown.
  */
-function buildLayer(d){
-    const layer = document.createElement('div')
-    layer.className = 'wpLayer'
-    if(d.kind === 'photo'){
-        layer.classList.add('wpPhoto')
-        layer.style.backgroundImage = `url("${d.url.replace(/"/g, '\\"')}")`
-    } else {
-        const out = Wallpaper.render(d)
-        layer.style.background = out.background
-        layer.innerHTML = out.html
+async function decoded(url){
+    const img = new Image()
+    img.className = 'wpImg'
+    img.alt = ''
+    img.decoding = 'async'
+    img.src = url
+    try {
+        await img.decode()
+    } catch {
+        // Shown anyway; a broken image just leaves the layer dark.
     }
-    return layer
+    return img
 }
 
-async function accentOf(d){
-    if(d.kind === 'photo') return extractAccent(d.url)
-    return Wallpaper.accentFor(d.scene, d.palette)
+/**
+ * Credit the author of the picture on screen, or hide the credit.
+ */
+function showCredit(credit){
+    const el = document.getElementById('wallpaperCredit')
+    if(el == null) return
+    el.hidden = credit == null
+    if(credit == null) return
+    el.querySelector('.wallpaperCreditAuthor').textContent = credit.author
+    el.toggleAttribute('linked', credit.link != null)
+    el.setAttribute('data-link', credit.link || '')
+    // Where the picture is from stays out of the way, in the tooltip.
+    el.title = [credit.source, credit.detail ? `Resource pack: ${credit.detail}` : null].filter(Boolean).join('\n')
+}
+
+// The blurred copy is drawn this many times smaller than the window.
+const BLUR_SCALE = 8
+
+/**
+ * Draw the wallpaper on screen, blurred, into a small canvas stretched over
+ * it, or drop that copy when settings closes.
+ */
+function paintBlur(){
+    if(root == null) return
+    const old = root.querySelector('.wpBlur')
+    const layers = root.getElementsByClassName('wpLayer')
+    const img = layers.length > 0 ? layers[layers.length - 1].querySelector('.wpImg') : null
+    if(!blurred || img == null || img.naturalWidth === 0){
+        if(old != null){
+            old.classList.remove('wpShown')
+            setTimeout(() => old.remove(), 320)
+        }
+        return
+    }
+    const canvas = document.createElement('canvas')
+    canvas.className = 'wpBlur'
+    canvas.width = Math.max(64, Math.round(window.innerWidth / BLUR_SCALE))
+    canvas.height = Math.max(36, Math.round(window.innerHeight / BLUR_SCALE))
+    const ctx = canvas.getContext('2d')
+    // Like the old 24px backdrop blur, at the canvas' scale.
+    ctx.filter = `blur(${24 / BLUR_SCALE}px) saturate(140%)`
+    // Cover the canvas, a little oversized so the blur has no soft edges.
+    const scale = Math.max(canvas.width / img.naturalWidth, canvas.height / img.naturalHeight) * 1.06
+    const w = img.naturalWidth * scale
+    const h = img.naturalHeight * scale
+    ctx.drawImage(img, (canvas.width - w) / 2, (canvas.height - h) / 2, w, h)
+    root.appendChild(canvas)
+    void canvas.offsetWidth
+    canvas.classList.add('wpShown')
+    if(old != null){
+        setTimeout(() => old.remove(), 320)
+    }
+}
+
+function scheduleCycle(count){
+    lastCount = count
+    clearTimeout(cycleTimer)
+    // Nothing to cycle, or nobody is looking (another window has focus).
+    if(count < 2 || !document.hasFocus()) return
+    const seconds = ConfigManager.getAppearance().interval
+    cycleTimer = setTimeout(() => refresh(true), (INTERVALS.includes(seconds) ? seconds : 30) * 1000)
 }
 
 /**
  * Re-resolve the wallpaper and cross-fade to it if it changed.
  *
- * @param {boolean} force Rebuild even if nothing changed.
+ * @param {boolean} advance Move on to the playlist's next picture.
  */
-async function refresh(force = false){
+async function refresh(advance = false){
     if(root == null) return
-    const d = resolve()
-    const key = keyOf(d)
-    if(!force && key === currentKey) return
+    const token = ++refreshToken
+    const list = await playlist()
+    // A newer refresh started while the screenshots were listed.
+    if(token !== refreshToken) return
+    const item = pick(list, advance)
+    const motion = ConfigManager.getAppearance().motion !== false
+    scheduleCycle(list.items.length)
+    if(item == null) return
+    const key = `${item.key}|${motion}`
+    if(key === currentKey) return
     currentKey = key
 
-    const layer = buildLayer(d)
+    let url = item.url
+    if(url == null){
+        // Screenshots are big PNGs; show a cached copy sized for the screen.
+        url = await Screenshots.backdrop(item.file)
+        if(url == null){
+            badFiles.add(item.file)
+            currentKey = null
+            return refresh()
+        }
+    }
+    const layer = document.createElement('div')
+    layer.className = 'wpLayer'
+    layer.toggleAttribute('still', !motion)
+    layer.appendChild(await decoded(url))
+    // Something newer was asked for while this one loaded.
+    if(key !== currentKey) return
     const old = Array.from(root.getElementsByClassName('wpLayer'))
+    // Only the layer fading out needs to stay; drop anything older at once.
+    old.slice(0, -1).forEach(el => el.remove())
     root.appendChild(layer)
     // Let the browser lay the new layer out at opacity 0 before fading in.
     void layer.offsetWidth
     layer.classList.add('wpShown')
     setTimeout(() => old.forEach(el => el.remove()), FADE_MS + 60)
-
-    const accent = await accentOf(d)
-    if(key === currentKey){
-        applyAccent(accent)
-    }
+    if(blurred) paintBlur()
+    showCredit(item.credit)
 }
 
-exports.BUILTIN_PHOTOS = BUILTIN_PHOTOS
+exports.GALLERY = GALLERY
+exports.MODPACK_DIR = MODPACK_DIR
 exports.photoUrl = photoUrl
 exports.isPhotoPath = isPhotoPath
-exports.resolveDefault = resolveDefault
-exports.accentOf = accentOf
-exports.refresh = refresh
+exports.packArt = packArt
+exports.galleryItems = galleryItems
+exports.packShots = packShots
+exports.packRotation = packRotation
+exports.refresh = () => refresh()
 
 /**
- * Mount the engine on the wallpaper element and start the clock.
+ * Show the wallpaper blurred and still, for settings.
+ */
+exports.setBlurred = function(on){
+    if(on === blurred) return
+    blurred = on
+    paintBlur()
+}
+
+/**
+ * Mount the engine on the wallpaper element.
  *
  * @param {HTMLElement} el The element the wallpaper layers live in.
  */
 exports.init = function(el){
     root = el
-    refresh(true)
-    clearInterval(clock)
-    // Auto time of day is re-checked every minute.
-    clock = setInterval(() => refresh(), 60 * 1000)
+    // Without GPU compositing every frame of the drift is redrawn on the CPU,
+    // blurs on top included, so the pictures hold still (launcher.css).
+    const gpu = String(require('@electron/remote').app.getGPUFeatureStatus().gpu_compositing)
+    document.documentElement.toggleAttribute('noGpu', !gpu.startsWith('enabled'))
+    refresh()
+    // While the game or another app has focus, stop the drift and the
+    // cycling instead of spending GPU and disk on them.
+    window.addEventListener('blur', () => {
+        root.classList.add('wpPaused')
+        clearTimeout(cycleTimer)
+    })
+    window.addEventListener('focus', () => {
+        root.classList.remove('wpPaused')
+        scheduleCycle(lastCount)
+    })
+    document.getElementById('wallpaperCredit')?.addEventListener('click', e => {
+        const link = e.currentTarget.getAttribute('data-link')
+        if(link) require('electron').shell.openExternal(link)
+    })
 }
 
 /**
- * Set the selected server's raw object so its launcherTheme can apply.
+ * Show the wallpaper for the selected server.
  *
  * @param {Object | null} rawServer The raw server from distribution.json.
  */
 exports.setServer = function(rawServer){
-    const theme = rawServer != null ? rawServer.launcherTheme : null
-    serverTheme = theme != null && typeof theme === 'object' ? theme : null
-    refresh()
-}
-
-/**
- * Show the user's default wallpaper regardless of the server (Settings).
- */
-exports.setPreferDefault = function(val){
-    preferDefault = !!val
-    refresh()
-}
-
-/**
- * Render a small, static preview of a vector scene.
- */
-exports.preview = function(scene, palette, tod){
-    return Wallpaper.render({ scene, palette, tod, motion: false })
+    const id = rawServer != null ? rawServer.id : null
+    const changed = id !== serverId
+    serverId = id
+    clearTimeout(serverTimer)
+    // Every switch brings a new picture, like a console's game backdrops.
+    serverTimer = setTimeout(() => refresh(changed), SERVER_SETTLE_MS)
 }
 
 /**
@@ -312,10 +433,9 @@ exports.addPhoto = async function(file){
 }
 
 /**
- * Delete a user photo from disk. Built-in photos are left alone.
+ * Delete a user photo from disk.
  */
 exports.removePhoto = async function(p){
-    if(BUILTIN_PHOTOS.includes(p)) return
     if(path.dirname(p) === getPhotosDirectory()){
         await fs.remove(p).catch(() => {})
     }

@@ -122,7 +122,7 @@ function showUpdateUI(info){
         })
         toggleOverlay(true, true)*/
         switchView(getCurrentView(), VIEWS.settings, 500, 500, () => {
-            settingsNavItemListener(document.getElementById('settingsNavUpdate'), false)
+            settingsNavItemListener(document.getElementById('settingsNavAbout'), false)
         })
     }
 }

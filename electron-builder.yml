@@ -37,6 +37,8 @@ mac:
   category: 'public.app-category.games'
 
 # Linux Configuration
+# AppImage, deb and pacman all update themselves (electron-updater); a plain
+# tar.gz can't, so it isn't built.
 linux: 
   target:
     - target: 'AppImage'
@@ -44,8 +46,6 @@ linux:
     - target: 'pacman'
       arch: 'x64'
     - target: 'deb'
-      arch: 'x64'
-    - target: 'tar.gz'
       arch: 'x64'
   maintainer: 'Meridian'
   vendor: 'Meridian'

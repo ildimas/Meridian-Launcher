@@ -9,6 +9,7 @@ const os                    = require('os')
 const path                  = require('path')
 
 const ConfigManager            = require('./configmanager')
+const LocalPacks               = require('./localpacks')
 const ProxyManager             = require('./proxymanager')
 
 const logger = LoggerUtil.getLogger('ProcessBuilder')
@@ -39,6 +40,7 @@ class ProcessBuilder {
 
         this.usingLiteLoader = false
         this.usingFabricLoader = false
+        this.usingVanilla = false
         this.llPath = null
     }
     
@@ -53,6 +55,8 @@ class ProcessBuilder {
         logger.info('Using liteloader:', this.usingLiteLoader)
         this.usingFabricLoader = this.server.modules.some(mdl => mdl.rawModule.type === Type.Fabric)
         logger.info('Using fabric loader:', this.usingFabricLoader)
+        this.usingVanilla = LocalPacks.isVanilla(this.server)
+        logger.info('Using vanilla:', this.usingVanilla)
         const modObj = this.resolveModConfiguration(ConfigManager.getModConfiguration(this.server.rawServer.id).mods, this.server.modules)
         
         // Mod list below 1.13
@@ -630,12 +634,14 @@ class ProcessBuilder {
             mcArgs.push(ConfigManager.getGameHeight())
         }
         
-        // Mod List File Argument
-        mcArgs.push('--modListFile')
-        if(this._lteMinorVersion(9)) {
-            mcArgs.push(path.basename(this.fmlDir))
-        } else {
-            mcArgs.push('absolute:' + this.fmlDir)
+        // Mod List File Argument (Forge only)
+        if(!this.usingVanilla) {
+            mcArgs.push('--modListFile')
+            if(this._lteMinorVersion(9)) {
+                mcArgs.push(path.basename(this.fmlDir))
+            } else {
+                mcArgs.push('absolute:' + this.fmlDir)
+            }
         }
         
 
@@ -682,7 +688,7 @@ class ProcessBuilder {
     classpathArg(mods, tempNativePath){
         let cpArgs = []
 
-        if(!mcVersionAtLeast('1.17', this.server.rawServer.minecraftVersion) || this.usingFabricLoader) {
+        if(!mcVersionAtLeast('1.17', this.server.rawServer.minecraftVersion) || this.usingFabricLoader || this.usingVanilla) {
             // Add the version.jar to the classpath.
             // Must not be added to the classpath for Forge 1.17+.
             const version = this.vanillaManifest.id
@@ -816,6 +822,12 @@ class ProcessBuilder {
                         }
 
                     }
+
+                    // Since 26.x the game points java.library.path at a subfolder and has
+                    // LWJGL unpack its natives from the classpath, like the vanilla launcher.
+                    // Keyed with the classifier so it doesn't replace the main jar.
+                    const [group, name, , classifier] = lib.name.split(':')
+                    libs[`${group}:${name}:${classifier}`] = to
                 }
                 // No natives
                 else {

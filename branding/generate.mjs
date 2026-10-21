@@ -165,6 +165,10 @@ function backgroundSvg() {
     return out.join('\n')
 }
 
+// Corner radius of the logo's tile, out of its 480 side. 240 makes it a disc,
+// matching the round modpack icons and pill controls in the launcher.
+const TILE_RADIUS = 240
+
 /* Meridian compass rose on a navy tile: the app icon (no text). */
 function logoSvg() {
     const [navy, face, mid, light] = ['#004477', '#0a508a', '#6a9ccd', '#b9d3ec']
@@ -178,7 +182,7 @@ function logoSvg() {
         .map(d => `<line x1="${at(d, 146).split(',')[0]}" y1="${at(d, 146).split(',')[1]}" x2="${at(d, 160).split(',')[0]}" y2="${at(d, 160).split(',')[1]}"/>`)
         .join('')
     return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-<rect x="16" y="16" width="480" height="480" rx="112" fill="${navy}"/>
+<rect x="16" y="16" width="480" height="480" rx="${TILE_RADIUS}" fill="${navy}"/>
 <g transform="translate(256 256)">
   <circle r="172" fill="${face}" stroke="#ffffff" stroke-width="20"/>
   <g stroke="${mid}" stroke-width="7" stroke-linecap="round" opacity="0.9">${ticks}</g>

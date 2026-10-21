@@ -20,7 +20,7 @@
     --meridian-text: #7db4e6;
     --meridian-ground: #021a30;
 
-    /* Accent, overwritten at runtime by themeengine.js. */
+    /* Accent: Meridian blue throughout. */
     --accent: #7db4e6;
     --accent-hi: #b9d3ec;
     --accent-lo: #6a9ccd;
@@ -55,12 +55,20 @@
     --radius-s: 8px;
     --radius-m: 12px;
     --radius-l: 18px;
+    /* Shape language, after the chips under the modpack name: every control
+       is a pill; cards and panels get large soft corners around them. */
+    --radius-pill: 999px;
+    --radius-card: 20px;
+    --radius-panel: 28px;
 
     --shadow-float: 0 24px 60px rgba(0, 0, 0, 0.35);
     --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 
     --font-ui: 'Inter', ui-sans-serif, system-ui, 'Segoe UI', sans-serif;
     --font-mono: 'Geist Mono', ui-monospace, monospace;
+    /* Display headings, set like the meridian wordmark: heavy Inter, tight tracking. */
+    --display-weight: 800;
+    --display-tracking: -0.04em;
 }
 
 /*******************************************************************************
@@ -150,6 +158,13 @@ body {
     font-feature-settings: 'tnum' 0;
 }
 
+/* The window itself never scrolls; panels that need it scroll on their own. */
+html,
+body {
+    height: 100%;
+    overflow: hidden;
+}
+
 ::selection {
     background: var(--accent-soft);
     color: var(--text-1);
@@ -187,7 +202,7 @@ select:focus-visible,
     justify-content: center;
     gap: 10px;
     border: none;
-    border-radius: var(--radius-m);
+    border-radius: var(--radius-pill);
     background: var(--accent);
     color: var(--accent-ink);
     font-family: var(--font-ui);
@@ -240,7 +255,7 @@ select:focus-visible,
 #loginOptionCancelButton {
     background: none;
     border: none;
-    border-radius: var(--radius-s);
+    border-radius: var(--radius-pill);
     padding: 8px 14px;
     color: var(--text-2);
     font-family: var(--font-ui);
@@ -483,7 +498,7 @@ select:focus-visible,
     width: 400px;
     box-sizing: border-box;
     padding: 32px 32px 28px;
-    border-radius: var(--radius-l);
+    border-radius: var(--radius-panel);
     background: var(--glass);
     backdrop-filter: var(--glass-blur);
     border: 1px solid var(--line);
@@ -495,14 +510,14 @@ select:focus-visible,
     height: 56px;
     width: 56px;
     margin-bottom: 22px;
-    border-radius: 14px;
+    border-radius: 50%;
 }
 
 #welcomeHeader {
-    font-weight: 750;
     font-size: 26px;
+    font-weight: var(--display-weight);
+    letter-spacing: var(--display-tracking);
     line-height: 1.15;
-    letter-spacing: -0.02em;
     color: var(--text-1);
     margin-bottom: 12px;
 }
@@ -1174,7 +1189,7 @@ select:focus-visible,
     width: 340px;
     box-sizing: border-box;
     padding: 28px;
-    border-radius: var(--radius-l);
+    border-radius: var(--radius-panel);
     background: var(--glass);
     backdrop-filter: var(--glass-blur);
     border: 1px solid var(--line);
@@ -1190,8 +1205,8 @@ select:focus-visible,
 .loginOptionsMainContent > h2 {
     margin: 0px 0px 20px;
     font-size: 20px;
-    font-weight: 700;
-    letter-spacing: -0.01em;
+    font-weight: var(--display-weight);
+    letter-spacing: var(--display-tracking);
 }
 
 .loginOptionActions {
@@ -1207,7 +1222,7 @@ select:focus-visible,
 .loginOptionButton {
     background: var(--glass-sunk);
     border: 1px solid var(--line);
-    border-radius: var(--radius-m);
+    border-radius: var(--radius-pill);
     height: 52px;
     width: 100%;
     text-align: left;
@@ -1274,8 +1289,8 @@ select:focus-visible,
     min-width: 0;
     height: 40px;
     box-sizing: border-box;
-    padding: 0px 12px;
-    border-radius: 10px;
+    padding: 0px 16px;
+    border-radius: var(--radius-pill);
     border: 1px solid rgba(255, 255, 255, 0.14);
     background: rgba(255, 255, 255, 0.06);
     color: var(--text-1);
@@ -1293,7 +1308,7 @@ select:focus-visible,
 #loginOptionOfflineSubmit {
     height: 40px;
     padding: 0px 16px;
-    border-radius: 10px;
+    border-radius: var(--radius-pill);
     border: 0px;
     background: var(--accent);
     color: var(--accent-ink);
@@ -1400,6 +1415,12 @@ select:focus-visible,
     display: flex;
     gap: 8px;
 }
+.proxyFormGameRow {
+    margin-top: 4px;
+}
+.proxyFormGameRow:has(input:disabled) {
+    opacity: 0.5;
+}
 
 .proxyForm input,
 .proxyForm select,
@@ -1410,11 +1431,11 @@ select:focus-visible,
     height: 32px;
     color: var(--text-1);
     background: var(--glass-sunk);
-    border-radius: var(--radius-s);
+    border-radius: var(--radius-pill);
     border: 1px solid var(--line-strong);
     font-family: var(--font-ui);
     font-size: 12px;
-    padding: 0px 10px;
+    padding: 0px 14px;
     transition: border-color 160ms var(--ease-out), background 160ms var(--ease-out), opacity 160ms var(--ease-out);
 }
 .proxyForm input:focus,
@@ -1470,7 +1491,7 @@ select:focus-visible,
     flex: 0 0 auto;
     height: 30px;
     padding: 0px 14px;
-    border-radius: var(--radius-s);
+    border-radius: var(--radius-pill);
     font-size: 11px;
 }
 .proxyForm .proxyFormTest {
@@ -1502,7 +1523,8 @@ select:focus-visible,
     height: 100%;
     display: flex;
     background-color: rgba(2, 26, 48, 0.62);
-    backdrop-filter: blur(24px) saturate(140%);
+    /* No backdrop-filter: without GPU acceleration it re-blurs the whole
+       window on every scrolled frame. The wallpaper shows a blurred copy instead (.wpBlur). */
     transition: background-color 0.25s cubic-bezier(.02, .01, .47, 1);
 }
 
@@ -1547,8 +1569,8 @@ select:focus-visible,
 }
 #settingsNavHeaderText {
     font-size: 20px;
-    font-weight: 700;
-    letter-spacing: -0.01em;
+    font-weight: var(--display-weight);
+    letter-spacing: var(--display-tracking);
 }
 
 /* Navigation items outer container. */
@@ -1575,7 +1597,7 @@ select:focus-visible,
     gap: 10px;
     background: none;
     border: none;
-    border-radius: var(--radius-s);
+    border-radius: var(--radius-pill);
     text-align: left;
     margin: 1px 0px;
     padding: 8px 12px;
@@ -1603,7 +1625,21 @@ select:focus-visible,
 .settingsNavItem[selected] {
     cursor: default;
     color: var(--text-1);
+    background: transparent;
+}
+/* Highlight that slides to the selected item. */
+#settingsNavPill {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    right: 0px;
+    border-radius: var(--radius-pill);
     background: var(--accent-soft);
+    pointer-events: none;
+    transition: transform 380ms cubic-bezier(0.16, 1, 0.3, 1), height 380ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+#settingsNavPill[still] {
+    transition: none;
 }
 .settingsNavItem[selected]:before {
     opacity: 1;
@@ -1638,9 +1674,12 @@ select:focus-visible,
 
 /* Right hand side of the settings container, for tabs. */
 #settingsContainerRight {
+    position: relative;
     height: 100%;
     flex: 1;
     min-width: 0;
+    /* The Appearance drawer waits off to the right. */
+    overflow: hidden;
     box-sizing: border-box;
     padding-left: 36px;
 }
@@ -1671,8 +1710,8 @@ select:focus-visible,
 }
 .settingsTabHeaderText {
     font-size: 22px;
-    font-weight: 700;
-    letter-spacing: -0.015em;
+    font-weight: var(--display-weight);
+    letter-spacing: var(--display-tracking);
 }
 .settingsTabHeaderDesc {
     font-size: 13px;
@@ -1681,13 +1720,17 @@ select:focus-visible,
 
 /* Selected server content container */
 .settingsSelServContainer {
+    box-sizing: border-box;
     background: var(--glass-sunk);
     border: 1px solid var(--line);
     width: 88%;
-    border-radius: var(--radius-m);
+    border-radius: var(--radius-l);
     display: flex;
+    align-items: center;
     justify-content: space-between;
-    margin: 15px 0px;
+    gap: 16px;
+    padding: 14px 16px;
+    margin: 0px 0px 8px;
 }
 
 /* Div which will be populated with the selected server's information. */
@@ -1695,27 +1738,27 @@ select:focus-visible,
     display: flex;
     align-items: center;
     justify-content: flex-start;
-    padding: 8px 4px;
+    gap: 14px;
+    min-width: 0;
 }
 
 /* Wrapper container for the switch server button. */
 .settingsSwitchServerContainer {
+    flex: none;
     display: flex;
     align-items: center;
-    padding: 15px;
 }
 
 /* Button to switch server configurations on the mods tab. */
 .settingsSwitchServerButton {
-    opacity: 0;
     border: 1px solid var(--line-strong);
     color: var(--text-1);
     background: var(--glass-hover);
     font-size: 12px;
     font-weight: 600;
     padding: 6px 12px;
-    border-radius: var(--radius-s);
-    transition: opacity 160ms var(--ease-out), background 160ms var(--ease-out), border-color 160ms var(--ease-out);
+    border-radius: var(--radius-pill);
+    transition: background 160ms var(--ease-out), border-color 160ms var(--ease-out);
     cursor: pointer;
     outline: none;
 }
@@ -1726,10 +1769,6 @@ select:focus-visible,
 }
 .settingsSwitchServerButton:active {
     background: var(--glass-sunk);
-}
-.settingsSelServContainer:hover .settingsSwitchServerButton,
-.settingsSwitchServerButton:focus {
-    opacity: 1;
 }
 
 /* Remove spin button from number inputs. */
@@ -1742,11 +1781,11 @@ select:focus-visible,
 #settingsContainer input[type=text] {
     color: var(--text-1);
     background: var(--glass-sunk);
-    border-radius: var(--radius-s);
+    border-radius: var(--radius-pill);
     border: 1px solid var(--line-strong);
     font-family: var(--font-ui);
     font-size: 13px;
-    padding: 6px 10px;
+    padding: 6px 14px;
     transition: border-color 160ms var(--ease-out), background 160ms var(--ease-out);
 }
 #settingsContainer input[type=number]:focus,
@@ -1899,7 +1938,7 @@ input:checked + .toggleSwitchSlider:before {
     display: flex;
     align-items: center;
     background: var(--line-strong);
-    border-radius: 3px 0px 0px 3px;
+    border-radius: 999px 0px 0px 999px;
     padding: 5px;
     transition: 0.25s ease;
 }
@@ -1921,7 +1960,7 @@ input:checked + .toggleSwitchSlider:before {
 /* File selection button. */
 .settingsFileSelButton {
     border: 0px;
-    border-radius: 0px 3px 3px 0px;
+    border-radius: 0px 999px 999px 0px;
     font-size: 12px;
     padding: 0px 5px;
     cursor: pointer;
@@ -2011,7 +2050,7 @@ input:checked + .toggleSwitchSlider:before {
 .settingsAuthAccount {
     display: flex;
     background: var(--glass-sunk);
-    border-radius: var(--radius-s);
+    border-radius: var(--radius-card);
     border: 1px solid var(--line-strong);
 }
 
@@ -2099,7 +2138,7 @@ input:checked + .toggleSwitchSlider:before {
     color: rgb(241, 55, 55);
     background: none;
     font-size: 12px;
-    border-radius: var(--radius-s);
+    border-radius: var(--radius-pill);
     font-family: var(--font-ui);
     font-weight: 600;
     transition: 0.25s ease;
@@ -2152,43 +2191,57 @@ input:checked + .toggleSwitchSlider:before {
 * Settings View (Mods Tab)
 * * */
 
-/* Main content container for the mod elements. */
+/* Main content container for the mod elements; as wide as the other tabs' rows. */
 #settingsModsContainer {
-    width: 75%;
+    width: 88%;
 }
 
-/* Mod sub-container header text. */
+/* Section titles, like the Appearance tab's. */
 .settingsModsHeader {
-    padding-bottom: 10px;
-    border-bottom: 1px solid var(--line);
-    margin-bottom: 10px;
+    margin: 26px 0px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-3);
 }
 
-/* Mod elements sub-containers. */
-#settingsReqModsContainer,
-#settingsOptModsContainer,
-#settingsDropinModsContainer {
-    padding-bottom: 25px;
-}
-
-/* Main content containers for mod elements. */
+/* Lists: one bordered card, rows split by hairlines. */
 #settingsReqModsContent,
 #settingsOptModsContent,
-#settingsDropinModsContent {
-    font-size: 12px;
+#settingsDropinModsContent,
+.settingsPackList {
+    display: flex;
+    flex-direction: column;
+    border-radius: var(--radius-l);
+    border: 1px solid var(--line);
     background: var(--glass-sunk);
-    border-radius: var(--radius-s);
+    overflow: hidden;
     color: var(--text-1);
 }
+#settingsReqModsContent:empty,
+#settingsOptModsContent:empty,
+#settingsDropinModsContent:empty {
+    display: none;
+}
+/* An empty section only shows its title when nothing explains it. */
+#settingsOptModsContainer:has(#settingsOptModsContent:empty),
+#settingsReqModsContainer:has(#settingsReqModsContent:empty) {
+    display: none;
+}
 
-/* Mod elements. */
+/* Mod rows. */
 .settingsMod,
 .settingsDropinMod {
-    padding: 10px;
+    padding: 0px 14px 0px 16px;
+}
+.settingsMod + .settingsMod,
+.settingsDropinMod + .settingsDropinMod {
+    border-top: 1px solid var(--line);
 }
 .settingsSubMod {
-    padding: 10px 0px 10px 15px;
-    margin-left: 20px;
+    margin-left: 18px;
+    padding-left: 16px;
     border-left: 1px solid var(--line);
 }
 
@@ -2197,6 +2250,8 @@ input:checked + .toggleSwitchSlider:before {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 16px;
+    min-height: 56px;
     transition: opacity 0.25s ease;
 }
 
@@ -2204,39 +2259,59 @@ input:checked + .toggleSwitchSlider:before {
 .settingsModMainWrapper {
     display: flex;
     align-items: center;
+    gap: 12px;
+    min-width: 0;
 }
 
 /* Mod enabled/disabled status. */
 .settingsModStatus {
+    flex: none;
     width: 7px;
     height: 7px;
     border-radius: 50%;
-    background-color: #c32625;
-    margin-right: 15px;
-    transition: 0.25s ease;
+    background-color: var(--danger);
+    transition: background-color 0.25s ease;
+}
+
+/* Mod, shaderpack and resource pack icon, sized like the mods dialog. */
+.settingsBaseMod:not([enabled]) > .settingsModContent .settingsModIcon {
+    opacity: 0.5;
 }
 
 /* Mod details container. */
 .settingsModDetails {
     display: flex;
     flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+.settingsModName {
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* The version of the mod. */
 .settingsModVersion {
-    color: var(--text-3);
-    font-size: 10px;
+    color: var(--text-2);
+    font-size: 12.5px;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* Disabled toggleswitch for required mods. */
 .toggleSwitch[reqmod] {
-    filter: grayscale(49%) brightness(60%);
+    opacity: 0.45;
     pointer-events: none;
 }
 
 /* Set the status color of an enabled mod. */
 .settingsBaseMod[enabled] > .settingsModContent > .settingsModMainWrapper > .settingsModStatus {
-    background-color: rgb(165, 195, 37);
+    background-color: var(--ok);
 }
 
 /* Add opacity to submods of a disabled mod. */
@@ -2244,98 +2319,482 @@ input:checked + .toggleSwitchSlider:before {
     opacity: 0.5;
 }
 
-/* Curve the left border for submods. */
-.settingsSubModContainer > .settingsSubMod:first-child {
-    border-top-left-radius: 10px;
-}
-.settingsSubModContainer > .settingsSubMod:last-child {
-    border-bottom-left-radius: 10px;
-}
-.settingsSubModContainer > .settingsSubMod:only-child {
-    border-top-left-radius: 10px;
-    border-bottom-left-radius: 10px;
-}
-
 /* Wrapper container for all submods. */
 .settingsSubModContainer {
-    margin-top: 10px;
+    padding-bottom: 8px;
 }
 
-/* Button to open the mods folder for drop-in mods. */
-#settingsDropinFileSystemButton {
-    background: var(--glass-sunk);
-    border: 1px solid var(--line-strong);
-    border-radius: var(--radius-s);
-    height: 50px;
+/* Buttons to open the drop-in mods, shaderpacks and resource packs folders.
+   They also take files dropped on them. */
+.settingsPackAddButton {
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    gap: 10px;
     width: 100%;
+    height: 52px;
+    padding: 0px 18px;
+    margin-bottom: 10px;
+    border: 1px dashed var(--line-strong);
+    border-radius: var(--radius-l);
+    background: transparent;
+    color: var(--text-1);
+    font-family: var(--font-ui);
+    font-size: 14px;
+    font-weight: 600;
     text-align: left;
-    padding: 0px 50px;
     cursor: pointer;
     outline: none;
-    transition: 0.25s ease;
-    margin-bottom: 10px;
+    transition: background 160ms ease, border-color 160ms ease;
 }
-#settingsDropinFileSystemButton:hover,
-#settingsDropinFileSystemButton:focus,
-#settingsDropinFileSystemButton[drag] {
-    background: rgba(54, 54, 54, 0.25);
+.settingsPackAddButton:before {
+    content: '+';
+    flex: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--accent-soft);
+    color: var(--accent-hi);
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 1;
 }
-/* Refresh instructions on the file system button. */
-#settingsDropinRefreshNote {
-    font-size: 10px;
+.settingsPackAddButton:hover,
+.settingsPackAddButton:focus-visible,
+.settingsPackAddButton[drag] {
+    background: var(--glass-hover);
+    border-color: var(--accent-line);
+}
+/* Refresh instructions on the file system buttons, pushed to the right. */
+#settingsDropinRefreshNote,
+.settingsPackAddNote {
+    margin-left: auto;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-3);
     pointer-events: none;
 }
 
 /* Button to remove drop-in mods. */
 .settingsDropinRemoveButton {
+    align-self: flex-start;
     background: none;
     border: none;
-    font-size: 10px;
-    text-align: left;
     padding: 0px;
-    color: #c32625;
-    font-weight: bold;
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--danger);
     cursor: pointer;
     outline: none;
-    transition: 0.25s ease;
+    transition: opacity 160ms ease;
 }
 .settingsDropinRemoveButton:hover,
-.settingsDropinRemoveButton:focus {
+.settingsDropinRemoveButton:focus-visible {
+    text-decoration: underline;
+    text-underline-offset: 2px;
 }
 .settingsDropinRemoveButton:active {
-    color: #9b1f1f;
+    opacity: 0.7;
 }
 
-/* Shaderpack settings description. */
-#settingsShaderpackDesc {
-    font-size: 10px;
-    margin: 10px 0px;
-    color: lightgrey;
-    font-weight: bold;
-    width: 89%;
+/* Shaderpack and resource pack descriptions. */
+.settingsPackDesc {
+    font-size: 12.5px;
+    line-height: 1.45;
+    margin: -4px 0px 10px;
+    color: var(--text-2);
 }
 
-/* Wrapper container. */
-#settingsShaderpackWrapper {
+/* Shown in a pack list with nothing in it. */
+.settingsPackList[empty] {
+    border-style: dashed;
+    background: none;
+}
+.settingsPackEmpty {
+    padding: 14px 16px;
+    font-size: 12.5px;
+    color: var(--text-3);
+}
+
+/* * *
+* Settings View (Modpacks Tab)
+* * */
+
+#mpContainer {
+    width: 88%;
+}
+#mpContainer [hidden] {
+    display: none !important;
+}
+
+/* Install progress, pinned above the lists while it matters. */
+#mpTask {
     display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 14px 16px;
+    margin-bottom: 8px;
+    border-radius: var(--radius-l);
+    border: 1px solid var(--accent-line);
+    background: var(--accent-soft);
+}
+#mpTask[state="error"] {
+    border-color: rgba(255, 154, 154, 0.45);
+    background: var(--danger-soft);
+}
+#mpTask[state="warn"] {
+    border-color: rgba(255, 210, 122, 0.45);
+    background: rgba(255, 210, 122, 0.1);
+}
+.mpTaskHead,
+.mpTaskFoot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+#mpTaskTitle {
+    font-size: 14px;
+    font-weight: 600;
+}
+#mpTaskPercent {
+    font-size: 12.5px;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-2);
+}
+.mpTaskBar {
+    position: relative;
+    height: 4px;
+    border-radius: 2px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.1);
+}
+#mpTaskFill {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    bottom: 0px;
+    border-radius: 2px;
+    background: var(--accent);
+    transition: width 200ms ease;
+}
+#mpTask[indeterminate] #mpTaskFill {
+    width: 30% !important;
+    animation: mp-indeterminate 1.2s ease-in-out infinite;
+}
+#mpTask[state] .mpTaskBar {
+    display: none;
+}
+@keyframes mp-indeterminate {
+    from { left: -30%; }
+    to { left: 100%; }
+}
+#mpTaskDetail {
+    font-size: 12.5px;
+    line-height: 1.45;
+    color: var(--text-2);
 }
 
-/* Button to add shaderpacks. */
-#settingsShaderpackButton {
-    background: var(--glass-sunk);
-    border: 1px solid var(--line-strong);
-    border-radius: var(--radius-s);
-    cursor: pointer;
-    outline: none;
-    transition: 0.25s ease;
-    font-size: 14px;
-    padding: 6px 11px;
-    margin-right: 5px;
+/* Add: import card and the version form, side by side. */
+#mpAddGrid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr);
+    gap: 10px;
 }
-#settingsShaderpackButton:hover,
-#settingsShaderpackButton:focus,
-#settingsShaderpackButton[drag] {
-    background: rgba(54, 54, 54, 0.25);
+.mpCard {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 16px;
+    border-radius: var(--radius-l);
+    border: 1px solid var(--line);
+    background: var(--glass-sunk);
+    color: var(--text-1);
+    font-family: var(--font-ui);
+    text-align: left;
+}
+.mpCardTitle {
+    font-size: 14px;
+    font-weight: 600;
+}
+.mpCardDesc {
+    font-size: 12.5px;
+    line-height: 1.45;
+    color: var(--text-2);
+}
+.mpCardDesc a {
+    color: var(--accent);
+    font-weight: 600;
+    text-decoration: none;
+}
+.mpCardDesc a:hover {
+    text-decoration: underline;
+}
+.mpImport {
+    justify-content: center;
+    border-style: dashed;
+    border-color: var(--line-strong);
+    background: transparent;
+    cursor: pointer;
+    transition: background 160ms ease, border-color 160ms ease;
+}
+.mpImport svg {
+    width: 28px;
+    height: 28px;
+    padding: 8px;
+    border-radius: 50%;
+    background: var(--accent-soft);
+    fill: none;
+    stroke: var(--accent-hi);
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+.mpImport:hover:not(:disabled),
+.mpImport:focus-visible,
+.mpImport[drag] {
+    background: var(--glass-hover);
+    border-color: var(--accent-line);
+}
+.mpImport:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+.mpFormRow {
+    width: 100%;
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+}
+.mpField {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 0;
+}
+.mpField > span {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-3);
+}
+.mpFieldGrow {
+    flex: 1;
+}
+#mpContainer input[type=text] {
+    box-sizing: border-box;
+    height: 36px;
+    width: 100%;
+}
+.mpSelect {
+    height: 36px;
+    min-width: 150px;
+    padding: 0px 34px 0px 14px;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--line-strong);
+    background: var(--glass-sunk) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7 10l5 5 5-5' fill='none' stroke='white' stroke-opacity='0.7' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 10px center / 16px;
+    color: var(--text-1);
+    font-family: var(--font-ui);
+    font-size: 13px;
+    -webkit-appearance: none;
+    appearance: none;
+    outline: none;
+    cursor: pointer;
+}
+.mpSelect:focus {
+    border-color: var(--accent-line);
+}
+.mpSelect:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+.mpSelect option {
+    background: var(--basalt-1);
+    color: var(--text-1);
+}
+
+/* Buttons: accent pill, a small and a quiet variant. */
+.mpButton {
+    flex: none;
+    height: 36px;
+    padding: 0px 18px;
+    border-radius: var(--radius-pill);
+    border: 0px;
+    background: var(--accent);
+    color: var(--accent-ink);
+    font-family: var(--font-ui);
+    font-size: 13px;
+    font-weight: 700;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background 160ms ease, opacity 160ms ease;
+}
+.mpButton:hover:not(:disabled),
+.mpButton:focus-visible {
+    background: var(--accent-hi);
+}
+.mpButton:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+.mpButtonSmall {
+    height: 30px;
+    padding: 0px 14px;
+    font-size: 12.5px;
+}
+.mpButtonQuiet {
+    display: block;
+    margin: 10px auto 0px;
+    border: 1px solid var(--line-strong);
+    background: var(--glass-hover);
+    color: var(--text-1);
+}
+.mpButtonQuiet:hover:not(:disabled),
+.mpButtonQuiet:focus-visible {
+    background: var(--accent-soft);
+    border-color: var(--accent-line);
+}
+
+/* Browse bar: source switch and search. */
+#mpBrowseBar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+#mpSearch {
+    position: relative;
+    flex: 1;
+    display: flex;
+    align-items: center;
+}
+#mpSearch svg {
+    position: absolute;
+    left: 14px;
+    width: 16px;
+    height: 16px;
+    fill: none;
+    stroke: var(--text-2);
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    pointer-events: none;
+}
+#mpContainer #mpSearchInput {
+    height: 42px;
+    padding-left: 40px;
+}
+#mpCurseForgeKey {
+    margin-bottom: 10px;
+}
+
+/* Rows of the installed and search lists. */
+.mpRow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 60px;
+    padding: 0px 10px 0px 14px;
+}
+.mpRow + .mpRow {
+    border-top: 1px solid var(--line);
+}
+.mpRow[selected] {
+    background: var(--accent-soft);
+}
+.mpTile {
+    width: 36px;
+    height: 36px;
+}
+.mpRowText {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.mpRowName {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-1);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.mpRowMeta {
+    font-size: 12.5px;
+    color: var(--text-2);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.mpRemove:hover,
+.mpRemove:focus-visible {
+    background: var(--danger-soft);
+    color: var(--danger);
+}
+.mpResult {
+    align-items: flex-start;
+    padding-top: 14px;
+    padding-bottom: 14px;
+}
+.mpResult .mpButton {
+    align-self: center;
+}
+/* Doubled class: .modIcon comes later in this file. */
+.mpResultIcon.modIcon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    font-size: 16px;
+}
+.mpResultTitle {
+    align-self: flex-start;
+    max-width: 100%;
+    text-decoration: none;
+}
+.mpResultTitle:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+.mpResultDesc {
+    font-size: 12.5px;
+    line-height: 1.45;
+    color: var(--text-2);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.mpResultMeta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 12px;
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--text-3);
+}
+.mpChip {
+    height: 20px;
+    padding: 0px 8px;
+    display: flex;
+    align-items: center;
+    border-radius: var(--radius-pill);
+    background: var(--accent-soft);
+    color: var(--accent-hi);
+    font-size: 11px;
+    font-weight: 600;
+}
+.mpChip[unsupported] {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-3);
 }
 
 /* Main select container. */
@@ -2346,7 +2805,7 @@ input:checked + .toggleSwitchSlider:before {
 
 /* Div which displays the selected option. */
 .settingsSelectSelected {
-    border-radius: var(--radius-s);
+    border-radius: var(--radius-pill);
     border-width: 1px;
     font-size: 14px;
     padding: 6px 16px;
@@ -2370,7 +2829,7 @@ input:checked + .toggleSwitchSlider:before {
     top: 7px;
 }
 .settingsSelectSelected.select-arrow-active {
-    border-radius: 3px 3px 0px 0px;
+    border-radius: 18px 18px 0px 0px;
 }
 
 /* Options content container. */
@@ -2384,7 +2843,7 @@ input:checked + .toggleSwitchSlider:before {
     overflow-y: scroll;
     border: 1px solid var(--line-strong);
     border-top: none;
-    border-radius: 0px 0px 3px 3px;
+    border-radius: 0px 0px 18px 18px;
 }
 /* Hide the items when the select box is closed. */
 .settingsSelectOptions[hidden] {
@@ -2557,7 +3016,7 @@ input:checked + .toggleSwitchSlider:before {
 
 /* Text field to input the JVM options. */
 #settingsJVMOptsVal {
-    border-radius: 0px 3px 3px 0px !important;
+    border-radius: 0px 999px 999px 0px !important;
     width: 100%;
     padding: 5px 10px;
     font-size: 12px;
@@ -2594,7 +3053,7 @@ input:checked + .toggleSwitchSlider:before {
     flex-direction: column;
     background: var(--glass-sunk);
     border: 1px solid var(--line-strong);
-    border-radius: var(--radius-s);
+    border-radius: var(--radius-card);
     width: 75%;
     margin-bottom: 20px;
 }
@@ -2620,6 +3079,8 @@ input:checked + .toggleSwitchSlider:before {
 }
 #settingsAboutTitle {
     font-size: 23px;
+    font-weight: var(--display-weight);
+    letter-spacing: var(--display-tracking);
     padding-left: 10px;
 }
 
@@ -2695,7 +3156,7 @@ input:checked + .toggleSwitchSlider:before {
     flex-direction: column;
     background: var(--glass-sunk);
     border: 1px solid var(--line-strong);
-    border-radius: var(--radius-s);
+    border-radius: var(--radius-card);
     width: 75%;
     margin-bottom: 20px;
 }
@@ -2787,113 +3248,52 @@ input:checked + .toggleSwitchSlider:before {
     padding: 0px;
 }
 
-/* * *
-* Settings View (Updates Tab)
-* * */
-
-/* Main about content container. */
-#settingsUpdateStatusContainer {
+/* Update status, on the right of the version. */
+#settingsUpdateStatus {
+    margin-left: auto;
     display: flex;
     flex-direction: column;
-    background: var(--glass-sunk);
-    border: 1px solid var(--line-strong);
-    border-radius: var(--radius-s);
-    width: 75%;
-    margin-bottom: 20px;
-}
-
-/* Update content. */
-#settingsUpdateStatusContent {
-    display: flex;
-    flex-direction: column;
-    padding: 15px;
-}
-
-/* Update header elements. */
-#settingsUpdateStatusHeadline {
-    display: flex;
-    align-items: center;
-    padding-bottom: 5px;
-    border-bottom: 1px solid var(--line-strong);
+    align-items: flex-end;
+    gap: 6px;
+    padding-right: 4px;
+    text-align: right;
 }
 #settingsUpdateTitle {
-    font-size: 16px;
-    padding-left: 10px;
-    font-weight: bold;
-}
-
-/* Update version container. */
-#settingsUpdateVersion {
-    display: flex;
-    align-items: center;
-    padding: 10px 0px;
-    border-bottom: 1px solid var(--line-strong);
-}
-
-/* Checkmark next to the version information. */
-#settingsUpdateVersionCheck {
-    border-radius: 50%;
-    background: var(--ok);
-    text-align: center;
-    font-weight: bold;
-    margin: 11px 12px;
-    color: var(--text-1);
-    height: 15px;
-    width: 15px;
     font-size: 12px;
-    line-height: 17px;
+    color: var(--text-2);
 }
-
-/* Update version details container. */
-#settingsUpdateVersionDetails {
-    margin-left: 10px;
-}
-
-/* Release type text. */
-#settingsUpdateVersionTitle {
-    font-size: 12px;
-    font-family: var(--font-ui);
+#settingsUpdateTitle[available] {
+    color: var(--accent);
     font-weight: 600;
-    color: var(--ok);
-    font-weight: bold;
 }
 
-/* Current version text. */
-#settingsUpdateVersionLine {
-    font-size: 10px;
-    color: var(--text-3);
-    font-weight: bold;
-}
-
-/* Update action container. */
-#settingsUpdateActionContainer {
-    padding-top: 10px;
-    font-size: 14px;
-    font-weight: bold;
-}
-
-/* Update action button styles. */
+/* Check for updates / install / download. */
 #settingsUpdateActionButton {
     display: flex;
     flex-direction: column;
-    padding-left: 10px;
-    background: none;
-    border: none;
-    font-size: 14px;
-    font-weight: bold;
+    align-items: flex-end;
+    border: 1px solid var(--line-strong);
+    color: var(--text-1);
+    background: var(--glass-hover);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 14px;
+    border-radius: var(--radius-pill);
     cursor: pointer;
     outline: none;
-    text-align: left;
-    transition: 0.25s ease;
+    transition: background 160ms var(--ease-out), border-color 160ms var(--ease-out), opacity 160ms var(--ease-out);
 }
 #settingsUpdateActionButton:hover,
-#settingsUpdateActionButton:focus {
+#settingsUpdateActionButton:focus-visible {
+    background: var(--accent-soft);
+    border-color: var(--accent-line);
 }
 #settingsUpdateActionButton:active {
-    color: var(--text-3);
+    background: var(--glass-sunk);
 }
 #settingsUpdateActionButton:disabled {
     pointer-events: none;
+    opacity: 0.6;
 }
 
 
@@ -2905,17 +3305,18 @@ input:checked + .toggleSwitchSlider:before {
 
 /* Segmented control. */
 .apSegment {
+    flex: none;
     display: flex;
     gap: 2px;
     padding: 3px;
-    border-radius: 11px;
+    border-radius: 12px;
     background: rgba(255, 255, 255, 0.06);
     border: 1px solid rgba(255, 255, 255, 0.08);
 }
 .apSegment button {
     height: 34px;
     padding: 0px 14px;
-    border-radius: 8px;
+    border-radius: 9px;
     border: 0px;
     background: transparent;
     color: rgba(255, 255, 255, 0.72);
@@ -2932,148 +3333,414 @@ input:checked + .toggleSwitchSlider:before {
 }
 .apSegment button[selected] {
     color: var(--text-1);
+    font-weight: 600;
     background: rgba(255, 255, 255, 0.16);
 }
-
-/* Wallpaper choices. */
-.apBlock {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    width: 88%;
-    padding: 14px 0px 16px;
-    border-bottom: 1px solid var(--line);
-}
-.apGrid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 12px;
-}
-.apTile {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+.apLink {
     padding: 0px;
     border: 0px;
-    background: transparent;
-    color: rgba(255, 255, 255, 0.72);
-    text-align: left;
-    cursor: pointer;
+    background: none;
+    color: var(--accent);
     font-family: var(--font-ui);
-}
-.apTile[selected] {
-    color: var(--text-1);
-}
-.apTilePreview {
-    position: relative;
-    display: block;
-    width: 100%;
-    aspect-ratio: 16 / 9;
-    border-radius: 12px;
-    overflow: hidden;
-    background-color: var(--basalt-2);
-    background-size: cover;
-    background-position: center;
-    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.14);
-    transition: box-shadow 200ms ease, transform 200ms var(--ease-out);
-}
-.apTile:hover .apTilePreview {
-    transform: translateY(-2px);
-}
-.apTile[selected] .apTilePreview {
-    box-shadow: 0 0 0 2px #021a30, 0 0 0 4px var(--accent);
-}
-.apTileName {
     font-size: 12.5px;
-    font-weight: 500;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
 }
-.apTileRemove {
-    position: absolute;
-    top: 6px;
-    right: 6px;
-    width: 26px;
-    height: 26px;
-    border-radius: 8px;
+.apLink:hover {
+    color: var(--accent-hi);
+}
+.apLink[hidden] {
+    display: none;
+}
+
+/* Settings on the left, a live preview on the right. */
+.apLayout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(220px, 34%);
+    align-items: start;
+    gap: 36px;
+    padding-right: 36px;
+}
+.apMain {
+    display: flex;
+    flex-direction: column;
+    border-top: 1px solid var(--line);
+}
+.apField {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px 0px;
+    border-bottom: 1px solid var(--line);
+}
+.apFieldRow {
     display: flex;
     align-items: center;
-    justify-content: center;
-    background: rgba(12, 14, 20, 0.7);
-    backdrop-filter: blur(8px);
-    color: #ffffff;
-    opacity: 0;
-    transition: opacity 160ms ease, background 160ms ease;
+    justify-content: space-between;
+    gap: 20px;
 }
-.apTile:hover .apTileRemove,
-.apTile:focus-visible .apTileRemove {
-    opacity: 1;
+.apField > .settingsFieldDesc {
+    margin-top: 0px;
 }
-.apTileRemove:hover {
-    background: var(--danger);
-    color: var(--accent-ink);
+.apCaps {
+    margin: 26px 0px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-3);
 }
-.apTileRemove svg,
-.apTileAdd svg {
+
+/* Modpack list: one row per pack. */
+.apPackList {
+    display: flex;
+    flex-direction: column;
+    border-radius: var(--radius-l);
+    border: 1px solid var(--line);
+    background: var(--glass-sunk);
+    overflow: hidden;
+}
+.apPackRow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 54px;
+    padding: 0px 8px 0px 12px;
+    cursor: pointer;
+    transition: background 160ms ease;
+}
+.apPackRow + .apPackRow {
+    border-top: 1px solid var(--line);
+}
+.apPackRow:hover {
+    background: rgba(255, 255, 255, 0.04);
+}
+.apPackRow[selected] {
+    background: rgba(0, 68, 119, 0.5);
+}
+.apPackRow .serverListTile {
+    width: 30px;
+    height: 30px;
+    font-size: 10.5px;
+}
+.apPackRowName {
+    flex: 1;
+    min-width: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-1);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.apPackRowMeta {
+    flex: none;
+    font-size: 12.5px;
+    color: var(--text-2);
+    white-space: nowrap;
+}
+.apEdit {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    height: 32px;
+    padding: 0px 8px 0px 10px;
+    border-radius: 8px;
+    border: 0px;
+    background: transparent;
+    color: var(--accent);
+    font-family: var(--font-ui);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 160ms ease, color 160ms ease;
+}
+.apEdit:hover {
+    color: var(--accent-hi);
+    background: rgba(255, 255, 255, 0.06);
+}
+.apEdit svg,
+.apDrawerClose svg,
+.apShotMark svg {
     width: 14px;
     height: 14px;
     fill: none;
     stroke: currentColor;
-    stroke-width: 1.8;
+    stroke-width: 2.2;
     stroke-linecap: round;
+    stroke-linejoin: round;
 }
-.apTileAdd .apTilePreview {
+
+/* Preview. */
+.apPreview {
+    position: sticky;
+    top: 0px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.apPreviewFrame {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    border-radius: var(--radius-l);
+    overflow: hidden;
+    background: var(--basalt-2);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12), var(--shadow-float);
+}
+.apPreviewImg {
+    position: absolute;
+    inset: 0px;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0;
+    transition: opacity 600ms ease;
+}
+.apPreviewImg.apShown {
+    opacity: 1;
+}
+.apPreviewLabel {
+    position: absolute;
+    left: 10px;
+    bottom: 10px;
+    padding: 4px 9px;
+    border-radius: 7px;
+    background: rgba(8, 10, 16, 0.7);
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 600;
+}
+.apPreviewLabel[hidden] {
+    display: none;
+}
+.apPreviewFoot {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+.apPreviewCaption {
+    min-width: 0;
+    font-size: 12.5px;
+    color: var(--text-2);
+}
+.apDots {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding-top: 5px;
+}
+.apDots span {
+    width: 5px;
+    height: 5px;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.35);
+    transition: width 240ms var(--ease-out), background 240ms ease;
+}
+.apDots span[selected] {
+    width: 14px;
+    background: #ffffff;
+}
+
+/* Drawer: slides in over the right of settings to edit one modpack. */
+#apDrawerScrim {
+    position: absolute;
+    inset: 0px;
+    z-index: 10;
+    background: rgba(2, 14, 28, 0.55);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 220ms ease, visibility 0s linear 220ms;
+}
+#apDrawer {
+    position: absolute;
+    top: 0px;
+    right: 0px;
+    bottom: 0px;
+    z-index: 11;
+    width: min(420px, 48%);
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    background: rgb(4, 24, 44);
+    border-left: 1px solid var(--line-strong);
+    box-shadow: var(--shadow-float);
+    transform: translateX(100%);
+    visibility: hidden;
+    transition: transform 280ms var(--ease-out), visibility 0s linear 280ms;
+}
+#settingsContainerRight[drawer] #apDrawerScrim {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 220ms ease, visibility 0s;
+}
+#settingsContainerRight[drawer] #apDrawer {
+    transform: none;
+    visibility: visible;
+    transition: transform 280ms var(--ease-out), visibility 0s;
+}
+.apDrawerHead {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 20px 20px 14px;
+}
+#apDrawerTile {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+}
+.apDrawerTitle {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+#apDrawerName {
+    font-size: 16px;
+    font-weight: var(--display-weight);
+    letter-spacing: -0.02em;
+    color: var(--text-1);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+#apDrawerSub {
+    font-size: 12.5px;
+    color: var(--text-2);
+}
+.apDrawerClose {
+    flex: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: 0px;
     display: flex;
     align-items: center;
     justify-content: center;
     background: transparent;
-    box-shadow: none;
-    border: 1px dashed rgba(255, 255, 255, 0.24);
-    box-sizing: border-box;
-    color: rgba(255, 255, 255, 0.72);
+    color: var(--text-2);
+    cursor: pointer;
 }
-.apTileAdd:hover .apTilePreview {
+.apDrawerClose:hover {
     color: var(--text-1);
-    border-color: rgba(255, 255, 255, 0.5);
+    background: rgba(255, 255, 255, 0.08);
 }
-.apTileAdd svg {
-    width: 22px;
-    height: 22px;
+.apDrawerBody {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 4px 20px 20px;
+}
+.apDrawerBody .apGroupHead {
+    margin-top: 12px;
+}
+.apDrawerFoot {
+    flex: none;
+    padding: 14px 20px 20px;
+}
+#apDrawerDone {
+    width: 100%;
+    height: 40px;
+    border-radius: var(--radius-m);
+    border: 1px solid var(--accent-line);
+    background: var(--meridian-navy);
+    color: var(--text-1);
+    font-family: var(--font-ui);
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 160ms ease;
+}
+#apDrawerDone:hover {
+    background: var(--meridian-face);
+}
+.apGroupHead {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+}
+.apGroupTitle {
+    font-size: 13.5px;
+    color: var(--text-2);
+}
+.apGroupTitle b {
+    font-weight: 700;
+    color: var(--text-1);
+}
+#apShotEmpty[hidden] {
+    display: none;
 }
 
-/* Palette chips. */
-.apChips {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-    gap: 6px;
+/* Picture grids, three to a row. */
+.apShotGrid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
 }
-.apChip {
-    height: 36px;
-    padding: 0px 12px 0px 7px;
+.apShotGrid:empty {
+    display: none;
+}
+.apShot {
+    padding: 0px;
+    border: 0px;
+    background: transparent;
+    cursor: pointer;
+}
+.apShotPreview {
+    position: relative;
+    display: block;
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    border-radius: 10px;
+    overflow: hidden;
+    background-color: var(--basalt-2);
+    background-size: cover;
+    background-position: center;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);
+    opacity: 0.45;
+    transition: opacity 220ms ease, box-shadow 200ms ease;
+}
+.apShot:hover .apShotPreview {
+    opacity: 0.75;
+}
+.apShot[selected] .apShotPreview {
+    opacity: 1;
+    box-shadow: 0 0 0 2px var(--accent-line);
+}
+.apShotMark {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 20px;
+    height: 20px;
+    border-radius: 10px;
     display: flex;
     align-items: center;
-    gap: 8px;
-    border-radius: 18px;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    background: rgba(255, 255, 255, 0.04);
+    justify-content: center;
+    background: rgba(12, 14, 20, 0.45);
+    box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.75);
+    color: transparent;
+    transition: background 160ms ease, color 160ms ease;
+}
+.apShotMark svg {
+    width: 12px;
+    height: 12px;
+    stroke-width: 2.6;
+}
+.apShot[selected] .apShotMark {
+    background: var(--meridian-navy);
+    box-shadow: inset 0 0 0 1.5px var(--accent-hi);
     color: #ffffff;
-    font-family: var(--font-ui);
-    font-size: 12.5px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background 160ms ease, border-color 160ms ease;
-}
-.apChip:hover {
-    background: rgba(255, 255, 255, 0.1);
-}
-.apChip[selected] {
-    background: rgba(255, 255, 255, 0.14);
-    border-color: rgba(255, 255, 255, 0.5);
-}
-.apChipSwatch {
-    width: 22px;
-    height: 22px;
-    border-radius: 11px;
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25);
 }
 
 /*******************************************************************************
@@ -3102,21 +3769,42 @@ input:checked + .toggleSwitchSlider:before {
 .wpLayer.wpShown {
     opacity: 1;
 }
-.wpPhoto {
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-}
-.wpSvg {
+/* Photos and screenshots: a decoded <img>, so the fade never shows a blank. */
+.wpImg {
     position: absolute;
     inset: 0px;
     width: 100%;
     height: 100%;
-    display: block;
+    object-fit: cover;
 }
-.wpFade {
+/* Pictures drift in slowly, like a console's game backdrop. */
+.wpLayer .wpImg {
+    transform-origin: 60% 50%;
+    animation: wp-kenburns 40s ease-in-out infinite alternate;
+}
+.wpLayer[still] .wpImg,
+html[noGpu] .wpLayer .wpImg {
+    animation: none;
+}
+#wallpaper.wpPaused .wpImg,
+body[settingsOpen] #wallpaper .wpImg {
+    animation-play-state: paused;
+}
+/* Under settings: a blurred copy of the wallpaper, drawn once by
+   themeengine.js at a fraction of the size and stretched. A live CSS blur
+   would be redone on every scrolled frame without GPU acceleration. */
+.wpBlur {
     position: absolute;
     inset: 0px;
+    /* Above wallpaper layers that fade in later. */
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    transition: opacity 300ms ease;
+}
+.wpBlur.wpShown {
+    opacity: 1;
 }
 #wallpaperScrim {
     position: fixed;
@@ -3127,12 +3815,9 @@ input:checked + .toggleSwitchSlider:before {
         linear-gradient(180deg, rgba(5, 7, 12, 0.38) 0px, rgba(5, 7, 12, 0) 160px),
         linear-gradient(0deg, rgba(5, 7, 12, 0.58) 0px, rgba(5, 7, 12, 0) 320px);
 }
-@keyframes wp-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-@keyframes wp-drift { from { transform: translateX(-50px); } to { transform: translateX(70px); } }
-@keyframes wp-bob { from { transform: translateY(-8px); } to { transform: translateY(10px); } }
-@keyframes wp-tw { from { opacity: 0.55; } to { opacity: 1; } }
+@keyframes wp-kenburns { from { transform: scale(1); } to { transform: scale(1.03); } }
 @media (prefers-reduced-motion: reduce) {
-    .wpMotion {
+    .wpImg {
         animation: none !important;
     }
 }
@@ -3161,7 +3846,7 @@ input:checked + .toggleSwitchSlider:before {
 #user_content,
 #mediaContent {
     box-sizing: border-box;
-    border-radius: 14px;
+    border-radius: var(--radius-pill);
     background: var(--glass);
     backdrop-filter: var(--glass-blur);
     border: 1px solid var(--line);
@@ -3190,7 +3875,7 @@ input:checked + .toggleSwitchSlider:before {
     position: relative;
     width: 34px;
     height: 34px;
-    border-radius: 9px;
+    border-radius: 50%;
 }
 #image_seal {
     width: 34px;
@@ -3207,7 +3892,7 @@ input:checked + .toggleSwitchSlider:before {
     position: absolute;
     content: '';
     inset: 0px;
-    border-radius: 10px;
+    border-radius: 50%;
     border: 2px solid var(--ok);
     box-sizing: border-box;
     animation: glow-grow 3s var(--ease-out) infinite;
@@ -3223,7 +3908,7 @@ input:checked + .toggleSwitchSlider:before {
     background-color: var(--glass-strong);
     border: 1px solid var(--line);
     color: var(--ok);
-    border-radius: var(--radius-s);
+    border-radius: var(--radius-card);
     padding: 5px 9px;
     position: absolute;
     z-index: 1;
@@ -3245,8 +3930,8 @@ input:checked + .toggleSwitchSlider:before {
 }
 #brandName {
     font-size: 20px;
-    font-weight: 800;
-    letter-spacing: -0.04em;
+    font-weight: var(--display-weight);
+    letter-spacing: var(--display-tracking);
     text-transform: lowercase;
     color: var(--text-1);
     text-shadow: 0 2px 16px rgba(0, 0, 0, 0.3);
@@ -3261,7 +3946,7 @@ input:checked + .toggleSwitchSlider:before {
     width: 22px;
     height: 22px;
     margin-left: 2px;
-    border-radius: 11px;
+    border-radius: var(--radius-pill);
     cursor: help;
     outline: none;
 }
@@ -3286,7 +3971,7 @@ input:checked + .toggleSwitchSlider:before {
     width: 260px;
     box-sizing: border-box;
     padding: 12px 14px;
-    border-radius: var(--radius-m);
+    border-radius: var(--radius-card);
     background-color: var(--glass-strong);
     backdrop-filter: var(--glass-blur);
     border: 1px solid var(--line);
@@ -3367,6 +4052,51 @@ input:checked + .toggleSwitchSlider:before {
     align-items: flex-end;
     gap: 10px;
 }
+/* Credit for the gallery wallpaper, under the top bar. Opens the Photon gallery. */
+#wallpaperCredit {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-right: 4px;
+    padding: 2px 4px;
+    border: none;
+    background: none;
+    color: rgba(255, 255, 255, 0.5);
+    font-family: var(--font-ui);
+    font-size: 11.5px;
+    font-weight: 500;
+    white-space: nowrap;
+    text-shadow: 0 1px 6px rgba(0, 0, 0, 0.45);
+    cursor: default;
+    outline: none;
+    transition: color 160ms ease;
+}
+#wallpaperCredit[linked] {
+    cursor: pointer;
+}
+#wallpaperCredit[hidden] {
+    display: none;
+}
+#wallpaperCredit:hover,
+#wallpaperCredit:focus-visible {
+    color: var(--text-1);
+}
+#wallpaperCredit svg {
+    width: 13px;
+    height: 13px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.7;
+    stroke-linejoin: round;
+}
+.wallpaperCreditAuthor {
+    color: rgba(255, 255, 255, 0.72);
+    font-weight: 600;
+}
+#wallpaperCredit:hover .wallpaperCreditAuthor {
+    color: var(--text-1);
+}
+
 #topBar {
     display: flex;
     align-items: center;
@@ -3426,7 +4156,7 @@ input:checked + .toggleSwitchSlider:before {
     padding: 5px 9px;
     background-color: var(--glass-strong);
     border: 1px solid var(--line);
-    border-radius: var(--radius-s);
+    border-radius: var(--radius-card);
     font-size: 12px;
     font-weight: 500;
     transition: visibility 0s linear 0.2s, opacity 0.2s ease;
@@ -3459,7 +4189,7 @@ input:checked + .toggleSwitchSlider:before {
     position: relative;
     width: 34px;
     height: 34px;
-    border-radius: 9px;
+    border-radius: 50%;
     overflow: hidden;
     flex-shrink: 0;
     box-sizing: border-box;
@@ -3524,7 +4254,7 @@ input:checked + .toggleSwitchSlider:before {
     justify-content: center;
     width: 34px;
     height: 34px;
-    border-radius: 10px;
+    border-radius: var(--radius-pill);
     transition: background 160ms ease;
 }
 .mediaURL:hover {
@@ -3555,7 +4285,9 @@ input:checked + .toggleSwitchSlider:before {
     position: absolute;
     left: var(--edge);
     bottom: var(--edge);
-    width: min(380px, calc(50% - 230px));
+    /* Runs up to the dial (520px wide, centred) with a gap before its tiles. */
+    width: calc(50% - 230px - var(--edge));
+    max-width: 760px;
     display: flex;
     flex-direction: column;
     gap: 12px;
@@ -3586,12 +4318,17 @@ input:checked + .toggleSwitchSlider:before {
 }
 #serverHeroName {
     font-size: 52px;
-    font-weight: 600;
-    letter-spacing: -0.035em;
-    line-height: 1;
+    font-weight: var(--display-weight);
+    letter-spacing: var(--display-tracking);
     color: var(--text-1);
     text-shadow: 0 2px 24px rgba(0, 0, 0, 0.25);
+    /* Wraps between whole words; fitHeroName() shrinks the size when a single word is too wide. */
+    max-width: 100%;
+    line-height: 1.05;
     text-wrap: balance;
+    overflow-wrap: normal;
+    word-break: normal;
+    padding-bottom: 0.08em;
 }
 #serverHeroMeta {
     display: flex;
@@ -3599,103 +4336,76 @@ input:checked + .toggleSwitchSlider:before {
     gap: 6px;
 }
 .heroChip {
-    height: 26px;
-    padding: 0px 10px;
+    height: 28px;
+    padding: 0px 12px;
     display: flex;
     align-items: center;
-    border-radius: 8px;
+    border-radius: var(--radius-pill);
     background: rgba(12, 14, 20, 0.44);
     border: 1px solid var(--line);
     backdrop-filter: blur(14px);
-    font-family: var(--font-mono);
-    font-size: 11.5px;
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    font-variant-numeric: tabular-nums;
     color: var(--text-1);
 }
-.heroChip:empty {
+.heroChip:empty,
+.heroChip[hidden] {
     display: none;
 }
-#serverHeroDesc {
-    font-size: 14px;
-    line-height: 1.45;
-    color: rgba(255, 255, 255, 0.86);
-    max-width: 360px;
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
+/* Shown while the selected modpack's game is running. */
+#serverHeroRunning {
+    gap: 7px;
+    color: var(--ok);
+    border-color: rgba(126, 226, 160, 0.4);
 }
-#serverHeroDesc:empty {
-    display: none;
+#serverHeroRunning:before {
+    content: '';
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--ok);
+    box-shadow: 0 0 8px var(--ok);
+    animation: server-running-pulse 1.6s ease-in-out infinite alternate;
 }
-
-/* Mods button + status card share one row. */
+@keyframes server-running-pulse {
+    from { opacity: 0.45; }
+    to { opacity: 1; }
+}
+/* Status card row under the hero. */
 #heroFooter {
     display: flex;
     align-items: stretch;
     gap: 8px;
 }
-#modsButton {
+
+/* Server + Mojang status card; hidden for local modpacks. */
+#statusCard[hidden] {
+    display: none;
+}
+#statusCard {
+    height: 40px;
+    box-sizing: border-box;
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 0px 14px;
-    border-radius: 12px;
-    background: rgba(12, 14, 20, 0.44);
-    border: 1px solid var(--line);
-    backdrop-filter: blur(14px);
-    color: var(--text-1);
-    font-family: var(--font-ui);
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background 160ms ease, border-color 160ms ease;
-}
-#modsButton:hover,
-#modsButton[aria-expanded="true"] {
-    background: rgba(255, 255, 255, 0.14);
-}
-#modsButton svg {
-    width: 16px;
-    height: 16px;
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 1.7;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-}
-#modsButtonCount {
-    font-family: var(--font-mono);
-    font-size: 12px;
-    color: rgba(255, 255, 255, 0.7);
-}
-
-/* Server + Mojang status card. */
-#statusCard {
-    display: flex;
-    align-items: stretch;
     gap: 14px;
     width: fit-content;
-    padding: 10px 16px;
-    border-radius: 12px;
+    padding: 0px 16px 0px 14px;
+    border-radius: var(--radius-pill);
     background: rgba(12, 14, 20, 0.44);
     border: 1px solid var(--line);
     backdrop-filter: blur(14px);
-}
-.bot_label {
-    font-size: 10px;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.7);
 }
 #server_status_wrapper {
     display: flex;
-    flex-direction: column;
-    gap: 3px;
+    align-items: center;
 }
 #player_count {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     font-size: 13px;
     font-weight: 500;
     font-variant-numeric: tabular-nums;
@@ -3770,29 +4480,40 @@ input:checked + .toggleSwitchSlider:before {
     justify-content: center;
     color: #ffffff;
     font-family: var(--font-ui);
-    font-size: 11px;
+    font-size: 15px;
     font-weight: 600;
     letter-spacing: 0.04em;
     text-shadow: 0 1px 6px rgba(0, 0, 0, 0.45);
     background-size: cover;
     cursor: pointer;
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28), 0 6px 18px rgba(0, 0, 0, 0.3);
+    /* Drawn at the selected size and placed with a transform (landing.js), so
+       turning the dial never re-runs layout. */
+    left: 0px;
+    top: 0px;
+    width: 72px;
+    height: 72px;
+    will-change: transform;
     transition:
-        left 520ms var(--dial-ease),
-        top 520ms var(--dial-ease),
-        width 520ms var(--dial-ease),
-        height 520ms var(--dial-ease),
+        transform 520ms var(--dial-ease),
         opacity 400ms ease,
-        box-shadow 300ms ease,
-        font-size 300ms ease;
+        box-shadow 300ms ease;
+}
+.serverTile[fresh] {
+    transition: none;
 }
 .serverTile[selected] {
-    font-size: 15px;
     cursor: default;
     box-shadow: 0 0 0 3px rgba(2, 26, 48, 0.7), 0 0 0 5px var(--accent), 0 12px 30px rgba(0, 0, 0, 0.35);
 }
 .serverTile[far] {
     pointer-events: none;
+}
+.serverTile[running]:not([selected]) {
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28), 0 0 0 2px var(--ok), 0 6px 18px rgba(0, 0, 0, 0.3);
+}
+.serverTile[running][selected] {
+    box-shadow: 0 0 0 3px rgba(2, 26, 48, 0.7), 0 0 0 5px var(--ok), 0 12px 30px rgba(0, 0, 0, 0.35);
 }
 .serverTile[hasIcon] .serverTileMono {
     visibility: hidden;
@@ -3824,11 +4545,17 @@ input:checked + .toggleSwitchSlider:before {
     justify-content: center;
     align-items: center;
     gap: 4px;
+    /* The strip spans the dial at the height of the outer tiles; only its
+       contents take clicks so those tiles stay clickable. */
+    pointer-events: none;
+}
+#serverDialNav > * {
+    pointer-events: auto;
 }
 .serverDialArrow {
     width: 44px;
     height: 44px;
-    border-radius: 22px;
+    border-radius: var(--radius-pill);
     border: 0px;
     background: transparent;
     color: #ffffff;
@@ -3905,7 +4632,7 @@ input:checked + .toggleSwitchSlider:before {
     align-items: center;
     gap: 11px;
     padding: 0px 14px 0px 9px;
-    border-radius: 14px;
+    border-radius: var(--radius-pill);
     background: var(--glass-strong);
     border: 1px solid var(--line-strong);
     backdrop-filter: var(--glass-blur);
@@ -3948,7 +4675,7 @@ input:checked + .toggleSwitchSlider:before {
     flex: none;
     width: 36px;
     height: 36px;
-    border-radius: 10px;
+    border-radius: 50%;
     overflow: hidden;
     display: flex;
     align-items: center;
@@ -4011,7 +4738,7 @@ input:checked + .toggleSwitchSlider:before {
     display: flex;
     flex-direction: column;
     padding: 14px 10px 10px;
-    border-radius: 18px;
+    border-radius: var(--radius-panel);
     background: var(--glass-strong);
     border: 1px solid var(--line-strong);
     backdrop-filter: var(--glass-blur);
@@ -4049,13 +4776,12 @@ input:checked + .toggleSwitchSlider:before {
     align-items: center;
     gap: 12px;
     padding: 8px;
-    border-radius: 12px;
+    border-radius: var(--radius-pill);
     cursor: pointer;
 }
 .serverListRow .serverListTile {
     width: 40px;
     height: 40px;
-    border-radius: 11px;
 }
 .serverListRow[active] {
     background: var(--glass-hover);
@@ -4065,6 +4791,31 @@ input:checked + .toggleSwitchSlider:before {
 }
 .serverListRow[selected] .serverListTile {
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18), 0 0 0 2px var(--accent);
+}
+.serverListRunning {
+    display: none;
+    flex: none;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 8px;
+    border-radius: var(--radius-pill);
+    background: rgba(126, 226, 160, 0.12);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ok);
+}
+.serverListRunning:before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--ok);
+}
+.serverListRow[running] .serverListRunning {
+    display: flex;
+}
+#server_select[running] #serverPickerTile {
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18), 0 0 0 2px var(--ok);
 }
 .serverListStatus {
     flex: none;
@@ -4102,12 +4853,13 @@ input:checked + .toggleSwitchSlider:before {
 
 #launch_button {
     position: relative;
-    overflow: hidden;
+    /* The progress ring sits just outside the pill. */
+    overflow: visible;
     width: 150px;
     height: 56px;
     padding: 0px;
     border: 0px;
-    border-radius: 14px;
+    border-radius: var(--radius-pill);
     background: var(--accent);
     color: var(--accent-ink);
     display: flex;
@@ -4130,6 +4882,13 @@ input:checked + .toggleSwitchSlider:before {
     filter: grayscale(0.6) brightness(0.8);
     transform: none;
 }
+/* The selected modpack is already running. */
+#launch_button[running]:disabled:not([launching]) {
+    filter: none;
+    background: rgba(126, 226, 160, 0.16);
+    color: var(--ok);
+    box-shadow: inset 0 0 0 1px rgba(126, 226, 160, 0.45), 0 10px 30px rgba(0, 0, 0, 0.3);
+}
 #launch_button[launching],
 #launch_button[launching]:disabled {
     cursor: progress;
@@ -4148,11 +4907,12 @@ input:checked + .toggleSwitchSlider:before {
 #launch_details {
     display: none;
 }
+/* Set like the meridian wordmark (#brandName). */
 .launchLabel {
-    font-size: 15px;
-    font-weight: 700;
-    letter-spacing: 0.16em;
-    margin-right: -0.16em;
+    font-size: 20px;
+    font-weight: var(--display-weight);
+    letter-spacing: var(--display-tracking);
+    text-transform: lowercase;
 }
 .launchSub {
     max-width: 100%;
@@ -4166,18 +4926,66 @@ input:checked + .toggleSwitchSlider:before {
 .launchSub:empty {
     display: none;
 }
+#launch_progress_label {
+    font-size: 11.5px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+/* Launch step under the picker and the button, e.g. "Downloading files..". */
+#launchStatus {
+    position: absolute;
+    top: calc(100% + 10px);
+    left: 0px;
+    right: 0px;
+    display: none;
+    padding: 0px 18px;
+    text-align: right;
+    font-size: 12px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.72);
+    text-shadow: 0 1px 6px rgba(0, 0, 0, 0.5);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+#landingContainer[launching] #launchStatus {
+    display: block;
+}
+/* Progress ring around the pill while launching. */
 #launch_progress {
     position: absolute;
-    left: 0px;
-    bottom: 0px;
-    height: 3px;
-    width: 0%;
-    background: rgba(2, 26, 48, 0.55);
-    transition: width 200ms ease;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 200ms ease;
+}
+#launch_button[launching] #launch_progress {
+    opacity: 1;
+}
+#launch_progress path {
+    fill: none;
+    stroke-width: 3px;
+    stroke-linecap: round;
+}
+.launchRingTrack {
+    stroke: rgba(255, 255, 255, 0.16);
+}
+.launchRingFill {
+    stroke: var(--accent);
+    stroke-dasharray: 100;
+    stroke-dashoffset: 100;
+    filter: drop-shadow(0 0 4px var(--accent-soft));
+    transition: stroke-dashoffset 250ms ease;
 }
 
 /* Narrow windows: drop the outer dial tiles so they clear the side blocks. */
 @media (max-width: 1239px) {
+    /* Only the neighbouring tiles remain, so the hero can come closer. */
+    #heroBlock {
+        width: calc(50% - 150px - var(--edge));
+    }
     #serverPicker {
         width: 210px;
     }
@@ -4193,163 +5001,42 @@ input:checked + .toggleSwitchSlider:before {
 
 /*******************************************************************************
  *                                                                             *
- * Landing View (Mods dialog)                                                  *
+ * Mod and pack tiles (settings, modpacks)                                     *
  *                                                                             *
  ******************************************************************************/
 
-#modsOverlay {
-    position: absolute;
-    inset: 0px;
-    z-index: 20;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 70px 40px 32px;
-    box-sizing: border-box;
-    background: rgba(6, 8, 12, 0.36);
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 200ms ease, visibility 0s linear 200ms;
-}
-#modsOverlay[open] {
-    opacity: 1;
-    visibility: visible;
-    transition: opacity 260ms ease, visibility 0s linear 0s;
-}
-#modsDialog {
-    display: flex;
-    flex-direction: column;
-    width: min(620px, 100%);
-    height: min(560px, 100%);
-    box-sizing: border-box;
-    border-radius: 20px;
-    background: rgba(14, 16, 22, 0.76);
-    backdrop-filter: blur(30px) saturate(140%);
-    border: 1px solid var(--line);
-    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
-    overflow: hidden;
-    transform: translateY(10px) scale(0.985);
-    transition: transform 200ms ease;
-}
-#modsOverlay[open] #modsDialog {
-    transform: none;
-    transition: transform 420ms var(--dial-ease);
-}
-#modsHeader {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 16px;
-    padding: 20px 14px 14px 24px;
-}
-#modsHeaderText {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    min-width: 0;
-}
-#modsHeaderText h2 {
-    margin: 0px;
-    font-size: 22px;
-    font-weight: 600;
-    letter-spacing: -0.02em;
-}
-#modsSummary {
-    font-size: 13px;
-    color: rgba(255, 255, 255, 0.72);
-}
-#modsClose {
+.modFolder {
     flex-shrink: 0;
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
+    width: 30px;
+    height: 30px;
+    padding: 0px;
     border: 0px;
-    background: transparent;
-    color: #ffffff;
+    border-radius: var(--radius-pill);
     display: flex;
     align-items: center;
     justify-content: center;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.6);
     cursor: pointer;
-    transition: background 160ms ease;
+    transition: background 120ms ease, color 120ms ease;
 }
-#modsClose:hover {
-    background: rgba(255, 255, 255, 0.14);
-}
-#modsClose svg {
-    width: 14px;
-    height: 14px;
+.modFolder svg {
+    width: 17px;
+    height: 17px;
     fill: none;
     stroke: currentColor;
-    stroke-width: 1.8;
-    stroke-linecap: round;
+    stroke-width: 1.7;
+    stroke-linejoin: round;
 }
-#modsSearch {
-    position: relative;
-    display: flex;
-    align-items: center;
-    margin: 0px 24px 10px;
-    flex-shrink: 0;
-}
-#modsSearch svg {
-    position: absolute;
-    left: 14px;
-    width: 16px;
-    height: 16px;
-    fill: none;
-    stroke: rgba(255, 255, 255, 0.72);
-    stroke-width: 1.8;
-    stroke-linecap: round;
-    pointer-events: none;
-}
-#modsSearchInput {
-    width: 100%;
-    height: 40px;
-    box-sizing: border-box;
-    padding: 0px 12px 0px 40px;
-    border-radius: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    background: rgba(255, 255, 255, 0.06);
+.modFolder:hover,
+.modFolder:focus-visible {
+    background: rgba(255, 255, 255, 0.1);
     color: #ffffff;
-    font-family: var(--font-ui);
-    font-size: 13.5px;
-    outline: none;
-    transition: border-color 160ms ease, background 160ms ease;
 }
-#modsSearchInput::placeholder {
-    color: rgba(255, 255, 255, 0.5);
-}
-#modsSearchInput:focus {
-    border-color: var(--accent-line);
-    background: rgba(255, 255, 255, 0.08);
-}
-#modsList {
-    flex: 1;
-    min-height: 0;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    padding: 0px 12px 12px;
-}
-.modRow {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    min-height: 48px;
-    padding: 0px 12px;
-    border-radius: 12px;
-    flex-shrink: 0;
-}
-.modRow:nth-child(odd) {
-    background: rgba(255, 255, 255, 0.035);
-}
-.modRow:hover {
-    background: rgba(255, 255, 255, 0.07);
-}
-.modRow[disabled] .modIcon,
-.modRow[disabled] .modName,
-.modRow[disabled] .modVersion {
-    opacity: 0.5;
+.modFolder:disabled {
+    opacity: 0.3;
+    cursor: default;
+    background: transparent;
 }
 .modIcon {
     position: relative;
@@ -4383,77 +5070,6 @@ input:checked + .toggleSwitchSlider:before {
 .modIcon[pixelated] img {
     image-rendering: pixelated;
 }
-.modName {
-    flex: 1;
-    min-width: 0;
-    font-size: 14px;
-    font-weight: 500;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    -webkit-user-select: text;
-}
-.modTag {
-    flex-shrink: 0;
-    height: 20px;
-    padding: 0px 8px;
-    display: flex;
-    align-items: center;
-    border-radius: 6px;
-    background: rgba(255, 255, 255, 0.1);
-    font-size: 10.5px;
-    font-weight: 600;
-    letter-spacing: 0.04em;
-    color: rgba(255, 255, 255, 0.8);
-}
-.modVersion {
-    flex-shrink: 0;
-    max-width: 140px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-family: var(--font-mono);
-    font-size: 12px;
-    color: rgba(255, 255, 255, 0.72);
-}
-#modsEmpty {
-    display: none;
-    flex: 1;
-    align-items: center;
-    justify-content: center;
-    font-size: 13px;
-    color: rgba(255, 255, 255, 0.6);
-}
-#modsFooter {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 16px;
-    min-height: 52px;
-    padding: 0px 14px 0px 24px;
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
-    flex-shrink: 0;
-}
-#modsSynced {
-    font-size: 12.5px;
-    color: rgba(255, 255, 255, 0.72);
-}
-#modsManage {
-    height: 34px;
-    padding: 0px 12px;
-    border-radius: 9px;
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    background: rgba(255, 255, 255, 0.06);
-    color: #ffffff;
-    font-family: var(--font-ui);
-    font-size: 12.5px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background 160ms ease;
-}
-#modsManage:hover {
-    background: rgba(255, 255, 255, 0.14);
-}
 
 /*******************************************************************************
  *                                                                             *
@@ -4471,7 +5087,7 @@ input:checked + .toggleSwitchSlider:before {
     display: flex;
     flex-direction: column;
     box-sizing: border-box;
-    border-radius: 18px;
+    border-radius: var(--radius-panel);
     background: rgba(12, 14, 20, 0.68);
     backdrop-filter: blur(28px) saturate(140%);
     border: 1px solid var(--line);
@@ -4510,8 +5126,8 @@ input:checked + .toggleSwitchSlider:before {
 #newsHeaderText h2 {
     margin: 0px;
     font-size: 18px;
-    font-weight: 600;
-    letter-spacing: -0.01em;
+    font-weight: var(--display-weight);
+    letter-spacing: var(--display-tracking);
 }
 #newsHeaderText span {
     font-size: 12px;
@@ -4520,7 +5136,7 @@ input:checked + .toggleSwitchSlider:before {
 #newsClose {
     width: 44px;
     height: 44px;
-    border-radius: 12px;
+    border-radius: var(--radius-pill);
     border: 0px;
     background: transparent;
     color: #ffffff;
@@ -4549,7 +5165,7 @@ input:checked + .toggleSwitchSlider:before {
     display: flex;
     flex-direction: column;
     margin: 0px 12px 14px;
-    border-radius: 14px;
+    border-radius: var(--radius-card);
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.08);
     overflow: hidden;
@@ -4589,7 +5205,8 @@ input:checked + .toggleSwitchSlider:before {
 }
 #newsArticleTitle {
     font-size: 15px;
-    font-weight: 600;
+    font-weight: var(--display-weight);
+    letter-spacing: var(--display-tracking);
     line-height: 1.3;
     color: var(--text-1);
     text-decoration: none;
@@ -4645,7 +5262,7 @@ input:checked + .toggleSwitchSlider:before {
     justify-content: center;
     width: 32px;
     height: 32px;
-    border-radius: 8px;
+    border-radius: var(--radius-pill);
     background: rgba(255, 255, 255, 0.06);
     border: 1px solid rgba(255, 255, 255, 0.08);
     outline: none;
@@ -4762,7 +5379,7 @@ input:checked + .toggleSwitchSlider:before {
 #newsErrorRetry {
     height: 40px;
     padding: 0px 16px;
-    border-radius: 10px;
+    border-radius: var(--radius-pill);
     border: 1px solid rgba(255, 255, 255, 0.14);
     background: rgba(255, 255, 255, 0.06);
     font-size: 13px;
@@ -4806,7 +5423,7 @@ input:checked + .toggleSwitchSlider:before {
     box-sizing: border-box;
     padding: 26px 26px 20px;
     text-align: left;
-    border-radius: var(--radius-l);
+    border-radius: var(--radius-panel);
     background: var(--glass-strong);
     backdrop-filter: var(--glass-blur);
     border: 1px solid var(--line);
@@ -4838,9 +5455,9 @@ input:checked + .toggleSwitchSlider:before {
 /* Overlay title styles. */
 #overlayTitle {
     font-size: 19px;
+    font-weight: var(--display-weight);
+    letter-spacing: var(--display-tracking);
     line-height: 1.3;
-    font-weight: 700;
-    letter-spacing: -0.01em;
     -webkit-user-select: initial;
 }
 
@@ -4879,7 +5496,7 @@ input:checked + .toggleSwitchSlider:before {
     max-height: 82%;
     box-sizing: border-box;
     padding: 24px 22px 18px;
-    border-radius: var(--radius-l);
+    border-radius: var(--radius-panel);
     background: var(--glass-strong);
     backdrop-filter: var(--glass-blur);
     border: 1px solid var(--line);
@@ -4891,8 +5508,8 @@ input:checked + .toggleSwitchSlider:before {
 #serverSelectHeader,
 #accountSelectHeader {
     font-size: 19px;
-    font-weight: 700;
-    letter-spacing: -0.01em;
+    font-weight: var(--display-weight);
+    letter-spacing: var(--display-tracking);
     color: var(--text-1);
     margin: 0px 4px 16px;
 }
@@ -4919,7 +5536,7 @@ input:checked + .toggleSwitchSlider:before {
 /* Content container for a server listing. */
 .serverListing {
     border: 1px solid var(--line);
-    border-radius: var(--radius-m);
+    border-radius: var(--radius-card);
     padding: 10px;
     width: 100%;
     display: flex;
@@ -4952,7 +5569,7 @@ input:checked + .toggleSwitchSlider:before {
 .accountListing {
     color: var(--text-1);
     border: 1px solid var(--line);
-    border-radius: var(--radius-m);
+    border-radius: var(--radius-card);
     padding: 12px 16px;
     width: 100%;
     display: flex;
@@ -4985,6 +5602,13 @@ input:checked + .toggleSwitchSlider:before {
     padding-left: 12px;
     font-size: 14px;
     font-weight: 600;
+}
+
+/* Modpack logo on the mods tab, round like the modpack picker. */
+.settingsSelServTile {
+    width: 48px;
+    height: 48px;
+    font-size: 15px;
 }
 
 /* Server listing image. */
@@ -5035,7 +5659,7 @@ input:checked + .toggleSwitchSlider:before {
     display: flex;
     align-items: center;
     height: 18px;
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     background: var(--accent-soft);
     color: var(--accent-hi);
     padding: 0px 8px;
@@ -5108,70 +5732,394 @@ input:checked + .toggleSwitchSlider:before {
  *                                                                             *
  ******************************************************************************/
 
-/* Loading container, placed above everything. */
+/* Loading container, placed above everything. The splash keeps the brand
+   navy whatever the theme; splash.js draws a random scene on top of it. */
 #loadingContainer {
     position: absolute;
     z-index: 400;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     width: 100%;
     height: calc(100% - 22px);
-    background: radial-gradient(circle at 50% 50%, rgba(10, 80, 138, 0.35) 0%, rgba(2, 26, 48, 0.85) 60%);
+    overflow: hidden;
+    background: radial-gradient(ellipse at 50% 48%, #0b3358 0%, #04192e 48%, #010a14 100%);
 }
 
-/* Loading content container. */
-#loadingContent {
-    position: relative;
+#splashBack,
+#splashFront {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
+#splashBack {
+    z-index: 1;
+}
+#splashFront {
+    z-index: 3;
+}
+
+/* The compass mark, built and animated part by part in splash.js. */
+#splashLogo {
+    position: absolute;
+    z-index: 2;
+    top: 50%;
+    left: 50%;
+    width: 128px;
+    height: 128px;
+    overflow: visible;
+    transform: translate(-50%, -50%);
+    filter: drop-shadow(0 12px 32px rgba(0, 0, 0, 0.45));
+}
+
+#splashWordmark {
+    position: absolute;
+    z-index: 4;
+    bottom: 40px;
+    width: 100%;
+    text-align: center;
+    font-size: 15px;
+    font-weight: var(--display-weight);
+    letter-spacing: 0.32em;
+    text-transform: lowercase;
+    color: rgba(225, 238, 250, 0.82);
+    text-shadow: 0 2px 16px rgba(0, 0, 0, 0.5);
+    animation: splashWordmarkIn 1.4s 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+@keyframes splashWordmarkIn {
+    from {
+        opacity: 0;
+        letter-spacing: 0.8em;
+    }
+}
+
+
+/*******************************************************************************
+ *                                                                             *
+ * Settings View (Language tab)                                                *
+ *                                                                             *
+ ******************************************************************************/
+
+.langFlag {
+    display: block;
+    flex: none;
+    width: 34px;
+    height: 23px;
+    border-radius: 4px;
+    object-fit: cover;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12), 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+/* The language in use, with samples of its formats. */
+#langCurrent {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+    width: 88%;
+    box-sizing: border-box;
+    padding: 22px 26px;
+    border-radius: var(--radius-card);
+    border: 1px solid var(--accent-line);
+    background: linear-gradient(120deg, rgba(10, 80, 138, 0.55), rgba(0, 68, 119, 0.35));
+    box-shadow: var(--sheen);
+}
+#langCurrentFlag {
+    width: 66px;
+    height: 44px;
+    border-radius: 8px;
+}
+#langCurrentText {
+    flex: 1;
+    min-width: 0;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
+    gap: 6px;
+}
+#langCurrentTitle {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    column-gap: 12px;
+}
+#langCurrentName {
+    font-size: 24px;
+    font-weight: var(--display-weight);
+    letter-spacing: -0.02em;
+    color: var(--text-1);
+}
+#langCurrentMeta {
+    font-size: 14px;
+    color: var(--text-2);
+}
+#langCurrentStatus {
+    display: flex;
+    align-items: flex-start;
+    gap: 7px;
+    font-size: 13px;
+    color: var(--text-2);
+}
+#langCurrentStatus svg {
+    flex: none;
+    width: 15px;
+    height: 15px;
+    margin-top: 1px;
+    fill: none;
+    stroke: var(--ok);
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+#langCurrent[pending] #langCurrentStatus svg {
+    stroke: var(--warn);
 }
 
-/* Spinner container. */
-#loadSpinnerContainer {
+#langOptions {
+    width: 88%;
+    margin-top: 18px;
+    border-top: 1px solid var(--line);
+}
+#langOptions .settingsFieldContainer {
+    width: 100%;
+}
+
+/* All languages: heading, search and the cards. */
+#langAllHead {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+    width: 88%;
+    margin: 30px 0px 14px;
+}
+#langAllHead .apSectionTitle {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text-1);
+}
+#langSearch {
     position: relative;
     display: flex;
     align-items: center;
-    justify-content: center;
+    flex: 0 1 300px;
 }
-
-/* Stationary logo. */
-#loadCenterImage {
+#langSearch svg {
     position: absolute;
-    width: 72px;
-    height: 72px;
-    border-radius: 20px;
-    animation: breathe 2.4s ease-in-out infinite;
+    left: 14px;
+    width: 16px;
+    height: 16px;
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.72);
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    pointer-events: none;
+}
+#langSearchInput {
+    width: 100%;
+    height: 40px;
+    box-sizing: border-box;
+    padding: 0px 16px 0px 40px;
+    border-radius: var(--radius-m);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(255, 255, 255, 0.06);
+    color: #ffffff;
+    font-family: var(--font-ui);
+    font-size: 13.5px;
+    outline: none;
+    transition: border-color 160ms ease, background 160ms ease;
+}
+#langSearchInput::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+#langSearchInput:focus {
+    border-color: var(--accent-line);
+    background: rgba(255, 255, 255, 0.08);
+}
+#langSearchInput::-webkit-search-cancel-button {
+    -webkit-appearance: none;
 }
 
-/* Rotating faceted ring. */
-#loadSpinnerImage {
-    width: 150px;
-    height: 150px;
-    z-index: 400;
+#langList {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+    align-items: start;
+    gap: 12px;
+    width: 88%;
+}
+.langCard {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: 14px;
+    padding: 14px 16px;
+    border-radius: 16px;
+    border: 1px solid var(--line);
+    background: var(--glass-sunk);
+    cursor: pointer;
+    outline: none;
+    transition: background 160ms var(--ease-out), border-color 160ms var(--ease-out);
+}
+.langCard:hover {
+    background: var(--glass-hover);
+}
+.langCard:focus-visible {
+    border-color: var(--accent-line);
+}
+.langCard[selected] {
+    border-color: var(--accent-line);
+    background: linear-gradient(120deg, rgba(10, 80, 138, 0.5), rgba(0, 68, 119, 0.3));
+}
+.langText {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+}
+.langName {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-1);
+}
+.langSub {
+    font-size: 12.5px;
+    color: var(--text-2);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.langRadio {
+    width: 18px;
+    height: 18px;
+    box-sizing: border-box;
+    border-radius: 50%;
+    border: 1.5px solid var(--text-3);
+    transition: border-color 160ms var(--ease-out), box-shadow 160ms var(--ease-out);
+}
+.langCard[selected] .langRadio {
+    border-color: var(--accent);
+    box-shadow: inset 0 0 0 3px var(--basalt-1), inset 0 0 0 9px var(--accent);
 }
 
-@keyframes breathe {
-    50% {
-        transform: scale(0.96);
-        filter: brightness(1.15);
-    }
+/* Countries of a language spoken in more than one. */
+.langChips {
+    grid-column: 2 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+}
+.langChip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px 6px 8px;
+    border-radius: 10px;
+    border: 1px solid var(--line-strong);
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-1);
+    font-family: var(--font-ui);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    outline: none;
+    transition: background 160ms var(--ease-out), border-color 160ms var(--ease-out);
+}
+.langChip .langFlag {
+    width: 22px;
+    height: 15px;
+    border-radius: 3px;
+}
+.langChip:hover,
+.langChip:focus-visible {
+    background: var(--glass-hover);
+}
+.langChip[selected] {
+    border-color: var(--accent-line);
+    background: rgba(0, 68, 119, 0.75);
 }
 
-/* Rotating animation for the spinner. */
-@keyframes rotating {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
+#langEmpty {
+    width: 88%;
+    padding: 12px 2px;
+    font-size: 13px;
+    color: var(--text-3);
+}
+#langEmpty:empty {
+    display: none;
 }
 
-/* Class which is applied when the spinner image is spinning. */
-.rotating {
-    animation: rotating 2.2s linear infinite;
+#langFooter {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    width: 88%;
+    box-sizing: border-box;
+    margin-top: 26px;
+    padding: 16px 20px;
+    border-radius: 16px;
+    border: 1px solid var(--line);
+    background: var(--glass-sunk);
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--text-2);
+}
+#langHelpButton {
+    flex: none;
+    padding: 7px 16px;
+    border-radius: var(--radius-m);
+    border: 1px solid var(--line-strong);
+    color: var(--text-1);
+    font-size: 12.5px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background 160ms var(--ease-out), border-color 160ms var(--ease-out);
+}
+#langHelpButton:hover,
+#langHelpButton:focus-visible {
+    background: var(--accent-soft);
+    border-color: var(--accent-line);
+    outline: none;
 }
 
+
+/* Languages without a translation yet. */
+.langCard[disabled] {
+    cursor: default;
+    opacity: 0.55;
+}
+.langCard[disabled]:hover {
+    background: var(--glass-sunk);
+}
+.langInProgress {
+    padding: 4px 10px;
+    border-radius: var(--radius-s);
+    border: 1px dashed var(--line-strong);
+    color: var(--text-3);
+    font-size: 11.5px;
+    font-weight: 600;
+}
+
+/* Interface scale shown for a moment after Ctrl + / Ctrl -. */
+#zoomIndicator {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    z-index: 1000;
+    padding: 10px 20px;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--line-strong);
+    background: var(--glass-strong);
+    backdrop-filter: var(--glass-blur);
+    box-shadow: var(--shadow-float);
+    color: var(--text-1);
+    font-size: 18px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    pointer-events: none;
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.96);
+    transition: opacity 180ms var(--ease-out), transform 180ms var(--ease-out);
+}
+#zoomIndicator[shown] {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+}

@@ -22,6 +22,16 @@
             <input type="text" proxyField="username" placeholder="<%- lang('proxy.usernamePlaceholder') %>" spellcheck="false">
             <input type="password" proxyField="password" placeholder="<%- lang('proxy.passwordPlaceholder') %>">
         </div>
+        <div class="proxyFormToggleRow proxyFormGameRow">
+            <div class="proxyFormToggleText">
+                <span class="proxyFormTitle"><%- lang('proxy.gameTitle') %></span>
+                <span class="proxyFormDesc"><%- lang('proxy.gameDesc') %></span>
+            </div>
+            <label class="toggleSwitch">
+                <input type="checkbox" proxyField="useForGame">
+                <span class="toggleSwitchSlider"></span>
+            </label>
+        </div>
     </div>
     <div class="proxyFormActions">
         <span class="proxyFormStatus" aria-live="polite"></span>

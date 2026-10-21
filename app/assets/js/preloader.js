@@ -27,7 +27,7 @@ DistroAPI['commonDir'] = ConfigManager.getCommonDirectory()
 DistroAPI['instanceDir'] = ConfigManager.getInstanceDirectory()
 
 // Load Strings
-LangLoader.setupLanguage()
+LangLoader.setupLanguage(ConfigManager.getLanguage())
 
 /**
  * 
@@ -43,11 +43,26 @@ function onDistroLoad(data){
             ConfigManager.save()
         }
     }
-    ipcRenderer.send('distributionIndexDone', data != null)
+    // A local load can finish before the page scripts listen for the answer.
+    const send = () => ipcRenderer.send('distributionIndexDone', data != null)
+    if(document.readyState === 'loading'){
+        document.addEventListener('DOMContentLoaded', send, { once: true })
+    } else {
+        send()
+    }
+}
+
+// The page was reloaded to change the language: the distribution was just
+// fetched, so don't wait on the network again.
+let reopening = false
+try {
+    reopening = sessionStorage.getItem('meridian.reopen') != null
+} catch {
+    reopening = false
 }
 
 // Ensure Distribution is downloaded and cached.
-DistroAPI.getDistribution()
+(reopening ? DistroAPI.getDistributionLocalLoadOnly().catch(() => DistroAPI.getDistribution()) : DistroAPI.getDistribution())
     .then(heliosDistro => {
         logger.info('Loaded distribution index.')
 

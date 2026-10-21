@@ -5,7 +5,8 @@
  * proxy and survive slow hosts) and kept on disk. Mod icons are read out of
  * the installed mod jars: fabric.mod.json / quilt.mod.json `icon`, mods.toml
  * `logoFile`, mcmod.info `logoFile`, then pack.png. A module may also carry
- * its own `icon` URL in distribution.json, which wins.
+ * its own `icon` URL in distribution.json, which wins. Resource packs and
+ * shaderpacks (zips or folders) use their pack.png or logo.
  *
  * Every lookup resolves to a file:// URL the renderer can show, or null.
  */
@@ -217,16 +218,16 @@ async function fetchRange(url, start, end){
 }
 
 /**
- * Open a remote jar's central directory with HTTP range requests and return a
- * reader for individual entries, so only a few kilobytes are transferred.
+ * Open a zip's central directory through a byte range reader and return a
+ * reader for individual entries, so only a few kilobytes are read.
  *
- * @param {string} url The jar URL.
- * @param {number} size The jar size from distribution.json.
+ * @param {number} size The zip size.
+ * @param {function(number, number): Promise.<Buffer>} range Reads bytes start..end inclusive.
  */
-async function remoteJarReader(url, size){
+async function zipEntryReader(size, range){
     const zlib = require('zlib')
     const tailStart = Math.max(0, size - ZIP_TAIL)
-    const tail = await fetchRange(url, tailStart, size - 1)
+    const tail = await range(tailStart, size - 1)
 
     // End of central directory record.
     let eocd = -1
@@ -241,7 +242,7 @@ async function remoteJarReader(url, size){
     const cdOffset = tail.readUInt32LE(eocd + 16)
     const cd = cdOffset >= tailStart
         ? tail.subarray(cdOffset - tailStart, cdOffset - tailStart + cdSize)
-        : await fetchRange(url, cdOffset, cdOffset + cdSize - 1)
+        : await range(cdOffset, cdOffset + cdSize - 1)
 
     const entries = new Map()
     for(let p = 0; p + 46 <= cd.length && cd.readUInt32LE(p) === 0x02014b50;){
@@ -256,11 +257,11 @@ async function remoteJarReader(url, size){
         p += 46 + nameLen + extraLen + commentLen
     }
 
-    return async (name) => {
+    const read = async (name) => {
         const e = entries.get(name)
         if(e == null || e.compSize > MAX_ENTRY) return null
         // Local header (30 bytes + name + extra), then the data.
-        const head = await fetchRange(url, e.offset, e.offset + 30 + 1024 + e.compSize)
+        const head = await range(e.offset, Math.min(size - 1, e.offset + 30 + 1024 + e.compSize))
         if(head.readUInt32LE(0) !== 0x04034b50) return null
         const start = 30 + head.readUInt16LE(26) + head.readUInt16LE(28)
         const data = head.subarray(start, start + e.compSize)
@@ -268,6 +269,69 @@ async function remoteJarReader(url, size){
         if(e.method === 8) return zlib.inflateRawSync(data)
         return null
     }
+    read.names = () => entries.keys()
+    return read
+}
+
+/**
+ * Entry reader for a remote jar, over HTTP range requests.
+ *
+ * @param {string} url The jar URL.
+ * @param {number} size The jar size from distribution.json.
+ */
+function remoteJarReader(url, size){
+    return zipEntryReader(size, (start, end) => fetchRange(url, start, end))
+}
+
+/**
+ * Entry reader for a zip on disk that never loads the whole file, since
+ * resource packs can be hundreds of megabytes.
+ */
+function localZipReader(file, size){
+    return zipEntryReader(size, async (start, end) => {
+        const fd = await fs.open(file, 'r')
+        try {
+            const buf = Buffer.alloc(end - start + 1)
+            const { bytesRead } = await fs.read(fd, buf, 0, buf.length, start)
+            return buf.subarray(0, bytesRead)
+        } finally {
+            await fs.close(fd)
+        }
+    })
+}
+
+/**
+ * Entry reader for an unpacked pack folder.
+ */
+function dirReader(dir){
+    const read = (name) => fs.readFile(path.join(dir, name)).catch(() => null)
+    read.names = () => []
+    return read
+}
+
+/* Resource pack and shaderpack icons. */
+
+const PACK_ICONS = ['pack.png', 'logo.png', 'icon.png', 'shaders/logo.png', 'shaders/pack.png']
+
+/**
+ * Find a pack's icon. Zips that wrap everything in one top folder are
+ * looked into as well.
+ */
+async function findPackIcon(read){
+    const roots = ['']
+    const top = new Set()
+    for(const name of read.names()){
+        const i = name.indexOf('/')
+        top.add(i < 0 ? null : name.slice(0, i + 1))
+    }
+    if(top.size === 1 && !top.has(null)) roots.push([...top][0])
+    for(const root of roots){
+        for(const name of PACK_ICONS){
+            const buf = await read(root + name)
+            if(imageExt(buf) != null) return buf
+        }
+    }
+    return null
 }
 
 // Jars are unzipped one at a time, yielding between them, so the UI stays live.
@@ -303,28 +367,23 @@ async function remoteModIcon(mdl){
 }
 
 /**
- * Resolve the icon for a mod module.
+ * Icon from a jar, zip or folder on disk, cached by path, size and mtime.
  *
- * @param {Object} mdl The HeliosModule.
+ * @param {string} file The path on disk.
+ * @param {string} kind Cache folder.
+ * @param {function(string, fs.Stats): Promise.<Buffer|null>} extract Reads the icon.
+ * @param {function(): Promise.<string|null>} missing Called when the file isn't there.
  * @returns {Promise.<string | null>}
  */
-function mod(mdl){
-    if(mdl.rawModule.icon) return remote(mdl.rawModule.icon)
-    let jar
-    try {
-        jar = mdl.getPath()
-    } catch {
-        return Promise.resolve(null)
-    }
-    const id = 'jar:' + jar
+function local(file, kind, extract, missing = () => Promise.resolve(null)){
+    const id = 'jar:' + file
     if(known.has(id)) return Promise.resolve(known.get(id))
     if(pending.has(id)) return pending.get(id)
     const job = (async () => {
-        const stat = await fs.stat(jar).catch(() => null)
-        // Not downloaded yet: read the icon straight from the server's copy.
-        if(stat == null) return remoteModIcon(mdl)
-        const dir = cacheDir('mods')
-        const key = sha1(`${jar}|${stat.size}|${stat.mtimeMs}`)
+        const stat = await fs.stat(file).catch(() => null)
+        if(stat == null) return missing()
+        const dir = cacheDir(kind)
+        const key = sha1(`${file}|${stat.size}|${stat.mtimeMs}`)
         const cached = await findCached(dir, key)
         if(cached != null){
             const out = cached.endsWith('.none') ? null : fileUrl(cached)
@@ -335,13 +394,13 @@ function mod(mdl){
             await new Promise(r => setTimeout(r, 0))
             let buf = null
             try {
-                buf = await extractModIcon(jar)
+                buf = await extract(file, stat)
             } catch {
                 buf = null
             }
             const dest = buf != null ? await writeIcon(dir, key, buf) : null
             if(dest == null){
-                // Remember mods without an icon so their jar isn't reopened.
+                // Remember files without an icon so they aren't reopened.
                 await fs.ensureDir(dir)
                 await fs.writeFile(path.join(dir, `${key}.none`), '')
             }
@@ -357,7 +416,46 @@ function mod(mdl){
 }
 
 /**
+ * Resolve the icon for a mod module.
+ *
+ * @param {Object} mdl The HeliosModule.
+ * @returns {Promise.<string | null>}
+ */
+function mod(mdl){
+    if(mdl.rawModule.icon) return remote(mdl.rawModule.icon)
+    let jar
+    try {
+        jar = mdl.getPath()
+    } catch {
+        return Promise.resolve(null)
+    }
+    // Not downloaded yet: read the icon straight from the server's copy.
+    return local(jar, 'mods', extractModIcon, () => remoteModIcon(mdl))
+}
+
+/**
+ * Resolve the icon for a mod jar on disk, such as a drop-in mod.
+ *
+ * @param {string} jar The jar path.
+ * @returns {Promise.<string | null>}
+ */
+function jar(file){
+    return local(file, 'mods', extractModIcon)
+}
+
+/**
+ * Resolve the icon for a resource pack or shaderpack, a zip or a folder.
+ *
+ * @param {string} file The pack path.
+ * @returns {Promise.<string | null>}
+ */
+function pack(file){
+    return local(file, 'packs', async (p, stat) => findPackIcon(stat.isDirectory() ? dirReader(p) : await localZipReader(p, stat.size)))
+}
+
+/**
  * The resolved URL for a remote icon or mod module, if it's already known.
+ * Files on disk (drop-in mods, packs) are looked up with peekFile.
  *
  * @param {string | Object} src An icon URL or a HeliosModule.
  * @returns {string | null | undefined} undefined when not resolved yet.
@@ -372,6 +470,19 @@ function peek(src){
     }
 }
 
+/**
+ * The resolved URL for a file passed to jar() or pack(), if it's already known.
+ *
+ * @param {string} file The path on disk.
+ * @returns {string | null | undefined} undefined when not resolved yet.
+ */
+function peekFile(file){
+    return known.get('jar:' + file)
+}
+
 exports.remote = remote
 exports.mod = mod
+exports.jar = jar
+exports.pack = pack
 exports.peek = peek
+exports.peekFile = peekFile

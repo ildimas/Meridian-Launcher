@@ -83,10 +83,12 @@ exports.apply = async function(proxy){
 exports.spawnReceiver = function(transmitter, proxy){
     const active = activeProxy(proxy)
     const hook = path.join(__dirname, 'proxychild.js')
+    // The receiver also needs the local modpacks in its distribution.
+    const localHook = path.join(__dirname, 'localpackschild.js')
     const fork = child_process.fork
     child_process.fork = function(modulePath, args, options = {}){
         return fork.call(child_process, modulePath, args, Object.assign({}, options, {
-            execArgv: (options.execArgv || process.execArgv).concat(['--require', hook]),
+            execArgv: (options.execArgv || process.execArgv).concat(['--require', hook, '--require', localHook]),
             env: Object.assign({}, options.env || process.env, {
                 CUSTOM_LAUNCHER_PROXY: active != null ? JSON.stringify(active) : ''
             })
@@ -128,14 +130,15 @@ exports.test = async function(proxy){
 }
 
 /**
- * Proxy arguments for the Minecraft client. The client only supports SOCKS
- * proxies, which it uses for authentication and skin requests.
+ * Proxy arguments for the Minecraft client. The game connects directly unless
+ * the user opted in to proxying it. The client only supports SOCKS proxies,
+ * which it uses for authentication and skin requests.
  *
  * @param {Object} proxy The proxy configuration.
  * @returns {Array.<string>} The game arguments.
  */
 exports.getGameArgs = function(proxy){
-    if(!proxy.enabled || proxy.type !== 'socks5' || exports.validate(proxy) != null){
+    if(!proxy.enabled || !proxy.useForGame || proxy.type !== 'socks5' || exports.validate(proxy) != null){
         return []
     }
     const args = ['--proxyHost', proxy.host, '--proxyPort', String(proxy.port)]
@@ -162,7 +165,8 @@ exports.bindForm = function(root, ConfigManager){
         host: field('host').value.trim(),
         port: field('port').value.trim(),
         username: field('username').value.trim(),
-        password: field('password').value
+        password: field('password').value,
+        useForGame: field('useForGame').checked
     })
 
     const setStatus = (text, state) => {
@@ -183,6 +187,7 @@ exports.bindForm = function(root, ConfigManager){
         field('port').value = proxy.port
         field('username').value = proxy.username
         field('password').value = proxy.password
+        field('useForGame').checked = proxy.useForGame
         refreshDisabled()
         setStatus('')
     }
