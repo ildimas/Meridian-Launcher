@@ -7,7 +7,7 @@ const logger = LoggerUtil.getLogger('ConfigManager')
 
 const sysRoot = process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Application Support' : process.env.HOME)
 
-const dataPath = path.join(sysRoot, '.customlauncher')
+const dataPath = path.join(sysRoot, '.meridian')
 
 const launcherDir = require('@electron/remote').app.getPath('userData')
 
@@ -86,7 +86,32 @@ const DEFAULT_CONFIG = {
         },
         launcher: {
             allowPrerelease: false,
-            dataDirectory: dataPath
+            dataDirectory: dataPath,
+            proxy: {
+                enabled: false,
+                type: 'http', // http | socks5
+                host: '',
+                port: '',
+                username: '',
+                password: ''
+            },
+            appearance: {
+                theme: 'geometry', // landscapes | geometry | photo
+                scene: {
+                    landscapes: 'alpine',
+                    geometry: 'orbit'
+                },
+                palette: {
+                    landscapes: 'natural',
+                    geometry: 'meridian'
+                },
+                timeOfDay: 'auto', // auto | dawn | day | dusk | night
+                motion: true,
+                perServerWallpaper: true,
+                serverPicker: 'dial', // dial | dropdown
+                photo: null, // Selected photo path.
+                photos: [] // Photos the user added.
+            }
         }
     },
     newsCache: {
@@ -343,6 +368,27 @@ exports.addMojangAuthAccount = function(uuid, accessToken, username, displayName
         type: 'mojang',
         accessToken,
         username: username.trim(),
+        uuid: uuid.trim(),
+        displayName: displayName.trim()
+    }
+    return config.authenticationDatabase[uuid]
+}
+
+/**
+ * Adds an offline account (no authentication). Offline accounts only work on
+ * servers running with online-mode=false.
+ * 
+ * @param {string} uuid The offline UUID derived from the name.
+ * @param {string} displayName The in game name.
+ * 
+ * @returns {Object} The account object created by this action.
+ */
+exports.addOfflineAuthAccount = function(uuid, displayName){
+    config.selectedAccount = uuid
+    config.authenticationDatabase[uuid] = {
+        type: 'offline',
+        accessToken: '0',
+        username: displayName.trim(),
         uuid: uuid.trim(),
         displayName: displayName.trim()
     }
@@ -790,4 +836,43 @@ exports.getAllowPrerelease = function(def = false){
  */
 exports.setAllowPrerelease = function(allowPrerelease){
     config.settings.launcher.allowPrerelease = allowPrerelease
+}
+
+/**
+ * Retrieve the proxy configuration used for all launcher network traffic.
+ * 
+ * @param {boolean} def Optional. If true, the default value will be returned.
+ * @returns {Object} The proxy configuration (enabled, type, host, port, username, password).
+ */
+exports.getProxy = function(def = false){
+    return Object.assign({}, !def ? config.settings.launcher.proxy : DEFAULT_CONFIG.settings.launcher.proxy)
+}
+
+/**
+ * Change the proxy configuration used for all launcher network traffic.
+ * 
+ * @param {Object} proxy The new proxy configuration.
+ */
+exports.setProxy = function(proxy){
+    config.settings.launcher.proxy = Object.assign({}, DEFAULT_CONFIG.settings.launcher.proxy, proxy)
+}
+
+/**
+ * Retrieve the launcher appearance (wallpaper theme, colour, time of day,
+ * motion and server picker).
+ * 
+ * @param {boolean} def Optional. If true, the default value will be returned.
+ * @returns {Object} A copy of the appearance settings.
+ */
+exports.getAppearance = function(def = false){
+    return JSON.parse(JSON.stringify(!def ? config.settings.launcher.appearance : DEFAULT_CONFIG.settings.launcher.appearance))
+}
+
+/**
+ * Change the launcher appearance. Only the given keys are replaced.
+ * 
+ * @param {Object} appearance The appearance keys to change.
+ */
+exports.setAppearance = function(appearance){
+    config.settings.launcher.appearance = Object.assign(exports.getAppearance(), appearance)
 }

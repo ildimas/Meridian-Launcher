@@ -2,7 +2,7 @@ const remoteMain = require('@electron/remote/main')
 remoteMain.initialize()
 
 // Requirements
-const { app, BrowserWindow, ipcMain, Menu, shell } = require('electron')
+const { app, BrowserWindow, ipcMain, Menu, session, shell } = require('electron')
 const autoUpdater                       = require('electron-updater').autoUpdater
 const ejse                              = require('ejs-electron')
 const fs                                = require('fs')
@@ -10,7 +10,7 @@ const isDev                             = require('./app/assets/js/isdev')
 const path                              = require('path')
 const semver                            = require('semver')
 const { pathToFileURL }                 = require('url')
-const { AZURE_CLIENT_ID, MSFT_OPCODE, MSFT_REPLY_TYPE, MSFT_ERROR, SHELL_OPCODE } = require('./app/assets/js/ipcconstants')
+const { AZURE_CLIENT_ID, MSFT_OPCODE, MSFT_REPLY_TYPE, MSFT_ERROR, PROXY_OPCODE, SHELL_OPCODE } = require('./app/assets/js/ipcconstants')
 const LangLoader                        = require('./app/assets/js/langloader')
 
 // Setup Lang
@@ -101,6 +101,31 @@ ipcMain.handle(SHELL_OPCODE.TRASH_ITEM, async (event, ...args) => {
             result: false,
             error: error
         }
+    }
+})
+
+// Proxy for Chromium traffic (Microsoft login window, auto updater).
+// Node traffic in the renderer is proxied separately, see proxymanager.js.
+let proxyCredentials = null
+ipcMain.handle(PROXY_OPCODE.SET, async (event, proxy) => {
+    if(proxy?.enabled && proxy.host && proxy.port){
+        await session.defaultSession.setProxy({
+            proxyRules: `${proxy.type === 'socks5' ? 'socks5' : 'http'}://${proxy.host}:${proxy.port}`,
+            proxyBypassRules: '<local>'
+        })
+        proxyCredentials = proxy.username ? { username: proxy.username, password: proxy.password || '' } : null
+    } else {
+        await session.defaultSession.setProxy({ mode: 'direct' })
+        proxyCredentials = null
+    }
+    await session.defaultSession.closeAllConnections()
+})
+
+// Answer proxy authentication challenges (HTTP proxies only, Chromium has no SOCKS5 auth).
+app.on('login', (event, webContents, details, authInfo, callback) => {
+    if(authInfo.isProxy && proxyCredentials != null){
+        event.preventDefault()
+        callback(proxyCredentials.username, proxyCredentials.password)
     }
 })
 
@@ -225,8 +250,10 @@ let win
 function createWindow() {
 
     win = new BrowserWindow({
-        width: 980,
-        height: 552,
+        width: 1280,
+        height: 720,
+        minWidth: 1100,
+        minHeight: 620,
         icon: getPlatformIcon('SealCircle'),
         frame: false,
         webPreferences: {

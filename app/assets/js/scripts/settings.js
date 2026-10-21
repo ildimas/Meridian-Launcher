@@ -351,6 +351,17 @@ document.getElementById('settingsAddMojangAccount').onclick = (e) => {
     })
 }
 
+// Bind the add offline account button.
+document.getElementById('settingsAddOfflineAccount').onclick = () => {
+    switchView(getCurrentView(), VIEWS.loginOptions, 500, 500, () => {
+        loginOptionsViewOnLoginSuccess = VIEWS.settings
+        loginOptionsViewOnLoginCancel = VIEWS.loginOptions
+        loginOptionsViewOnCancel = VIEWS.settings
+        loginOptionsCancelEnabled(true)
+        loginOptionsShowOffline(true)
+    })
+}
+
 // Bind the add microsoft account button.
 document.getElementById('settingsAddMicrosoftAccount').onclick = (e) => {
     switchView(getCurrentView(), VIEWS.waiting, 500, 500, () => {
@@ -519,7 +530,8 @@ function processLogOut(val, isLastAccount){
             ipcRenderer.send(MSFT_OPCODE.OPEN_LOGOUT, uuid, isLastAccount)
         })
     } else {
-        AuthManager.removeMojangAccount(uuid).then(() => {
+        const remove = targetAcc.type === 'offline' ? AuthManager.removeOfflineAccount : AuthManager.removeMojangAccount
+        remove(uuid).then(() => {
             if(!isLastAccount && uuid === prevSelAcc.uuid){
                 const selAcc = ConfigManager.getSelectedAccount()
                 refreshAuthAccountSelected(selAcc.uuid)
@@ -620,6 +632,7 @@ function refreshAuthAccountSelected(uuid){
 
 const settingsCurrentMicrosoftAccounts = document.getElementById('settingsCurrentMicrosoftAccounts')
 const settingsCurrentMojangAccounts = document.getElementById('settingsCurrentMojangAccounts')
+const settingsCurrentOfflineAccounts = document.getElementById('settingsCurrentOfflineAccounts')
 
 /**
  * Add auth account elements for each one stored in the authentication database.
@@ -634,13 +647,14 @@ function populateAuthAccounts(){
 
     let microsoftAuthAccountStr = ''
     let mojangAuthAccountStr = ''
+    let offlineAuthAccountStr = ''
 
     authKeys.forEach((val) => {
         const acc = authAccounts[val]
 
         const accHtml = `<div class="settingsAuthAccount" uuid="${acc.uuid}">
             <div class="settingsAuthAccountLeft">
-                <img class="settingsAuthAccountImage" alt="${acc.displayName}" src="https://mc-heads.net/body/${acc.uuid}/60">
+                <img class="settingsAuthAccountImage" alt="${acc.displayName}" src="https://mc-heads.net/body/${getAccountSkinId(acc)}/60">
             </div>
             <div class="settingsAuthAccountRight">
                 <div class="settingsAuthAccountDetails">
@@ -664,6 +678,8 @@ function populateAuthAccounts(){
 
         if(acc.type === 'microsoft') {
             microsoftAuthAccountStr += accHtml
+        } else if(acc.type === 'offline') {
+            offlineAuthAccountStr += accHtml
         } else {
             mojangAuthAccountStr += accHtml
         }
@@ -672,6 +688,7 @@ function populateAuthAccounts(){
 
     settingsCurrentMicrosoftAccounts.innerHTML = microsoftAuthAccountStr
     settingsCurrentMojangAccounts.innerHTML = mojangAuthAccountStr
+    settingsCurrentOfflineAccounts.innerHTML = offlineAuthAccountStr
 }
 
 /**
@@ -1072,10 +1089,14 @@ function bindShaderpackButton() {
  */
 async function loadSelectedServerOnModsTab(){
     const serv = (await DistroAPI.getDistribution()).getServerById(ConfigManager.getSelectedServer())
+    IconCache.remote(serv.rawServer.icon).then(url => {
+        if(url == null) return
+        for(const img of document.querySelectorAll('.settingsSelServContent .serverListingImg')) img.src = url
+    })
 
     for(const el of document.getElementsByClassName('settingsSelServContent')) {
         el.innerHTML = `
-            <img class="serverListingImg" src="${serv.rawServer.icon}"/>
+            <img class="serverListingImg" src="${IconCache.peek(serv.rawServer.icon) || ''}"/>
             <div class="serverListingDetails">
                 <span class="serverListingName">${serv.rawServer.name}</span>
                 <span class="serverListingDescription">${serv.rawServer.description}</span>
@@ -1565,18 +1586,227 @@ function prepareUpdateTab(data = null){
   * 
   * @param {boolean} first Whether or not it is the first load.
   */
+/**
+ * Proxy Settings (Launcher Tab)
+ */
+
+let settingsProxyForm
+
+function prepareProxySettings(){
+    if(settingsProxyForm == null){
+        settingsProxyForm = ProxyManager.bindForm(document.getElementById('settingsProxyForm'), ConfigManager)
+    } else {
+        settingsProxyForm.load()
+    }
+}
+
+/**
+ * Appearance Tab
+ */
+
+const apGrid = document.getElementById('apGrid')
+const apPhotoInput = document.getElementById('apPhotoInput')
+
+/**
+ * Save appearance keys, then repaint the wallpaper, this tab and the
+ * landing picker so everything follows at once.
+ *
+ * @param {Object} change The appearance keys to change.
+ */
+function setAppearance(change){
+    ConfigManager.setAppearance(change)
+    ConfigManager.save()
+    ThemeEngine.refresh()
+    renderAppearanceTab()
+    renderServerPicker()
+}
+
+/**
+ * Mark the button of a segmented control whose value matches.
+ */
+function setSegment(id, value){
+    for(const btn of document.getElementById(id).children){
+        btn.toggleAttribute('selected', btn.value === value)
+        btn.setAttribute('aria-pressed', btn.value === value)
+    }
+}
+
+/**
+ * Existing photos to choose from: the launcher's own, then the user's.
+ */
+function getAppearancePhotos(appearance){
+    const fs = require('fs-extra')
+    const user = appearance.photos.filter(p => fs.existsSync(p))
+    return ThemeEngine.BUILTIN_PHOTOS.map(p => ({ path: p, builtin: true })).concat(user.map(p => ({ path: p, builtin: false })))
+}
+
+function buildAppearanceTile(label, selected, onPick){
+    const tile = document.createElement('button')
+    tile.className = 'apTile'
+    tile.toggleAttribute('selected', selected)
+    tile.setAttribute('aria-pressed', selected)
+    tile.onclick = onPick
+    const preview = document.createElement('span')
+    preview.className = 'apTilePreview'
+    const name = document.createElement('span')
+    name.className = 'apTileName'
+    name.textContent = label
+    tile.append(preview, name)
+    return tile
+}
+
+/**
+ * Render the Appearance tab from the saved settings.
+ */
+function renderAppearanceTab(){
+    const appearance = ConfigManager.getAppearance()
+    const theme = appearance.theme
+    const isPhoto = theme === 'photo'
+    const family = theme === 'geometry' ? 'geometry' : 'landscapes'
+    const resolved = ThemeEngine.resolveDefault(appearance)
+    const tod = resolved.tod
+
+    setSegment('apTheme', theme)
+    setSegment('apTod', appearance.timeOfDay)
+    setSegment('apPicker', appearance.serverPicker)
+    document.getElementById('apPerServer').checked = appearance.perServerWallpaper !== false
+    document.getElementById('apMotion').checked = appearance.motion !== false
+
+    const todName = Lang.queryJS(`settings.appearance.tod.${tod}`)
+    document.getElementById('apTodCaption').textContent = appearance.timeOfDay === 'auto'
+        ? Lang.queryJS('settings.appearance.todCaptionAuto', { tod: todName })
+        : Lang.queryJS('settings.appearance.todCaptionFixed', { tod: todName })
+
+    // A photo brings its own colours and doesn't change with the time of day.
+    document.getElementById('apColorRow').style.display = isPhoto ? 'none' : ''
+    document.getElementById('apTodRow').style.display = isPhoto ? 'none' : ''
+    document.getElementById('apPhotoHint').style.display = isPhoto ? '' : 'none'
+
+    apGrid.innerHTML = ''
+    if(isPhoto){
+        getAppearancePhotos(appearance).forEach((photo, i) => {
+            const label = photo.builtin
+                ? Lang.queryJS('settings.appearance.builtinPhoto')
+                : Lang.queryJS('settings.appearance.userPhoto', { index: i })
+            const tile = buildAppearanceTile(label, appearance.photo === photo.path, () => setAppearance({ photo: photo.path }))
+            tile.firstChild.style.backgroundImage = `url("${ThemeEngine.photoUrl(photo.path)}")`
+            if(!photo.builtin){
+                const remove = document.createElement('span')
+                remove.className = 'apTileRemove'
+                remove.setAttribute('role', 'button')
+                remove.setAttribute('aria-label', Lang.queryJS('settings.appearance.removePhoto'))
+                remove.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>'
+                remove.onclick = async (e) => {
+                    e.stopPropagation()
+                    const cur = ConfigManager.getAppearance()
+                    const photos = cur.photos.filter(p => p !== photo.path)
+                    const next = { photos }
+                    if(cur.photo === photo.path){
+                        next.photo = ThemeEngine.BUILTIN_PHOTOS[0]
+                    }
+                    setAppearance(next)
+                    await ThemeEngine.removePhoto(photo.path)
+                }
+                tile.firstChild.appendChild(remove)
+            }
+            apGrid.appendChild(tile)
+        })
+        const add = buildAppearanceTile(Lang.queryJS('settings.appearance.addPhoto'), false, () => apPhotoInput.click())
+        add.classList.add('apTileAdd')
+        add.firstChild.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>'
+        apGrid.appendChild(add)
+    } else {
+        const scenes = family === 'geometry' ? Wallpaper.GEO_SCENES : Wallpaper.LAND_SCENES
+        const palette = appearance.palette[family]
+        scenes.forEach(scene => {
+            const selected = appearance.scene[family] === scene
+            const tile = buildAppearanceTile(Lang.queryJS(`settings.appearance.scene.${scene}`), selected, () => {
+                setAppearance({ scene: Object.assign({}, appearance.scene, { [family]: scene }) })
+            })
+            const out = ThemeEngine.preview(scene, palette, tod)
+            tile.firstChild.style.background = out.background
+            tile.firstChild.innerHTML = out.html
+            apGrid.appendChild(tile)
+        })
+
+        const colors = document.getElementById('apColors')
+        colors.innerHTML = ''
+        const palettes = family === 'geometry' ? Wallpaper.GEO_PALETTES : Wallpaper.LAND_PALETTES
+        palettes.forEach(id => {
+            const chip = document.createElement('button')
+            chip.className = 'apChip'
+            chip.toggleAttribute('selected', id === palette)
+            chip.setAttribute('aria-pressed', id === palette)
+            const swatch = document.createElement('span')
+            swatch.className = 'apChipSwatch'
+            swatch.style.background = Wallpaper.swatchFor(appearance.scene.landscapes, id)
+            chip.append(swatch, Lang.queryJS(`settings.appearance.palette.${id}`))
+            chip.onclick = () => setAppearance({ palette: Object.assign({}, appearance.palette, { [family]: id }) })
+            colors.appendChild(chip)
+        })
+    }
+}
+
+/**
+ * Bind the Appearance tab's controls. Runs once.
+ */
+function prepareAppearanceTab(){
+    for(const btn of document.getElementById('apTheme').children){
+        btn.onclick = () => {
+            const change = { theme: btn.value }
+            const cur = ConfigManager.getAppearance()
+            if(btn.value === 'photo' && cur.photo == null){
+                change.photo = ThemeEngine.BUILTIN_PHOTOS[0]
+            }
+            setAppearance(change)
+        }
+    }
+    for(const btn of document.getElementById('apTod').children){
+        btn.onclick = () => setAppearance({ timeOfDay: btn.value })
+    }
+    for(const btn of document.getElementById('apPicker').children){
+        btn.onclick = () => setAppearance({ serverPicker: btn.value })
+    }
+    document.getElementById('apPerServer').onchange = e => setAppearance({ perServerWallpaper: e.target.checked })
+    document.getElementById('apMotion').onchange = e => setAppearance({ motion: e.target.checked })
+
+    apPhotoInput.onchange = async () => {
+        const files = Array.from(apPhotoInput.files).filter(f => ThemeEngine.isPhotoPath(f.name))
+        apPhotoInput.value = ''
+        if(files.length === 0){
+            return
+        }
+        try {
+            const added = []
+            for(const file of files){
+                added.push(await ThemeEngine.addPhoto(file))
+            }
+            const cur = ConfigManager.getAppearance()
+            setAppearance({ photos: cur.photos.concat(added), photo: added[added.length - 1], theme: 'photo' })
+        } catch(err) {
+            console.error('Unable to add wallpaper photo.', err)
+            setOverlayContent(Lang.queryJS('settings.appearance.photoError'), err.message, Lang.queryJS('landing.launch.okay'))
+            setOverlayHandler(null)
+            toggleOverlay(true)
+        }
+    }
+}
+
 async function prepareSettings(first = false) {
     if(first){
         setupSettingsTabs()
         initSettingsValidators()
         prepareUpdateTab()
+        prepareAppearanceTab()
     } else {
         await prepareModsTab()
     }
     await initSettingsValues()
+    prepareProxySettings()
     prepareAccountsTab()
     await prepareJavaTab()
     prepareAboutTab()
+    renderAppearanceTab()
 }
 
 // Prepare the settings UI on startup.

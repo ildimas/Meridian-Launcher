@@ -1,5 +1,5 @@
 ---
-name: Custom Launcher
+name: Meridian
 description: Tinted Glass Geode — basalt ground, violet-tinted frosted glass, one amethyst accent, calcite type.
 colors:
   amethyst-900: "#24133a"
@@ -75,7 +75,7 @@ components:
     height: "26px"
 ---
 
-# Design System: Custom Launcher
+# Design System: Meridian
 
 ## Overview
 

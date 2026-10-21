@@ -7,17 +7,12 @@
     <link type="text/css" rel="stylesheet" href="./assets/css/launcher.css">
     <style>
         body {
-            /*background: url('assets/images/backgrounds/<%=bkid%>.jpg') no-repeat center center fixed;*/
-            transition: background-image 1s ease;
-            background-color: #07060a;
-            background-size: cover;
-            background-position: center;
+            background-color: #0b0d12;
             -webkit-user-select: none;
         }
         #main {
             display: none;
             height: calc(100% - 22px);
-            background: linear-gradient(to top, rgba(7, 6, 10, 0.55) 0%, rgba(7, 6, 10, 0) 45%);
             width: 100%;
             position: absolute;
             z-index: 10;
@@ -28,6 +23,8 @@
     </style>
 </head>
 <body bkid="<%=bkid%>">
+    <div id="wallpaper" aria-hidden="true"></div>
+    <div id="wallpaperScrim" aria-hidden="true"></div>
     <%- include('frame') %>
     <div id="main">
         <%- include('welcome') %>

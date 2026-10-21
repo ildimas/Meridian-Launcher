@@ -9,6 +9,10 @@ const { Type }      = require('helios-distribution-types')
 const AuthManager   = require('./assets/js/authmanager')
 const ConfigManager = require('./assets/js/configmanager')
 const { DistroAPI } = require('./assets/js/distromanager')
+const ProxyManager  = require('./assets/js/proxymanager')
+const ThemeEngine   = require('./assets/js/themeengine')
+const Wallpaper     = require('./assets/js/wallpaper')
+const IconCache     = require('./assets/js/iconcache')
 
 let rscShouldLoad = false
 let fatalStartupError = false
@@ -26,6 +30,11 @@ const VIEWS = {
 // The currently shown view container.
 let currentView
 
+// Mount the wallpaper as soon as the page exists; config is loaded by the preloader.
+document.addEventListener('DOMContentLoaded', () => {
+    ThemeEngine.init(document.getElementById('wallpaper'))
+})
+
 /**
  * Switch launcher views.
  * 
@@ -40,6 +49,8 @@ let currentView
  */
 function switchView(current, next, currentFadeTime = 500, nextFadeTime = 500, onCurrentFade = () => {}, onNextFade = () => {}){
     currentView = next
+    // Settings always shows the user's own wallpaper, not the server's.
+    ThemeEngine.setPreferDefault(next === VIEWS.settings)
     $(`${current}`).fadeOut(currentFadeTime, async () => {
         await onCurrentFade()
         $(`${next}`).fadeIn(nextFadeTime, async () => {
@@ -69,7 +80,6 @@ async function showMainUI(data){
     refreshServerStatus()
     setTimeout(() => {
         document.getElementById('frameBar').style.backgroundColor = 'rgba(0, 0, 0, 0.5)'
-        document.body.style.backgroundImage = `url('assets/images/backgrounds/${document.body.getAttribute('bkid')}.jpg')`
         $('#main').show()
 
         const isLoggedIn = Object.keys(ConfigManager.getAuthAccounts()).length > 0

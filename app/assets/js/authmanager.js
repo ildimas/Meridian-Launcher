@@ -167,6 +167,64 @@ exports.addMojangAccount = async function(username, password) {
     }
 }
 
+// Minecraft player names: 3-16 letters, digits or underscores.
+const OFFLINE_NAME_REGEX = /^[A-Za-z0-9_]{3,16}$/
+
+/**
+ * Whether a name can be used for an offline account.
+ * 
+ * @param {string} name The player name.
+ * @returns {boolean} True if the name is valid.
+ */
+exports.isValidOfflineName = function(name){
+    return OFFLINE_NAME_REGEX.test(String(name).trim())
+}
+
+/**
+ * The UUID the vanilla server assigns to an offline player:
+ * a version 3 UUID of "OfflinePlayer:<name>", without dashes.
+ * 
+ * @param {string} name The player name.
+ * @returns {string} The UUID.
+ */
+function offlineUUID(name){
+    const hash = require('crypto').createHash('md5').update(`OfflinePlayer:${name}`, 'utf8').digest()
+    hash[6] = (hash[6] & 0x0f) | 0x30
+    hash[8] = (hash[8] & 0x3f) | 0x80
+    return hash.toString('hex')
+}
+
+/**
+ * Add an offline account. Nothing is sent over the network; the account works
+ * on servers with online-mode=false.
+ * 
+ * @param {string} name The player name.
+ * @returns {Promise.<Object>} Promise which resolves the account object.
+ */
+exports.addOfflineAccount = async function(name){
+    name = String(name).trim()
+    if(!exports.isValidOfflineName(name)){
+        return Promise.reject({
+            title: Lang.queryJS('auth.offline.invalidNameTitle'),
+            desc: Lang.queryJS('auth.offline.invalidNameDesc')
+        })
+    }
+    const ret = ConfigManager.addOfflineAuthAccount(offlineUUID(name), name)
+    ConfigManager.save()
+    return ret
+}
+
+/**
+ * Remove an offline account.
+ * 
+ * @param {string} uuid The UUID of the account to be removed.
+ * @returns {Promise.<void>} Promise which resolves when the account is removed.
+ */
+exports.removeOfflineAccount = async function(uuid){
+    ConfigManager.removeAuthAccount(uuid)
+    ConfigManager.save()
+}
+
 const AUTH_MODE = { FULL: 0, MS_REFRESH: 1, MC_REFRESH: 2 }
 
 /**
@@ -418,6 +476,9 @@ exports.validateSelected = async function(){
 
     if(current.type === 'microsoft') {
         return await validateSelectedMicrosoftAccount()
+    } else if(current.type === 'offline') {
+        // Nothing to validate without an auth server.
+        return true
     } else {
         return await validateSelectedMojangAccount()
     }

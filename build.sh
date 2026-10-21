@@ -51,7 +51,7 @@ case "$MODE" in
         ;;
     build)
         npx electron-builder build --linux dir --publish never
-        exec ./dist/linux-unpacked/customlauncher "${APP_ARGS[@]}"
+        exec ./dist/linux-unpacked/meridian "${APP_ARGS[@]}"
         ;;
     package)
         npx electron-builder build --linux --publish never

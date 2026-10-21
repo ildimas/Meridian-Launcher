@@ -1,0 +1,31 @@
+<div class="proxyForm" id="<%= formId %>">
+    <div class="proxyFormToggleRow">
+        <div class="proxyFormToggleText">
+            <span class="proxyFormTitle"><%- lang('proxy.enableTitle') %></span>
+            <span class="proxyFormDesc"><%- lang('proxy.enableDesc') %></span>
+        </div>
+        <label class="toggleSwitch">
+            <input type="checkbox" proxyField="enabled">
+            <span class="toggleSwitchSlider"></span>
+        </label>
+    </div>
+    <div class="proxyFormFields">
+        <div class="proxyFormRow">
+            <select proxyField="type" class="proxyFormType">
+                <option value="http">HTTP</option>
+                <option value="socks5">SOCKS5</option>
+            </select>
+            <input type="text" proxyField="host" class="proxyFormHost" placeholder="<%- lang('proxy.hostPlaceholder') %>" spellcheck="false">
+            <input type="text" proxyField="port" class="proxyFormPort" placeholder="<%- lang('proxy.portPlaceholder') %>" spellcheck="false">
+        </div>
+        <div class="proxyFormRow">
+            <input type="text" proxyField="username" placeholder="<%- lang('proxy.usernamePlaceholder') %>" spellcheck="false">
+            <input type="password" proxyField="password" placeholder="<%- lang('proxy.passwordPlaceholder') %>">
+        </div>
+    </div>
+    <div class="proxyFormActions">
+        <span class="proxyFormStatus" aria-live="polite"></span>
+        <button type="button" class="ghostButton proxyFormTest"><%- lang('proxy.testButton') %></button>
+        <button type="button" class="crystalButton proxyFormSave"><%- lang('proxy.saveButton') %></button>
+    </div>
+</div>

@@ -6,6 +6,7 @@ const path           = require('path')
 const ConfigManager  = require('./configmanager')
 const { DistroAPI }  = require('./distromanager')
 const LangLoader     = require('./langloader')
+const ProxyManager   = require('./proxymanager')
 const { LoggerUtil } = require('helios-core')
 // eslint-disable-next-line no-unused-vars
 const { HeliosDistribution } = require('helios-core/common')
@@ -16,6 +17,9 @@ logger.info('Loading..')
 
 // Load ConfigManager
 ConfigManager.load()
+
+// Route traffic through the configured proxy before any network request.
+ProxyManager.apply(ConfigManager.getProxy())
 
 // Yuck!
 // TODO Fix this
