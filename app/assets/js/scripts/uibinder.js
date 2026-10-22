@@ -106,6 +106,36 @@ async function animateIn(el, ms, { rise = 0, scale = 1, delay = 0 } = {}){
 }
 
 /**
+ * Make a progress display glide towards the latest value, one step per frame.
+ * A CSS transition restarts on every progress event instead, and with
+ * hundreds of events a second it barely moves and falls far behind.
+ *
+ * @param {function(number)} draw Paints a percentage (0-100).
+ * @returns {function(number)} Sets the percentage to head for. Going back
+ * (a new stage) jumps there at once.
+ */
+function progressFollower(draw){
+    let shown = 0
+    let target = 0
+    let frame = null
+    const step = () => {
+        const diff = target - shown
+        shown = Math.abs(diff) < 0.2 || reduceMotion.matches ? target : shown + diff * 0.35
+        draw(shown)
+        frame = shown !== target ? requestAnimationFrame(step) : null
+    }
+    return (percent) => {
+        target = Math.max(0, Math.min(100, percent))
+        if(target < shown){
+            shown = target
+        }
+        if(frame == null){
+            frame = requestAnimationFrame(step)
+        }
+    }
+}
+
+/**
  * Switch launcher views. The next view starts coming in while the current
  * one is still leaving, so there is never an empty frame in between.
  * 

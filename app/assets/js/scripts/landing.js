@@ -32,6 +32,7 @@ const {
 // Internal Requirements
 const DiscordWrapper          = require('./assets/js/discordwrapper')
 const ProcessBuilder          = require('./assets/js/processbuilder')
+const PackIcons               = require('./assets/js/packicons')
 const LocalPacks              = require('./assets/js/localpacks')
 
 // Launch Elements
@@ -90,9 +91,13 @@ function setLaunchDetails(details){
  */
 function setLaunchPercentage(percent){
     sizeLaunchRing()
-    launch_progress.querySelector('.launchRingFill').style.strokeDashoffset = 100 - Math.max(0, Math.min(100, percent))
+    followLaunchRing(percent)
     launch_progress_label.innerHTML = percent + '%'
 }
+
+const followLaunchRing = progressFollower(p => {
+    launch_progress.querySelector('.launchRingFill').style.strokeDashoffset = 100 - p
+})
 
 // Gap between the pill and its progress ring, and the ring's width, in px.
 const LAUNCH_RING = { gap: 4, width: 3 }
@@ -341,6 +346,16 @@ function getServerLoaderLabel(serv){
         'net.fabricmc': 'Fabric',
         'org.quiltmc': 'Quilt'
     }
+    // Local packs record their loader; their first module can be a library of
+    // it (NeoForge's is fancymodloader) with an unrelated version.
+    const local = serv.rawServer.local
+    if(local != null && local.loader){
+        if(local.loader === 'vanilla'){
+            return Lang.queryJS('landing.serverHero.vanilla')
+        }
+        const name = { forge: 'Forge', neoforge: 'NeoForge', fabric: 'Fabric', quilt: 'Quilt' }[local.loader] || local.loader
+        return local.loaderVersion ? `${name} ${local.loaderVersion}` : name
+    }
     for(const mdl of serv.modules){
         const type = mdl.rawModule.type
         if(type !== Type.ForgeHosted && type !== Type.Fabric){
@@ -428,6 +443,79 @@ function updateServerHero(serv){
 const SERVER_DIAL = { cx: 260, cy: 372, r: 300, step: 20, tile: 72 }
 let serverDialWheelAt = 0
 
+// Where the dial is turned to: a fractional server index while it turns.
+const serverDialTurn = { pos: null, from: 0, to: 0, start: 0, ms: 0, frame: null }
+
+// Narrow windows show only the neighbouring tiles (matches launcher.css).
+const serverDialNarrow = window.matchMedia('(max-width: 1239px)')
+serverDialNarrow.addEventListener('change', () => {
+    if(serverDialTurn.pos != null) placeServerDial(serverDialTurn.pos)
+})
+
+/**
+ * Put every dial tile on the arc for a dial position. Positions between
+ * servers place tiles between their slots, so a turn of any length follows
+ * the circle; animating each tile's transform instead cuts straight across
+ * it, and over a few steps the tiles dip towards its centre.
+ *
+ * @param {number} pos The server index at the top, fractional mid-turn.
+ */
+function placeServerDial(pos){
+    Array.from(document.getElementById('serverDialTiles').children).forEach((tile, i) => {
+        const d = i - pos
+        const ad = Math.abs(d)
+        const a = d * SERVER_DIAL.step * Math.PI / 180
+        const x = SERVER_DIAL.cx + SERVER_DIAL.r * Math.sin(a)
+        const y = SERVER_DIAL.cy - SERVER_DIAL.r * Math.cos(a)
+        // Selected 72px, neighbours 52px, the rest 42px, blended in between.
+        const size = ad <= 1 ? 72 - 20 * ad : ad <= 2 ? 52 - 10 * (ad - 1) : 42
+        // Narrow windows fade tiles out just past the neighbours, by where they
+        // are mid-turn rather than where they end up, so they clear the side
+        // blocks.
+        const opacity = ad <= 1 ? 1 - 0.08 * ad
+            : serverDialNarrow.matches ? Math.max(0, 0.92 * (1 - 2 * (ad - 1)))
+            : ad <= 2 ? 0.92 - 0.42 * (ad - 1) : Math.max(0, 0.5 * (3 - ad))
+        // Tiles are SERVER_DIAL.tile wide; a transform places and sizes them.
+        tile.style.transform = `translate(${(x - SERVER_DIAL.tile / 2).toFixed(1)}px, ${(y - SERVER_DIAL.tile / 2).toFixed(1)}px) scale(${(size / SERVER_DIAL.tile).toFixed(4)})`
+        tile.style.opacity = opacity.toFixed(3)
+        tile.style.visibility = opacity > 0 ? '' : 'hidden'
+    })
+    document.getElementById('serverDialTicks').style.transform = `rotate(${(-pos * SERVER_DIAL.step).toFixed(3)}deg)`
+}
+
+/**
+ * Turn the dial to a server, along the arc. A new target mid-turn carries on
+ * from where the dial is.
+ *
+ * @param {number} sel The server index to bring to the top.
+ * @param {boolean} jump Place it at once, e.g. when the tiles were rebuilt.
+ */
+function turnServerDial(sel, jump = false){
+    const t = serverDialTurn
+    if(t.frame != null){
+        cancelAnimationFrame(t.frame)
+        t.frame = null
+    }
+    if(jump || t.pos == null || reduceMotion.matches || t.pos === sel){
+        t.pos = sel
+        placeServerDial(sel)
+        return
+    }
+    t.from = t.pos
+    t.to = sel
+    t.start = performance.now()
+    // Longer turns take a little longer, so they stay readable.
+    t.ms = Math.min(900, 420 + 100 * Math.abs(sel - t.from))
+    const step = (now) => {
+        const k = Math.min(1, (now - t.start) / t.ms)
+        // Ease out, close to --dial-ease.
+        t.pos = t.from + (t.to - t.from) * (1 - Math.pow(1 - k, 4))
+        placeServerDial(t.pos)
+        t.frame = k < 1 ? requestAnimationFrame(step) : null
+    }
+    t.frame = requestAnimationFrame(step)
+}
+
 /**
  * Initials shown on a dial tile when a server has no icon.
  */
@@ -442,6 +530,8 @@ function getServerMonogram(raw){
 
 /**
  * Paint a server tile: the server's icon over a monogram on the theme colours.
+ * Without a monogram from the distribution it gets a Minecraft item icon
+ * instead (see packicons.js), which also shows if the logo fails to load.
  *
  * @param {HTMLElement} tile The tile element. Its children are replaced.
  * @param {Object} raw The raw server from distribution.json.
@@ -451,11 +541,20 @@ function getServerMonogram(raw){
 function paintServerTile(tile, raw, appearance, prefix){
     tile.style.backgroundImage = 'linear-gradient(160deg, var(--meridian-mid) 0%, var(--meridian-navy) 100%)'
     tile.removeAttribute('hasIcon')
+    tile.removeAttribute('data-pack-icon')
+    tile.removeAttribute('data-pack-mc')
     tile.innerHTML = ''
     const mono = document.createElement('span')
     mono.className = prefix + 'Mono'
     mono.textContent = getServerMonogram(raw)
     tile.appendChild(mono)
+    if(raw.launcherTheme == null || !raw.launcherTheme.monogram){
+        // Filled in now, or once the icons are loaded (applyPackIcons).
+        tile.setAttribute('data-pack-icon', raw.id)
+        tile.setAttribute('data-pack-mc', raw.minecraftVersion || '')
+        // A server with its own logo only needs the icon if that fails.
+        applyPackIcon(tile, !raw.icon)
+    }
     tile.setAttribute('data-icon', raw.icon || '')
     if(raw.icon){
         const show = (url) => {
@@ -465,7 +564,10 @@ function paintServerTile(tile, raw, appearance, prefix){
             img.className = prefix + 'Icon'
             img.alt = ''
             img.onload = () => tile.setAttribute('hasIcon', '')
-            img.onerror = () => img.remove()
+            img.onerror = () => {
+                img.remove()
+                applyPackIcon(tile, true)
+            }
             img.src = url
             tile.appendChild(img)
         }
@@ -474,6 +576,37 @@ function paintServerTile(tile, raw, appearance, prefix){
         else IconCache.remote(raw.icon).then(show)
     }
 }
+
+/**
+ * Swap a tile's monogram for its Minecraft icon, if the icons are loaded.
+ *
+ * @param {HTMLElement} tile A tile marked with data-pack-icon.
+ * @param {boolean} load Load the icons if they aren't yet.
+ */
+function applyPackIcon(tile, load = false){
+    const id = tile.getAttribute('data-pack-icon')
+    const icon = id != null ? PackIcons.iconFor(id) : null
+    const mono = tile.firstElementChild
+    if(icon == null){
+        // Only a tile that shows the icon is worth downloading a client for.
+        if(id != null && load) PackIcons.load(tile.getAttribute('data-pack-mc')).then(ok => { if(ok) applyPackIcons() })
+        return
+    }
+    if(mono == null){
+        return
+    }
+    tile.style.backgroundImage = icon.background
+    mono.textContent = ''
+    mono.classList.add('serverGlyph')
+    // The user's own picture fills the tile; item icons sit inside it.
+    mono.classList.toggle('serverGlyphFull', icon.full)
+    Object.assign(mono.style, { backgroundImage: icon.image, backgroundSize: icon.size, backgroundPosition: icon.position })
+}
+
+function applyPackIcons(){
+    document.querySelectorAll('[data-pack-icon]').forEach(tile => applyPackIcon(tile))
+}
+
 
 // Players per server id: { online, max }, null when offline, absent while unknown.
 const serverPlayers = new Map()
@@ -618,7 +751,8 @@ async function renderServerPicker(){
     // Dial tiles. Tiles are reused so their position animates between states.
     // Rebuild when the servers or the theme (tile colours) change.
     const tileKey = servers.map(s => s.rawServer.id).join('|') + '#' + themeKey
-    if(tiles.getAttribute('data-key') !== tileKey){
+    const rebuilt = tiles.getAttribute('data-key') !== tileKey
+    if(rebuilt){
         tiles.innerHTML = ''
         servers.forEach((s, i) => {
             const raw = s.rawServer
@@ -628,8 +762,6 @@ async function renderServerPicker(){
             tile.setAttribute('role', 'option')
             tile.setAttribute('aria-label', raw.name)
             tile.setAttribute('data-id', raw.id)
-            // Placed without a transition the first time (see below).
-            tile.setAttribute('fresh', '')
             paintServerTile(tile, raw, appearance, 'serverTile')
             tile.onclick = () => selectServerAt(i)
             tiles.appendChild(tile)
@@ -637,28 +769,17 @@ async function renderServerPicker(){
         tiles.setAttribute('data-key', tileKey)
     }
 
+    // New tiles are placed at once; otherwise the dial turns to the server.
+    turnServerDial(sel, rebuilt)
     Array.from(tiles.children).forEach((tile, i) => {
         const d = i - sel
         const ad = Math.abs(d)
-        const a = d * SERVER_DIAL.step * Math.PI / 180
-        const x = SERVER_DIAL.cx + SERVER_DIAL.r * Math.sin(a)
-        const y = SERVER_DIAL.cy - SERVER_DIAL.r * Math.cos(a)
-        const size = ad === 0 ? SERVER_DIAL.tile : ad === 1 ? 52 : 42
-        // Tiles are SERVER_DIAL.tile wide; a transform places and sizes them.
-        tile.style.transform = `translate(${(x - SERVER_DIAL.tile / 2).toFixed(1)}px, ${(y - SERVER_DIAL.tile / 2).toFixed(1)}px) scale(${(size / SERVER_DIAL.tile).toFixed(4)})`
-        tile.style.opacity = ad === 0 ? 1 : ad === 1 ? 0.92 : ad === 2 ? 0.5 : 0
         tile.toggleAttribute('selected', d === 0)
         tile.toggleAttribute('far', ad > 2)
         tile.toggleAttribute('edge', ad === 2)
         tile.setAttribute('aria-selected', d === 0)
     })
-    const fresh = tiles.querySelectorAll('.serverTile[fresh]')
-    if(fresh.length > 0){
-        void tiles.offsetWidth
-        fresh.forEach(tile => tile.removeAttribute('fresh'))
-    }
 
-    document.getElementById('serverDialTicks').style.transform = `rotate(${-sel * SERVER_DIAL.step}deg)`
     const cur = servers[sel]
     document.getElementById('serverDialName').textContent = cur != null ? cur.rawServer.name : ''
     document.getElementById('serverDialPos').textContent = servers.length > 0
@@ -702,7 +823,18 @@ function setServerMenuActive(index){
     serverMenuActive = Math.max(0, Math.min(rows.length - 1, index))
     Array.from(rows).forEach((row, i) => row.toggleAttribute('active', i === serverMenuActive))
     rows[serverMenuActive].scrollIntoView({ block: 'nearest' })
+    updateServerMenuFade()
 }
+
+/**
+ * Fade the list's top or bottom edge while there is more to scroll that way.
+ */
+function updateServerMenuFade(){
+    const list = document.getElementById('serverMenuList')
+    list.toggleAttribute('fadeTop', list.scrollTop > 1)
+    list.toggleAttribute('fadeBottom', list.scrollTop + list.clientHeight < list.scrollHeight - 1)
+}
+document.getElementById('serverMenuList').addEventListener('scroll', updateServerMenuFade, { passive: true })
 
 function openServerMenu(){
     if(server_select.disabled || server_select.hasAttribute('empty')) return

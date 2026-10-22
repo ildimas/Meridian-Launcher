@@ -132,6 +132,9 @@ async function initSettingsValues(){
         const gFn = ConfigManager['get' + cVal]
         const gFnOpts = []
         if(serverDependent) {
+            if(!selectedServerExists()){
+                continue
+            }
             gFnOpts.push(ConfigManager.getSelectedServer())
         }
         if(typeof gFn === 'function'){
@@ -184,6 +187,9 @@ function saveSettingsValues(){
         const sFn = ConfigManager['set' + cVal]
         const sFnOpts = []
         if(serverDependent) {
+            if(!selectedServerExists()){
+                return
+            }
             sFnOpts.push(ConfigManager.getSelectedServer())
         }
         if(typeof sFn === 'function'){
@@ -334,13 +340,47 @@ function settingsSaveDisabled(v){
     settingsNavDone.disabled = v
 }
 
+/**
+ * Whether the selected pack is still in the distribution. Right after it was
+ * removed on the Modpacks tab it is not, and its settings must not be saved.
+ */
+function selectedServerExists(){
+    return ConfigManager.getModConfiguration(ConfigManager.getSelectedServer()) != null
+}
+
 function fullSettingsSave() {
-    saveSettingsValues()
-    saveModConfiguration()
-    ConfigManager.save()
-    saveDropinModConfiguration()
-    saveShaderpackSettings()
-    saveResourcepackSettings()
+    // A failed save must not keep the user from leaving settings.
+    try {
+        saveSettingsValues()
+        if(selectedServerExists()){
+            saveModConfiguration()
+            ConfigManager.save()
+            saveDropinModConfiguration()
+            saveShaderpackSettings()
+            saveResourcepackSettings()
+        } else {
+            ConfigManager.save()
+        }
+    } catch(err) {
+        console.error('Unable to save the settings.', err)
+        settingsSaveFailed(err)
+    }
+}
+
+/**
+ * Tell the user some settings weren't saved, unless a dialog is already open.
+ */
+function settingsSaveFailed(err){
+    if(isOverlayVisible()){
+        return
+    }
+    setOverlayContent(
+        Lang.queryJS('settings.saveFailed.title'),
+        Lang.queryJS('settings.saveFailed.desc', { message: escapeSettingsHTML(err && err.message ? err.message : String(err)) }),
+        Lang.queryJS('settings.saveFailed.okButton')
+    )
+    setOverlayHandler(null)
+    toggleOverlay(true)
 }
 
 /* Closes the settings view and saves all data. */
@@ -908,6 +948,9 @@ function bindModsToggleSwitch(){
 function saveModConfiguration(){
     const serv = ConfigManager.getSelectedServer()
     const modConf = ConfigManager.getModConfiguration(serv)
+    if(modConf == null){
+        return
+    }
     modConf.mods = _saveModConfiguration(modConf.mods)
     ConfigManager.setModConfiguration(serv, modConf)
 }
@@ -920,6 +963,10 @@ function saveModConfiguration(){
 function _saveModConfiguration(modConf){
     for(let m of Object.entries(modConf)){
         const tSwitch = settingsModsContainer.querySelectorAll(`[formod='${m[0]}']`)
+        // The tab can still show another pack's mods while it refreshes.
+        if(tSwitch.length === 0){
+            continue
+        }
         if(!tSwitch[0].hasAttribute('dropin')){
             if(typeof m[1] === 'boolean'){
                 modConf[m[0]] = tSwitch[0].checked
@@ -1038,6 +1085,7 @@ function bindDropinModFileSystemButton(){
  * of adding/removing the .disabled extension.
  */
 function saveDropinModConfiguration(){
+    if(CACHE_DROPIN_MODS == null) return
     for(dropin of CACHE_DROPIN_MODS){
         const dropinUI = document.getElementById(dropin.fullName)
         if(dropinUI != null){
@@ -1184,6 +1232,7 @@ function saveResourcepackSettings(){
         DropinModUtil.setEnabledResourcepacks(CACHE_SETTINGS_INSTANCE_DIR, CACHE_RESOURCEPACKS, enabled, CACHE_SETTINGS_MC_VERSION)
     } catch(err) {
         console.error('Unable to save resource packs.', err)
+        settingsSaveFailed(err)
     }
 }
 
@@ -1304,6 +1353,10 @@ async function animateSettingsTabRefresh(){
  * Prepare the Mods tab for display.
  */
 async function prepareModsTab(first){
+    // No pack left to show, e.g. offline after removing the last one.
+    if(!selectedServerExists()){
+        return
+    }
     await resolveModsForUI()
     await resolveDropinModsForUI()
     await resolveShaderpacksForUI()
@@ -1561,6 +1614,9 @@ function bindMinMaxRam(server) {
  */
 async function prepareJavaTab(){
     const server = (await DistroAPI.getDistribution()).getServerById(ConfigManager.getSelectedServer())
+    if(server == null){
+        return
+    }
     bindMinMaxRam(server)
     bindRangeSlider(server)
     populateMemoryStatus()

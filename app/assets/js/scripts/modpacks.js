@@ -20,6 +20,10 @@ const mpState = {
 
 const mpLoaderSeq = { n: 0 }
 
+const mpFollowFill = progressFollower(p => {
+    mpEl('mpTaskFill').style.width = p + '%'
+})
+
 function mpEl(id){
     return document.getElementById(id)
 }
@@ -32,11 +36,26 @@ function mpErrorText(err){
         const params = Object.fromEntries(Object.entries(err.params).map(([k, v]) => [k, escapeSettingsHTML(String(v))]))
         return Lang.queryJS(`settings.modpacks.errors.${err.key}`, params)
     }
-    const res = err != null ? err.response : null
-    if(res != null && String(res.url || '').includes('api.curseforge.com') && (res.statusCode === 401 || res.statusCode === 403)){
+    if(mpKeyError(err) === 'invalid'){
         return Lang.queryJS('settings.modpacks.errors.curseForgeKeyInvalid')
     }
     return Lang.queryJS('settings.modpacks.errors.generic', { message: escapeSettingsHTML(err != null && err.message ? err.message : String(err)) })
+}
+
+/**
+ * Whether an error is down to the CurseForge API key.
+ *
+ * @returns {'missing' | 'invalid' | null}
+ */
+function mpKeyError(err){
+    if(err instanceof ModpackManager.ModpackError){
+        return err.key === 'curseForgeKey' ? 'missing' : null
+    }
+    const res = err != null ? err.response : null
+    if(res != null && String(res.url || '').includes('api.curseforge.com') && (res.statusCode === 401 || res.statusCode === 403)){
+        return 'invalid'
+    }
+    return null
 }
 
 /* Install task */
@@ -55,8 +74,9 @@ function mpShowTask(title){
     mpEl('mpTaskTitle').textContent = title
     mpEl('mpTaskPercent').textContent = ''
     mpEl('mpTaskDetail').textContent = Lang.queryJS('settings.modpacks.stage.fetch')
-    mpEl('mpTaskFill').style.width = '0%'
+    mpFollowFill(0)
     mpEl('mpTaskAction').hidden = true
+    mpEl('mpTaskSecondary').hidden = true
     task.toggleAttribute('indeterminate', true)
 }
 
@@ -67,26 +87,85 @@ function mpProgress(p){
     if(hasCount){
         const pct = Math.round(p.done / p.total * 100)
         mpEl('mpTaskPercent').textContent = pct + '%'
-        mpEl('mpTaskFill').style.width = pct + '%'
+        mpFollowFill(pct)
     } else {
         mpEl('mpTaskPercent').textContent = ''
     }
 }
 
-function mpEndTask(state, title, detail, action){
+function mpEndTask(state, title, detail, action, secondary){
     const task = mpEl('mpTask')
     task.setAttribute('state', state)
     task.removeAttribute('indeterminate')
     mpEl('mpTaskTitle').textContent = title
     mpEl('mpTaskPercent').textContent = ''
-    mpEl('mpTaskFill').style.width = state === 'done' ? '100%' : '0%'
+    mpFollowFill(state === 'done' ? 100 : 0)
     mpEl('mpTaskDetail').innerHTML = detail
-    const btn = mpEl('mpTaskAction')
-    btn.hidden = action == null
-    if(action != null){
-        btn.textContent = action.label
-        btn.onclick = action.run
+    for(const [btn, a] of [[mpEl('mpTaskAction'), action], [mpEl('mpTaskSecondary'), secondary]]){
+        btn.hidden = a == null
+        btn.disabled = false
+        if(a != null){
+            btn.textContent = a.label
+            btn.onclick = a.run
+        }
     }
+}
+
+/**
+ * A file as a list item, linked to its CurseForge page when known.
+ */
+function mpFileItem(f, note){
+    const name = escapeSettingsHTML(f.name)
+    const label = f.url ? `<a href="${escapeSettingsHTML(f.url)}">${name}</a>` : name
+    return `<li>${label}${note ? ` <span class="mpFileNote">${escapeSettingsHTML(note)}</span>` : ''}</li>`
+}
+
+/**
+ * Show how an install went: mods whose authors keep them out of other
+ * launchers' packs, and files that couldn't be downloaded, each linked to its
+ * page so it can be fetched by hand and picked up from Downloads.
+ *
+ * @param {Object} server The installed server.
+ * @param {Array.<Object>} missing Files still missing.
+ * @param {Object} last found: how many the last check brought in, error: why it failed.
+ */
+function mpShowResult(server, missing, last = {}){
+    const select = { label: Lang.queryJS('settings.modpacks.select'), run: () => mpSelect(server.id) }
+    const title = Lang.queryJS('settings.modpacks.installed', { name: server.name })
+    const restricted = server.restricted || []
+    let detail = ''
+    if(restricted.length > 0){
+        detail += `<p>${Lang.queryJS('settings.modpacks.restricted', { count: restricted.length })}</p>`
+            + `<details class="mpFiles"><summary>${Lang.queryJS('settings.modpacks.showList')}</summary><ul class="mpMissing">${restricted.map(f => mpFileItem(f)).join('')}</ul></details>`
+    }
+    if(missing.length > 0){
+        detail += `<p>${Lang.queryJS('settings.modpacks.missingFiles', { count: missing.length })}</p>`
+            + `<ul class="mpMissing">${missing.map(f => mpFileItem(f, f.blocked ? Lang.queryJS('settings.modpacks.blockedByAuthor') : f.removed ? Lang.queryJS('settings.modpacks.removedFromSite') : f.reason)).join('')}</ul>`
+            + `<p>${Lang.queryJS('settings.modpacks.manualHint', { folder: escapeSettingsHTML(remote.app.getPath('downloads')) })}</p>`
+    }
+    if(last.found > 0){
+        detail += `<p>${Lang.queryJS(missing.length > 0 ? 'settings.modpacks.manualFound' : 'settings.modpacks.manualAllFound', { count: last.found })}</p>`
+    }
+    if(last.error != null){
+        detail += `<p class="mpTaskError">${Lang.queryJS('settings.modpacks.manualFailed', { message: escapeSettingsHTML(last.error) })}</p>`
+    }
+    if(detail === ''){
+        detail = Lang.queryJS('settings.modpacks.installedDetail')
+    }
+    const check = missing.length === 0 ? null : {
+        label: Lang.queryJS('settings.modpacks.manualCheck'),
+        run: async () => {
+            mpEl('mpTaskSecondary').disabled = true
+            try {
+                const left = await ModpackManager.importDownloaded(server.id, missing)
+                mpShowResult(server, left, { found: missing.length - left.length })
+            } catch(err) {
+                console.error('Unable to pick up the downloaded files.', err)
+                mpShowResult(server, missing, { error: err.message || String(err) })
+            }
+        }
+    }
+    mpEndTask(missing.length > 0 || restricted.length > 0 || last.error != null ? 'warn' : 'done', title, detail, select, check)
 }
 
 /**
@@ -117,20 +196,54 @@ async function mpRun(name, job){
     try {
         const server = await job(mpProgress)
         await mpAfterChange()
-        const missing = server.missing || []
-        const detail = missing.length > 0
-            ? Lang.queryJS('settings.modpacks.missingFiles', { count: missing.length, files: missing.map(escapeSettingsHTML).join(', ') })
-            : Lang.queryJS('settings.modpacks.installedDetail')
-        mpEndTask(missing.length > 0 ? 'warn' : 'done', Lang.queryJS('settings.modpacks.installed', { name: server.name }), detail, {
-            label: Lang.queryJS('settings.modpacks.select'),
-            run: () => mpSelect(server.id)
-        })
+        mpShowResult(server, server.missing || [])
     } catch(err) {
         console.error('Modpack install failed.', err)
-        mpEndTask('error', Lang.queryJS('settings.modpacks.failed', { name }), mpErrorText(err))
+        const keyError = mpKeyError(err)
+        if(keyError != null){
+            mpAskKey(name, job, keyError)
+        } else {
+            mpEndTask('error', Lang.queryJS('settings.modpacks.failed', { name }), mpErrorText(err))
+        }
     } finally {
         mpSetBusy(false)
     }
+}
+
+/**
+ * An install stopped for want of a working CurseForge key: ask for one in the
+ * task card and carry on with it. Nothing was written to disk yet.
+ *
+ * @param {string} name The pack's name.
+ * @param {function} job The install, run again once the key is saved.
+ * @param {'missing' | 'invalid'} why Whether there was no key or it was refused.
+ */
+function mpAskKey(name, job, why){
+    mpEndTask('error', Lang.queryJS('settings.modpacks.keyNeededTitle', { name }),
+        `<p>${Lang.queryJS(why === 'invalid' ? 'settings.modpacks.keyRefused' : 'settings.modpacks.keyNeeded')}</p>
+        <div class="mpFormRow"><input type="text" id="mpTaskKey" class="mpFieldGrow" spellcheck="false" placeholder="$2a$10$…"></div>`,
+        {
+            label: Lang.queryJS('settings.modpacks.keySaveInstall'),
+            run: () => {
+                const key = mpEl('mpTaskKey').value.trim()
+                if(!key){
+                    mpEl('mpTaskKey').focus()
+                    return
+                }
+                ConfigManager.setCurseForgeApiKey(key)
+                ConfigManager.save()
+                // The Catalog's key card shows the same key.
+                mpEl('mpCurseForgeKeyInput').value = key
+                mpRun(name, job)
+            }
+        })
+    const input = mpEl('mpTaskKey')
+    input.value = why === 'invalid' ? ConfigManager.getCurseForgeApiKey() : ''
+    input.onkeydown = e => {
+        if(e.key === 'Enter') mpEl('mpTaskAction').click()
+    }
+    input.focus()
+    if(why === 'invalid') input.select()
 }
 
 /* Installed packs */
@@ -176,9 +289,18 @@ function mpRenderInstalled(){
         row.setAttribute('role', 'listitem')
         row.toggleAttribute('selected', raw.id === selected)
 
-        const tile = document.createElement('span')
+        // A pack shown with a Minecraft icon (no logo of its own) can pick another.
+        const pickable = !raw.icon && (raw.launcherTheme == null || !raw.launcherTheme.monogram)
+        const tile = document.createElement(pickable ? 'button' : 'span')
         tile.className = 'serverListTile mpTile'
         paintServerTile(tile, raw, appearance, 'serverListTile')
+        if(pickable){
+            tile.type = 'button'
+            tile.classList.add('mpTilePick')
+            tile.title = Lang.queryJS('settings.modpacks.iconChange')
+            tile.setAttribute('aria-label', tile.title)
+            tile.onclick = () => mpPickIcon(raw)
+        }
 
         const text = document.createElement('div')
         text.className = 'mpRowText'
@@ -213,6 +335,280 @@ function mpRenderInstalled(){
     }
 }
 
+// Pictures that can be used as a pack's own icon.
+const MP_ICON_TYPES = ['.png', '.jpg', '.jpeg', '.webp', '.gif']
+
+/**
+ * Choose a pack's icon: any Minecraft icon, or a picture of the user's own.
+ */
+async function mpPickIcon(raw){
+    if(!(await PackIcons.load(raw.minecraftVersion))){
+        return
+    }
+    const saved = PackIcons.choiceFor(raw.id)
+    // An icon name, or { custom } / a new { file, url } picture.
+    let upload = saved.custom ? { custom: saved.custom } : null
+    let choice = upload || { icon: saved.icon }
+
+    const grid = document.createElement('div')
+    grid.className = 'mpIconGrid'
+    grid.setAttribute('role', 'radiogroup')
+
+    const option = (onclick) => {
+        const btn = document.createElement('button')
+        btn.type = 'button'
+        btn.className = 'mpIconOption'
+        btn.setAttribute('role', 'radio')
+        btn.onclick = onclick
+        const glyph = document.createElement('span')
+        glyph.className = 'serverGlyph'
+        btn.appendChild(glyph)
+        grid.appendChild(btn)
+        return btn
+    }
+    const paintOption = (btn, icon) => {
+        btn.style.backgroundImage = icon.background
+        btn.firstChild.classList.toggle('serverGlyphFull', icon.full)
+        Object.assign(btn.firstChild.style, { backgroundImage: icon.image, backgroundSize: icon.size, backgroundPosition: icon.position })
+    }
+    for(const name of PackIcons.iconNames()){
+        const btn = option(() => {
+            choice = { icon: name }
+            paint()
+        })
+        btn.setAttribute('data-icon', name)
+        btn.setAttribute('aria-label', name)
+        paintOption(btn, PackIcons.render({ icon: name }))
+    }
+
+    // The user's own picture, once there is one, then a + to add another.
+    const own = option(() => {
+        choice = upload
+        paint()
+    })
+    own.setAttribute('aria-label', Lang.queryJS('settings.modpacks.iconOwn'))
+    const add = document.createElement('button')
+    add.type = 'button'
+    add.className = 'mpIconOption mpIconUpload'
+    add.title = Lang.queryJS('settings.modpacks.iconUpload')
+    add.setAttribute('aria-label', add.title)
+    add.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>'
+    add.onclick = async () => {
+        const res = await remote.dialog.showOpenDialog(remote.getCurrentWindow(), {
+            properties: ['openFile'],
+            filters: [{ name: Lang.queryJS('settings.modpacks.iconFilter'), extensions: MP_ICON_TYPES.map(t => t.slice(1)) }]
+        })
+        if(res.canceled || res.filePaths.length === 0){
+            return
+        }
+        const file = res.filePaths[0]
+        const ext = path.extname(file).toLowerCase()
+        if(!MP_ICON_TYPES.includes(ext)){
+            return
+        }
+        let framed
+        try {
+            framed = await mpCropIcon(await fs.readFile(file), ext)
+        } catch(err) {
+            console.error('Could not open the picture.', err)
+            return
+        }
+        if(framed == null){
+            return
+        }
+        if(upload != null && upload.data) window.URL.revokeObjectURL(upload.url)
+        upload = framed
+        choice = upload
+        paint()
+    }
+    grid.appendChild(add)
+
+    function paint(){
+        for(const btn of grid.querySelectorAll('[data-icon]')){
+            const on = btn.getAttribute('data-icon') === choice.icon
+            btn.toggleAttribute('selected', on)
+            btn.setAttribute('aria-checked', on)
+        }
+        own.hidden = upload == null
+        if(upload != null) paintOption(own, PackIcons.render(upload))
+        own.toggleAttribute('selected', choice === upload)
+        own.setAttribute('aria-checked', choice === upload)
+    }
+    paint()
+
+    const picker = document.createElement('div')
+    picker.className = 'mpIconPicker'
+    picker.append(grid)
+
+    setOverlayContent(
+        Lang.queryJS('settings.modpacks.iconTitle', { name: escapeSettingsHTML(raw.name) }),
+        '',
+        Lang.queryJS('settings.modpacks.iconSave'),
+        Lang.queryJS('settings.modpacks.iconCancel')
+    )
+    document.getElementById('overlayDesc').appendChild(picker)
+    setOverlayHandler(async () => {
+        if(choice.data){
+            try {
+                choice = { custom: await PackIcons.saveCustom(raw.id, choice.data, '.png') }
+            } catch(err) {
+                console.error('Could not save the pack icon.', err)
+                return
+            }
+        }
+        PackIcons.setChoice(raw.id, choice)
+        toggleOverlay(false)
+        mpRenderInstalled()
+        // Every other tile of this pack: the dial, the list, settings.
+        applyPackIcons()
+    })
+    setDismissHandler(null)
+    toggleOverlay(true, true)
+}
+
+// The framing dialog's stage and the icon circle in it, and the saved size, in px.
+const MP_CROP = { stage: 280, hole: 220, out: 256 }
+
+/**
+ * Frame a picture in the icon circle, in a dialog over the icon picker: drag
+ * to move it, the wheel or the slider to zoom. It starts whole inside the
+ * circle with a margin, like the Minecraft icons.
+ *
+ * @param {Buffer} data The picture.
+ * @param {string} ext Its extension, e.g. '.png'.
+ * @returns {Promise<{data: Buffer, url: string} | null>} The framed square as
+ * a PNG and a url to show it, or null if cancelled.
+ */
+function mpCropIcon(data, ext){
+    const type = { '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.gif': 'image/gif' }[ext] || 'image/png'
+    // A blob url, so the canvas may read the picture back. window.URL: the
+    // global URL is Node's (landing.js), which takes no browser Blob.
+    const src = window.URL.createObjectURL(new Blob([data], { type }))
+    const { stage, hole, out } = MP_CROP
+    const inset = (stage - hole) / 2
+
+    const layer = document.createElement('div')
+    layer.className = 'mpCropLayer'
+    layer.innerHTML = `<div class="mpCropDialog" role="dialog" aria-modal="true">
+        <div class="mpCropTitle"></div>
+        <div class="mpCropHint"></div>
+        <div class="mpCropStage">
+            <div class="mpCropBackdrop"></div>
+            <img class="mpCropImage" alt="" draggable="false">
+            <div class="mpCropHole"></div>
+        </div>
+        <input class="mpCropZoom" type="range" min="0" max="1000" step="1">
+        <div class="mpCropActions">
+            <button type="button" class="crystalButton mpCropDone"></button>
+            <button type="button" class="ghostButton mpCropCancel"></button>
+        </div>
+    </div>`
+    const q = sel => layer.querySelector(sel)
+    q('.mpCropTitle').textContent = Lang.queryJS('settings.modpacks.cropTitle')
+    q('.mpCropHint').textContent = Lang.queryJS('settings.modpacks.cropHint')
+    q('.mpCropDone').textContent = Lang.queryJS('settings.modpacks.cropDone')
+    q('.mpCropCancel').textContent = Lang.queryJS('settings.modpacks.iconCancel')
+    const img = q('.mpCropImage')
+    const zoom = q('.mpCropZoom')
+    const area = q('.mpCropStage')
+
+    return new Promise((resolve, reject) => {
+        // Scale and the picture's centre in the stage.
+        let w, h, min, max, scale, cx = stage / 2, cy = stage / 2
+
+        const place = () => {
+            // Keep the centre over the circle, so the picture never leaves it.
+            cx = Math.max(inset, Math.min(inset + hole, cx))
+            cy = Math.max(inset, Math.min(inset + hole, cy))
+            img.style.width = (w * scale) + 'px'
+            img.style.height = (h * scale) + 'px'
+            img.style.transform = `translate(${cx - w * scale / 2}px, ${cy - h * scale / 2}px)`
+            zoom.value = Math.round(1000 * Math.log(scale / min) / Math.log(max / min))
+        }
+        // Zoom about a point of the stage, which stays put.
+        const zoomTo = (next, px = stage / 2, py = stage / 2) => {
+            next = Math.max(min, Math.min(max, next))
+            cx = px + (cx - px) * next / scale
+            cy = py + (cy - py) * next / scale
+            scale = next
+            place()
+        }
+
+        const finish = (result) => {
+            window.removeEventListener('keydown', onKey, true)
+            layer.remove()
+            window.URL.revokeObjectURL(src)
+            resolve(result)
+        }
+        const done = () => {
+            const canvas = document.createElement('canvas')
+            canvas.width = canvas.height = out
+            const ctx = canvas.getContext('2d')
+            // Pixel art stays sharp.
+            ctx.imageSmoothingEnabled = !img.hasAttribute('pixel')
+            ctx.imageSmoothingQuality = 'high'
+            const k = out / hole
+            ctx.drawImage(img, (cx - w * scale / 2 - inset) * k, (cy - h * scale / 2 - inset) * k, w * scale * k, h * scale * k)
+            canvas.toBlob(async blob => {
+                finish({ data: Buffer.from(await blob.arrayBuffer()), url: window.URL.createObjectURL(blob) })
+            }, 'image/png')
+        }
+        // Ahead of the icon picker's own Enter and Escape.
+        const onKey = (e) => {
+            if(e.key === 'Enter' || e.key === 'Escape'){
+                e.preventDefault()
+                e.stopImmediatePropagation()
+                if(e.key === 'Enter') done()
+                else finish(null)
+            }
+        }
+
+        img.onload = () => {
+            w = img.naturalWidth
+            h = img.naturalHeight
+            img.toggleAttribute('pixel', Math.max(w, h) <= 64)
+            // From half the size that fits the circle to well past filling it.
+            const fit = hole / Math.max(w, h)
+            min = fit * 0.5
+            max = Math.max(hole / Math.min(w, h), fit) * 8
+            scale = fit * 0.72
+            place()
+            document.body.appendChild(layer)
+            window.addEventListener('keydown', onKey, true)
+            q('.mpCropDone').focus()
+        }
+        img.onerror = () => {
+            window.URL.revokeObjectURL(src)
+            reject(new Error('Not a readable picture.'))
+        }
+
+        zoom.oninput = () => zoomTo(min * Math.pow(max / min, zoom.value / 1000))
+        area.addEventListener('wheel', e => {
+            e.preventDefault()
+            const r = area.getBoundingClientRect()
+            zoomTo(scale * Math.exp(-e.deltaY * 0.0015), e.clientX - r.left, e.clientY - r.top)
+        }, { passive: false })
+        area.onpointerdown = e => {
+            area.setPointerCapture(e.pointerId)
+            let x = e.clientX, y = e.clientY
+            area.onpointermove = m => {
+                cx += m.clientX - x
+                cy += m.clientY - y
+                x = m.clientX
+                y = m.clientY
+                place()
+            }
+            area.onpointerup = area.onpointercancel = () => {
+                area.onpointermove = null
+            }
+        }
+        q('.mpCropDone').onclick = done
+        q('.mpCropCancel').onclick = () => finish(null)
+
+        img.src = src
+    })
+}
+
 function mpConfirmRemove(raw){
     setOverlayContent(
         Lang.queryJS('settings.modpacks.removeTitle', { name: escapeSettingsHTML(raw.name) }),
@@ -229,18 +625,35 @@ function mpConfirmRemove(raw){
 }
 
 async function mpRemove(raw){
-    ModpackManager.remove(raw.id)
-    const dir = ModpackManager.instanceDir(raw.id)
-    if(await fs.pathExists(dir)){
-        const res = await ipcRenderer.invoke(MP_SHELL_OPCODE.TRASH_ITEM, dir)
-        if(!res.result){
-            console.error('Unable to move the modpack folder to the trash.', res.error)
-        }
-    }
-    const distro = await mpAfterChange()
+    // Move off the pack while it still exists, so its settings are saved
+    // before its folder goes and the settings tabs show the next pack.
     if(ConfigManager.getSelectedServer() === raw.id){
-        updateSelectedServer(distro.getMainServer())
-        mpRenderInstalled()
+        const others = (await DistroAPI.getDistribution()).servers.filter(s => s.rawServer.id !== raw.id)
+        updateSelectedServer(others.find(s => s.rawServer.mainServer) || others[0] || null)
+    }
+    const dir = ModpackManager.instanceDir(raw.id)
+    let error = null
+    try {
+        ModpackManager.remove(raw.id)
+        if(await fs.pathExists(dir)){
+            const res = await ipcRenderer.invoke(MP_SHELL_OPCODE.TRASH_ITEM, dir)
+            if(!res.result){
+                console.error('Unable to move the modpack folder to the trash.', res.error)
+                error = Lang.queryJS('settings.modpacks.trashFailed', { path: escapeSettingsHTML(dir), message: escapeSettingsHTML(res.error && res.error.message ? res.error.message : String(res.error)) })
+            }
+        }
+    } catch(err) {
+        console.error('Unable to remove the modpack.', err)
+        error = Lang.queryJS('settings.modpacks.errors.generic', { message: escapeSettingsHTML(err.message || String(err)) })
+    }
+    await mpAfterChange()
+    if(error != null){
+        mpEl('mpTask').hidden = false
+        mpEndTask('error', Lang.queryJS('settings.modpacks.removeFailed', { name: raw.name }), error, null, fs.existsSync(dir) ? {
+            label: Lang.queryJS('settings.modpacks.openFolder'),
+            run: () => shell.openPath(dir)
+        } : null)
+        mpEl('settingsTabModpacks').scrollTo({ top: 0, behavior: 'smooth' })
     }
 }
 
@@ -318,16 +731,20 @@ async function mpRefreshLoaderVersions(){
     mpFillSelect(select, [{ value: '', label: Lang.queryJS('settings.modpacks.loading') }])
     select.disabled = true
     let versions = []
+    let failed = null
     try {
         versions = await ModpackManager.loaderVersions(loader, mc)
     } catch(err) {
         console.error('Unable to load loader versions.', err)
+        failed = err
     }
     if(seq !== mpLoaderSeq.n){
         return
     }
+    select.title = failed != null ? (failed.message || String(failed)) : ''
     if(versions.length === 0){
-        mpFillSelect(select, [{ value: '', label: Lang.queryJS('settings.modpacks.loaderUnavailable') }])
+        // A network error is not the same as the loader having no build.
+        mpFillSelect(select, [{ value: '', label: Lang.queryJS(failed != null ? 'settings.modpacks.versionsFailed' : 'settings.modpacks.loaderUnavailable') }])
         install.setAttribute('data-unsupported', '')
         install.disabled = true
         return

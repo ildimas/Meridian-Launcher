@@ -96,6 +96,20 @@ function http(){
     })
 }
 
+/**
+ * For file downloads. A whole-request timeout cuts off any big mod that
+ * takes longer than it, so only a stalled connection times out.
+ */
+function httpDownload(){
+    return got.extend({
+        headers: { 'user-agent': userAgent() },
+        timeout: { lookup: 15000, connect: 15000, secureConnect: 15000, response: 30000, socket: 60000 }
+    })
+}
+
+// Tries per URL. got does not retry streams on its own.
+const DOWNLOAD_ATTEMPTS = 3
+
 function curseForgeKey(){
     return ConfigManager.getCurseForgeApiKey() || process.env.CURSEFORGE_API_KEY || ''
 }
@@ -128,24 +142,44 @@ async function download(urls, dest, hashes = {}){
     const algo = ['sha512', 'sha1', 'md5'].find(a => hashes[a])
     let lastErr = null
     for(const url of urls){
-        try {
-            const hash = algo != null ? crypto.createHash(algo) : null
-            const stream = http().stream(url)
-            if(hash != null){
-                stream.on('data', chunk => hash.update(chunk))
+        for(let attempt = 1; attempt <= DOWNLOAD_ATTEMPTS; attempt++){
+            try {
+                const hash = algo != null ? crypto.createHash(algo) : null
+                const stream = httpDownload().stream(url)
+                if(hash != null){
+                    stream.on('data', chunk => hash.update(chunk))
+                }
+                await pipeline(stream, fs.createWriteStream(tmp))
+                if(hash != null && hash.digest('hex') !== String(hashes[algo]).toLowerCase()){
+                    throw new Error(`Hash mismatch for ${url}`)
+                }
+                await fs.move(tmp, dest, { overwrite: true })
+                return
+            } catch(err) {
+                lastErr = err
+                await fs.remove(tmp).catch(() => {})
+                // Missing or refused: another try won't help.
+                const status = err.response != null ? err.response.statusCode : null
+                if(status != null && status >= 400 && status < 500){
+                    break
+                }
             }
-            await pipeline(stream, fs.createWriteStream(tmp))
-            if(hash != null && hash.digest('hex') !== String(hashes[algo]).toLowerCase()){
-                throw new Error(`Hash mismatch for ${url}`)
-            }
-            await fs.move(tmp, dest, { overwrite: true })
-            return
-        } catch(err) {
-            lastErr = err
-            await fs.remove(tmp).catch(() => {})
         }
     }
     throw lastErr || new Error(`No download for ${dest}`)
+}
+
+/**
+ * A short, technical reason a download failed, to show next to the file.
+ */
+function failureReason(err){
+    if(err != null && err.response != null && err.response.statusCode != null){
+        return `HTTP ${err.response.statusCode}`
+    }
+    if(err != null && err.code){
+        return err.code
+    }
+    return err != null && err.message ? err.message : String(err)
 }
 
 /**
@@ -179,6 +213,7 @@ function instanceDir(id){
  * would escape it (absolute paths, `..`).
  */
 function safeJoin(root, rel){
+    root = path.resolve(root)
     const out = path.resolve(root, rel)
     if(out !== root && !out.startsWith(root + path.sep)){
         throw new ModpackError('badPath', { path: rel })
@@ -414,9 +449,23 @@ async function forgeModules(pack, progress){
 }
 
 /**
+ * The memory a pack asks for, as distribution javaOptions.ram. Capped at what
+ * the launcher lets the game have on this machine, so the pack still starts.
+ *
+ * @param {number} mb Megabytes the pack recommends, if it says.
+ */
+function packRam(mb){
+    const ram = Number.parseInt(mb)
+    if(!(ram > 0)){
+        return null
+    }
+    return { recommended: Math.min(ram, ConfigManager.getAbsoluteMaxRAM() * 1024) }
+}
+
+/**
  * Create the server for a pack and store it.
  *
- * @param {Object} pack id, name, description, icon, version, minecraft, loader, loaderVersion, source.
+ * @param {Object} pack id, name, description, icon, version, minecraft, loader, loaderVersion, source, ram (MB).
  * @param {function(Object)} progress Progress callback.
  */
 async function savePack(pack, progress){
@@ -429,6 +478,7 @@ async function savePack(pack, progress){
         })
     }
     const java = await javaOptions(pack.minecraft)
+    const ram = packRam(pack.ram)
     const server = {
         id: pack.id,
         name: pack.name,
@@ -440,7 +490,7 @@ async function savePack(pack, progress){
         minecraftVersion: pack.minecraft,
         mainServer: false,
         autoconnect: false,
-        ...(java != null ? { javaOptions: java } : {}),
+        ...(java != null || ram != null ? { javaOptions: { ...java, ...(ram != null ? { ram } : {}) } } : {}),
         modules,
         local: {
             source: pack.source,
@@ -647,32 +697,61 @@ async function installCurseForgeZip(zip, manifest, progress, extra = {}){
         loaderVersion = rest.join('-')
     }
     requireSupportedLoader(loader)
-    const api = curseForge()
 
     const refs = (manifest.files || []).filter(f => f.required !== false)
     let files = []
     let mods = []
+    // Only mods fetched from CurseForge need the API key; a pack with
+    // everything in its overrides installs without one.
     if(refs.length > 0){
+        const api = curseForge()
         progress({ stage: 'fetch' })
         files = (await api.post('mods/files', { json: { fileIds: refs.map(f => f.fileID) } }).json()).data
         mods = (await api.post('mods', { json: { modIds: refs.map(f => f.projectID) } }).json()).data
     }
-    const classOf = new Map(mods.map(m => [m.id, m.classId]))
+    const modOf = new Map(mods.map(m => [m.id, m]))
+    // Files CurseForge no longer has (taken down by the author).
+    const found = new Set(files.map(f => f.id))
+    const gone = refs.filter(r => !found.has(r.fileID)).map(r => {
+        const mod = modOf.get(r.projectID)
+        const site = mod != null && mod.links != null ? mod.links.websiteUrl : null
+        return { name: mod != null ? mod.name : `${r.projectID}/${r.fileID}`, url: site, removed: true }
+    })
 
     const id = newServerId(manifest.name)
     return await withInstance(id, async (dir) => {
         await fs.ensureDir(dir)
-        const missing = []
+        const missing = [...gone]
+        // Files whose authors keep them out of other launchers' packs.
+        const restricted = []
         await runAll(files.map(f => async () => {
-            const folder = CF_CLASS_FOLDERS[classOf.get(f.modId)] || 'mods'
+            const mod = modOf.get(f.modId)
+            const site = mod != null && mod.links != null ? mod.links.websiteUrl : null
+            const page = site ? `${site}/files/${f.id}` : null
+            const folder = CF_CLASS_FOLDERS[mod != null ? mod.classId : null] || 'mods'
             const dest = safeJoin(dir, path.join(folder, f.fileName))
             const sha1 = (f.hashes || []).find(h => h.algo === 1)
             const md5 = (f.hashes || []).find(h => h.algo === 2)
             const urls = [f.downloadUrl, curseForgeCdn(f)].filter(Boolean)
+            const blocked = !f.downloadUrl || (mod != null && mod.allowModDistribution === false)
             try {
                 await download(urls, dest, { sha1: sha1 && sha1.value, md5: md5 && md5.value })
-            } catch {
-                missing.push(f.displayName || f.fileName)
+                if(blocked){
+                    restricted.push({ name: f.displayName || f.fileName, url: page })
+                }
+            } catch(err) {
+                console.warn(`Unable to download ${f.fileName}.`, err)
+                // Enough to fetch it by hand and find it again (see importDownloaded).
+                missing.push({
+                    name: f.displayName || f.fileName,
+                    fileName: f.fileName,
+                    folder,
+                    size: f.fileLength,
+                    sha1: sha1 ? sha1.value : null,
+                    url: page,
+                    blocked,
+                    reason: failureReason(err)
+                })
             }
         }), (done, total) => progress({ stage: 'files', done, total }))
 
@@ -688,9 +767,10 @@ async function installCurseForgeZip(zip, manifest, progress, extra = {}){
             minecraft: mc.version,
             loader,
             loaderVersion,
-            source: 'curseforge'
+            source: 'curseforge',
+            ram: mc.recommendedRam
         }, progress)
-        return Object.assign(server, missing.length > 0 ? { missing } : {})
+        return Object.assign(server, missing.length > 0 ? { missing } : {}, restricted.length > 0 ? { restricted } : {})
     })
 }
 
@@ -767,6 +847,61 @@ exports.installCurseForge = async function(hit, progress = () => {}){
     }
 }
 
+/**
+ * A file in the Downloads folder that is the missing one: under its own name
+ * (or a browser's "name (1).jar"), or any file of its size and hash.
+ */
+async function findDownloaded(downloads, names, file){
+    const ext = path.extname(file.fileName)
+    const base = file.fileName.substring(0, file.fileName.length - ext.length)
+    const byName = names.filter(n => n === file.fileName || (n.startsWith(base + ' (') && n.endsWith(')' + ext)))
+    const bySize = []
+    if(file.size != null){
+        for(const n of names){
+            if(!byName.includes(n) && path.extname(n).toLowerCase() === ext.toLowerCase()){
+                const st = await fs.stat(path.join(downloads, n)).catch(() => null)
+                if(st != null && st.isFile() && st.size === file.size) bySize.push(n)
+            }
+        }
+    }
+    for(const n of [...byName, ...bySize]){
+        const p = path.join(downloads, n)
+        if(file.sha1 == null){
+            if(byName.includes(n)) return p
+            continue
+        }
+        const sum = crypto.createHash('sha1').update(await fs.readFile(p)).digest('hex')
+        if(sum === String(file.sha1).toLowerCase()) return p
+    }
+    return null
+}
+
+/**
+ * Copy files the player downloaded by hand into the pack: CurseForge doesn't
+ * hand some mods to other launchers, and the CDN can fail too.
+ *
+ * @param {string} id The pack's server id.
+ * @param {Array.<Object>} missing The install's missing files.
+ * @returns {Promise.<Array.<Object>>} The ones still not found.
+ */
+exports.importDownloaded = async function(id, missing){
+    const downloads = app.getPath('downloads')
+    const names = await fs.readdir(downloads).catch(() => [])
+    const left = []
+    for(const file of missing){
+        // Nothing to match a removed file against.
+        const src = file.fileName ? await findDownloaded(downloads, names, file) : null
+        if(src == null){
+            left.push(file)
+            continue
+        }
+        const dest = safeJoin(instanceDir(id), path.join(file.folder, file.fileName))
+        await fs.ensureDir(path.dirname(dest))
+        await fs.copy(src, dest, { overwrite: true })
+    }
+    return left
+}
+
 /* Prism / MultiMC */
 
 // mmc-pack.json component uids of the loaders.
@@ -802,10 +937,15 @@ async function installPrism(zip, root, progress){
     requireSupportedLoader(loader)
 
     let name = root ? path.basename(root) : 'Prism instance'
+    let ram = null
     const cfg = zip.getEntry(root + 'instance.cfg')
     if(cfg != null){
-        const m = cfg.getData().toString('utf-8').match(/^name=(.+)$/m)
+        const text = cfg.getData().toString('utf-8')
+        const m = text.match(/^name=(.+)$/m)
         if(m != null) name = m[1].trim()
+        // Memory only counts when the instance overrides the global setting.
+        const max = text.match(/^MaxMemAlloc=(\d+)/m)
+        if(/^OverrideMemory=true/m.test(text) && max != null) ram = max[1]
     }
     const game = ['.minecraft/', 'minecraft/'].map(d => root + d).find(d => zip.getEntries().some(e => e.entryName.startsWith(d)))
 
@@ -816,7 +956,7 @@ async function installPrism(zip, root, progress){
             progress({ stage: 'overrides' })
             await extractFolder(zip, game, dir)
         }
-        return await savePack({ id, name, minecraft: mc.version, loader, loaderVersion, source: 'prism' }, progress)
+        return await savePack({ id, name, minecraft: mc.version, loader, loaderVersion, source: 'prism', ram }, progress)
     })
 }
 

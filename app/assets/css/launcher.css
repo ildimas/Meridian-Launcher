@@ -2480,7 +2480,6 @@ input:checked + .toggleSwitchSlider:before {
     bottom: 0px;
     border-radius: 2px;
     background: var(--accent);
-    transition: width 200ms ease;
 }
 #mpTask[indeterminate] #mpTaskFill {
     width: 30% !important;
@@ -2497,6 +2496,49 @@ input:checked + .toggleSwitchSlider:before {
     font-size: 12.5px;
     line-height: 1.45;
     color: var(--text-2);
+}
+#mpTaskDetail {
+    flex: 1;
+    min-width: 0;
+}
+#mpTaskDetail p {
+    margin: 0px 0px 6px;
+}
+#mpTaskDetail p:last-child {
+    margin-bottom: 0px;
+}
+.mpFiles summary {
+    cursor: pointer;
+    color: var(--accent);
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+/* Why a file is missing, e.g. "HTTP 403". */
+.mpFileNote {
+    color: var(--text-3, var(--text-2));
+    opacity: 0.8;
+    font-size: 11.5px;
+}
+.mpTaskError {
+    color: #ff9a9a;
+}
+/* Files the install left out, each linked to its download page. */
+.mpMissing {
+    max-height: 132px;
+    overflow-y: auto;
+    margin: 6px 0px;
+    padding-left: 18px;
+}
+.mpMissing a {
+    color: var(--text-1);
+}
+.mpMissing a:hover {
+    color: var(--accent);
+}
+#mpTaskSecondary,
+#mpTaskAction {
+    flex-shrink: 0;
+    white-space: nowrap;
 }
 
 /* Add: import card and the version form, side by side. */
@@ -2711,6 +2753,200 @@ input:checked + .toggleSwitchSlider:before {
 .mpTile {
     width: 36px;
     height: 36px;
+}
+/* A tile that opens the icon picker (mpPickIcon). */
+.mpTilePick {
+    padding: 0px;
+    border: 0px;
+    cursor: pointer;
+    transition: box-shadow 160ms ease, transform 160ms ease;
+}
+.mpTilePick:hover,
+.mpTilePick:focus-visible {
+    outline: none;
+    transform: scale(1.06);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18), 0 0 0 2px var(--accent);
+}
+.mpIconPicker {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-top: 4px;
+}
+.mpIconGrid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 10px;
+    /* Up to three rows, then it scrolls. The padding leaves room for the
+       selection ring and the hover zoom. */
+    max-height: 176px;
+    overflow-y: auto;
+    padding: 6px;
+    margin: -6px;
+}
+.mpIconGrid::-webkit-scrollbar {
+    width: 8px;
+}
+.mpIconGrid::-webkit-scrollbar-track {
+    background: transparent;
+    margin: 6px 0px;
+}
+.mpIconGrid::-webkit-scrollbar-thumb {
+    border: 2.5px solid transparent;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.28) padding-box;
+}
+.mpIconGrid::-webkit-scrollbar-thumb:hover,
+.mpIconGrid::-webkit-scrollbar-thumb:active {
+    background: var(--accent) padding-box;
+}
+.mpIconOption {
+    padding: 0px;
+    border: 0px;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+    transition: box-shadow 160ms ease, transform 160ms ease;
+}
+.mpIconOption {
+    position: relative;
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background-size: cover;
+}
+.mpIconOption:hover {
+    transform: scale(1.06);
+}
+.mpIconOption:focus-visible {
+    outline: 2px solid #ffffff;
+    outline-offset: 2px;
+}
+/* Add a picture: a dashed +. */
+.mpIconUpload {
+    color: var(--text-2);
+    background: transparent;
+    box-shadow: none;
+    border: 1.5px dashed var(--line-strong);
+    box-sizing: border-box;
+}
+.mpIconUpload:hover {
+    color: var(--text-1);
+    border-color: var(--accent);
+}
+.mpIconUpload svg {
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+}
+.mpIconOption[hidden] {
+    display: none;
+}
+.mpIconOption[selected] {
+    box-shadow: 0 0 0 2px rgba(2, 26, 48, 0.7), 0 0 0 4px var(--accent);
+}
+/* Framing a picture of the user's own (mpCropIcon), over the icon picker. */
+.mpCropLayer {
+    position: fixed;
+    top: 22px;
+    left: 0px;
+    right: 0px;
+    bottom: 0px;
+    z-index: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(1, 10, 20, 0.45);
+}
+.mpCropDialog {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 340px;
+    box-sizing: border-box;
+    padding: 24px 26px 20px;
+    border-radius: var(--radius-panel);
+    background: var(--glass-strong);
+    backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--line);
+    box-shadow: var(--sheen), var(--shadow-float);
+    animation: riseIn 360ms var(--ease-out) both;
+}
+.mpCropTitle {
+    font-size: 19px;
+    font-weight: var(--display-weight);
+    letter-spacing: var(--display-tracking);
+    line-height: 1.3;
+}
+.mpCropHint {
+    margin-top: -6px;
+    font-size: 12.5px;
+    line-height: 1.45;
+    color: var(--text-3);
+}
+.mpCropStage {
+    position: relative;
+    align-self: center;
+    width: 280px;
+    height: 280px;
+    overflow: hidden;
+    border-radius: 18px;
+    background: rgba(1, 10, 20, 0.5);
+    cursor: grab;
+    touch-action: none;
+}
+.mpCropStage:active {
+    cursor: grabbing;
+}
+/* The icon's backdrop (packicons.js BACKDROP) inside the circle. */
+.mpCropBackdrop {
+    position: absolute;
+    inset: 30px;
+    border-radius: 50%;
+    background: linear-gradient(160deg, #004477 0%, #021a30 100%);
+}
+.mpCropImage {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    max-width: none;
+    pointer-events: none;
+    -webkit-user-select: none;
+}
+.mpCropImage[pixel] {
+    image-rendering: pixelated;
+}
+/* Dims everything outside the circle and rings it. */
+.mpCropHole {
+    position: absolute;
+    inset: 30px;
+    border-radius: 50%;
+    box-shadow: 0 0 0 200px rgba(2, 14, 28, 0.66), inset 0 0 0 2px rgba(255, 255, 255, 0.75);
+    pointer-events: none;
+}
+.mpCropZoom {
+    width: 100%;
+    margin: 0px;
+    accent-color: var(--accent);
+    cursor: pointer;
+}
+.mpCropActions {
+    display: flex;
+    flex-direction: row-reverse;
+    align-items: center;
+    gap: 6px;
+    margin-top: 4px;
+}
+.mpCropDone {
+    height: 38px;
+    padding: 0px 18px;
+    font-size: 12.5px;
 }
 .mpRowText {
     flex: 1;
@@ -4475,7 +4711,6 @@ body[settingsOpen] #wallpaper .wpImg {
 }
 #serverDialTicks {
     transform-origin: 260px 372px;
-    transition: transform 520ms var(--dial-ease);
 }
 #serverDialTicksMinor {
     fill: none;
@@ -4506,20 +4741,14 @@ body[settingsOpen] #wallpaper .wpImg {
     background-size: cover;
     cursor: pointer;
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28), 0 6px 18px rgba(0, 0, 0, 0.3);
-    /* Drawn at the selected size and placed with a transform (landing.js), so
-       turning the dial never re-runs layout. */
+    /* Drawn at the selected size and placed with a transform each frame while
+       the dial turns (placeServerDial), so turning never re-runs layout. */
     left: 0px;
     top: 0px;
     width: 72px;
     height: 72px;
     will-change: transform;
-    transition:
-        transform 520ms var(--dial-ease),
-        opacity 400ms ease,
-        box-shadow 300ms ease;
-}
-.serverTile[fresh] {
-    transition: none;
+    transition: box-shadow 300ms ease;
 }
 .serverTile[selected] {
     cursor: default;
@@ -4536,6 +4765,24 @@ body[settingsOpen] #wallpaper .wpImg {
 }
 .serverTile[hasIcon] .serverTileMono {
     visibility: hidden;
+}
+/* Minecraft item icon for a pack with no logo (packicons.js). */
+.serverGlyph {
+    display: block;
+    /* Just inside the circle, so square icons keep their corners. */
+    width: 68%;
+    height: 68%;
+    background-repeat: no-repeat;
+    image-rendering: pixelated;
+    filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.45));
+}
+/* The user's own picture: the whole tile, smoothly scaled. */
+.serverGlyph.serverGlyphFull {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    image-rendering: auto;
+    filter: none;
 }
 .serverTileIcon {
     position: absolute;
@@ -4789,6 +5036,41 @@ body[settingsOpen] #wallpaper .wpImg {
     display: flex;
     flex-direction: column;
     gap: 2px;
+    /* The scrollbar sits in the menu's own padding, a little off the rows. */
+    margin-right: -8px;
+    padding-right: 4px;
+    /* Rows fade under the heading and the bottom edge while there is more to
+       scroll that way (fadeTop / fadeBottom, set in landing.js). */
+    --fade-top: 0px;
+    --fade-bottom: 0px;
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0px, #000 var(--fade-top), #000 calc(100% - var(--fade-bottom)), transparent 100%);
+}
+#serverMenuList[fadeTop] {
+    --fade-top: 22px;
+}
+#serverMenuList[fadeBottom] {
+    --fade-bottom: 22px;
+}
+#serverMenuList::-webkit-scrollbar {
+    width: 8px;
+}
+#serverMenuList::-webkit-scrollbar-track {
+    background: transparent;
+    margin: 6px 0px;
+}
+/* A 3px glass thumb inside a transparent border; brighter while the list is
+   hovered, accent while dragged. */
+#serverMenuList::-webkit-scrollbar-thumb {
+    border: 2.5px solid transparent;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.12) padding-box;
+}
+#serverMenuList:hover::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.28) padding-box;
+}
+#serverMenuList::-webkit-scrollbar-thumb:hover,
+#serverMenuList::-webkit-scrollbar-thumb:active {
+    background: var(--accent) padding-box;
 }
 .serverListRow {
     display: flex;
@@ -4996,7 +5278,6 @@ body[settingsOpen] #wallpaper .wpImg {
     stroke-dasharray: 100;
     stroke-dashoffset: 100;
     filter: drop-shadow(0 0 4px var(--accent-soft));
-    transition: stroke-dashoffset 250ms ease;
 }
 
 /* Narrow windows: drop the outer dial tiles so they clear the side blocks. */
@@ -5011,9 +5292,9 @@ body[settingsOpen] #wallpaper .wpImg {
     #landingContainer[dialHidden] #serverPicker {
         width: 260px;
     }
+    /* Their opacity follows the turn in placeServerDial (landing.js). */
     .serverTile[far],
     .serverTile[edge] {
-        opacity: 0 !important;
         pointer-events: none;
     }
 }
