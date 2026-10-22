@@ -9,7 +9,8 @@
   <img src="app/assets/images/flags/BY.svg" height="12" alt=""> <a href="docs/readme/README.be.md">Беларуская</a> ·
   <img src="app/assets/images/flags/KZ.svg" height="12" alt=""> <a href="docs/readme/README.kk.md">Қазақ тілі</a> ·
   <img src="app/assets/images/flags/DE.svg" height="12" alt=""> <a href="docs/readme/README.de.md">Deutsch</a> ·
-  <img src="app/assets/images/flags/FR.svg" height="12" alt=""> <a href="docs/readme/README.fr.md">Français</a>
+  <img src="app/assets/images/flags/FR.svg" height="12" alt=""> <a href="docs/readme/README.fr.md">Français</a> ·
+  <img src="app/assets/images/flags/ES.svg" height="12" alt=""> <a href="docs/readme/README.es.md">Español</a>
 </p>
 
 <p align="center"><b>Modded Minecraft launcher.</b> Pick a server, press Play: Java, the mod loader, mods and configs are installed and kept up to date for you.</p>
@@ -48,10 +49,10 @@ Meridian is a fork of [Helios Launcher](https://github.com/dscalzi/HeliosLaunche
   * Each modpack has its own rotating wallpapers: pack art, your in-game screenshots (F2) or shots from the Photon Shaders gallery, with author credits.
   * Interval and slow motion are configurable; hardware acceleration can be turned off.
 * 🌍 **Languages**
-  * Русский, English, Українська, Беларуская, Қазақ тілі, Deutsch, Français. More are in progress.
+  * Русский, English, Українська, Беларуская, Қазақ тілі, Deutsch, Français, Español. More are in progress.
   * Switches instantly, can follow the system language and set the same language in Minecraft.
 * 🌐 **Proxy** — HTTP or SOCKS5 for sign-in and downloads, optionally for the game too.
-* 🔄 **Auto-updates** — the launcher updates itself on Windows and Linux; on macOS it offers the new version from GitHub.
+* 🔄 **Auto-updates** — when a new version is out, the launcher asks whether to download it now or later, installs it and restarts with your settings kept. On macOS this works when the launcher is in Applications.
 * 📰 News feed, Mojang service status and Discord Rich Presence.
 
 ## Download

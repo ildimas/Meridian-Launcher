@@ -9,7 +9,8 @@
   <img src="../../app/assets/images/flags/BY.svg" height="12" alt=""> <a href="README.be.md">Беларуская</a> ·
   <img src="../../app/assets/images/flags/KZ.svg" height="12" alt=""> <a href="README.kk.md">Қазақ тілі</a> ·
   <img src="../../app/assets/images/flags/DE.svg" height="12" alt=""> <b>Deutsch</b> ·
-  <img src="../../app/assets/images/flags/FR.svg" height="12" alt=""> <a href="README.fr.md">Français</a>
+  <img src="../../app/assets/images/flags/FR.svg" height="12" alt=""> <a href="README.fr.md">Français</a> ·
+  <img src="../../app/assets/images/flags/ES.svg" height="12" alt=""> <a href="README.es.md">Español</a>
 </p>
 
 <p align="center"><b>Launcher für Minecraft mit Mods.</b> Server wählen, auf „Spielen“ drücken: Java, Mod-Loader, Mods und Konfigurationen werden für dich installiert und aktuell gehalten.</p>
@@ -48,10 +49,10 @@ Meridian ist ein Fork von [Helios Launcher](https://github.com/dscalzi/HeliosLau
   * Jedes Modpack hat eigene wechselnde Hintergründe: Pack-Bilder, deine Screenshots aus dem Spiel (F2) oder Bilder aus der Photon-Shaders-Galerie mit Nennung der Urheber.
   * Wechselintervall und sanfte Bewegung sind einstellbar; Hardwarebeschleunigung lässt sich abschalten.
 * 🌍 **Sprachen**
-  * Русский, English, Українська, Беларуская, Қазақ тілі, Deutsch, Français. Weitere sind in Arbeit.
+  * Русский, English, Українська, Беларуская, Қазақ тілі, Deutsch, Français, Español. Weitere sind in Arbeit.
   * Wechsel ohne Neustart, kann der Systemsprache folgen und dieselbe Sprache in Minecraft setzen.
 * 🌐 **Proxy** — HTTP oder SOCKS5 für Anmeldung und Downloads, auf Wunsch auch für das Spiel.
-* 🔄 **Automatische Updates** — unter Windows und Linux aktualisiert sich der Launcher selbst, unter macOS bietet er die neue Version auf GitHub an.
+* 🔄 **Automatische Updates** — erscheint eine neue Version, fragt der Launcher, ob sie jetzt oder später heruntergeladen werden soll, installiert sie und startet mit deinen Einstellungen neu. Unter macOS klappt das, wenn der Launcher im Ordner „Programme“ liegt.
 * 📰 News, Status der Mojang-Dienste und Discord Rich Presence.
 
 ## Download
