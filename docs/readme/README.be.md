@@ -9,7 +9,8 @@
   <img src="../../app/assets/images/flags/BY.svg" height="12" alt=""> <b>Беларуская</b> ·
   <img src="../../app/assets/images/flags/KZ.svg" height="12" alt=""> <a href="README.kk.md">Қазақ тілі</a> ·
   <img src="../../app/assets/images/flags/DE.svg" height="12" alt=""> <a href="README.de.md">Deutsch</a> ·
-  <img src="../../app/assets/images/flags/FR.svg" height="12" alt=""> <a href="README.fr.md">Français</a>
+  <img src="../../app/assets/images/flags/FR.svg" height="12" alt=""> <a href="README.fr.md">Français</a> ·
+  <img src="../../app/assets/images/flags/ES.svg" height="12" alt=""> <a href="README.es.md">Español</a>
 </p>
 
 <p align="center"><b>Лаўнчар для Minecraft з модамі.</b> Абярыце сервер і націсніце «Гуляць»: Java, загрузчык модаў, моды і налады ўсталююцца і будуць абнаўляцца самі.</p>
@@ -48,10 +49,10 @@ Meridian — форк [Helios Launcher](https://github.com/dscalzi/HeliosLaunche
   * У кожнай зборкі свае шпалеры, што змяняюцца: арт зборкі, вашы скрыншоты з гульні (F2) або кадры з галерэі Photon Shaders з указаннем аўтараў.
   * Наладжваюцца інтэрвал змены і плаўны рух; апаратнае паскарэнне можна адключыць.
 * 🌍 **Мовы**
-  * Русский, English, Українська, Беларуская, Қазақ тілі, Deutsch, Français. Іншыя ў працы.
+  * Русский, English, Українська, Беларуская, Қазақ тілі, Deutsch, Français, Español. Іншыя ў працы.
   * Пераключаюцца імгненна, могуць ісці за мовай сістэмы і выстаўляць тую ж мову ў Minecraft.
 * 🌐 **Проксі** — HTTP або SOCKS5 для ўваходу і спамповак, па жаданні і для самой гульні.
-* 🔄 **Аўтаабнаўленне** — на Windows і Linux лаўнчар абнаўляецца сам, на macOS прапануе спампаваць новую версію з GitHub.
+* 🔄 **Аўтаабнаўленне** — калі выходзіць новая версія, лаўнчар пытаецца, спампаваць яе зараз ці пазней, сам усталёўвае і перазапускаецца з захаванымі наладамі. На macOS працуе, калі лаўнчар ляжыць у «Праграмах».
 * 📰 Навіны, статус сэрвісаў Mojang і Discord Rich Presence.
 
 ## Спампаваць

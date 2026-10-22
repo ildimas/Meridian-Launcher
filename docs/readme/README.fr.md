@@ -9,7 +9,8 @@
   <img src="../../app/assets/images/flags/BY.svg" height="12" alt=""> <a href="README.be.md">Беларуская</a> ·
   <img src="../../app/assets/images/flags/KZ.svg" height="12" alt=""> <a href="README.kk.md">Қазақ тілі</a> ·
   <img src="../../app/assets/images/flags/DE.svg" height="12" alt=""> <a href="README.de.md">Deutsch</a> ·
-  <img src="../../app/assets/images/flags/FR.svg" height="12" alt=""> <b>Français</b>
+  <img src="../../app/assets/images/flags/FR.svg" height="12" alt=""> <b>Français</b> ·
+  <img src="../../app/assets/images/flags/ES.svg" height="12" alt=""> <a href="README.es.md">Español</a>
 </p>
 
 <p align="center"><b>Launcher Minecraft moddé.</b> Choisissez un serveur, appuyez sur « Jouer » : Java, le chargeur de mods, les mods et les configurations sont installés et tenus à jour pour vous.</p>
@@ -48,10 +49,10 @@ Meridian est un fork de [Helios Launcher](https://github.com/dscalzi/HeliosLaunc
   * Chaque modpack a ses propres fonds d'écran qui défilent : images du pack, vos captures en jeu (F2) ou images de la galerie Photon Shaders, avec le nom des auteurs.
   * Intervalle et mouvement lent réglables ; l'accélération matérielle peut être désactivée.
 * 🌍 **Langues**
-  * Русский, English, Українська, Беларуская, Қазақ тілі, Deutsch, Français. D'autres sont en cours.
+  * Русский, English, Українська, Беларуская, Қазақ тілі, Deutsch, Français, Español. D'autres sont en cours.
   * Changement instantané, peut suivre la langue du système et appliquer la même langue dans Minecraft.
 * 🌐 **Proxy** — HTTP ou SOCKS5 pour la connexion et les téléchargements, et pour le jeu si vous le souhaitez.
-* 🔄 **Mises à jour automatiques** — sous Windows et Linux, le launcher se met à jour tout seul ; sous macOS, il propose la nouvelle version sur GitHub.
+* 🔄 **Mises à jour automatiques** — quand une nouvelle version sort, le launcher demande s'il faut la télécharger maintenant ou plus tard, l'installe et redémarre en gardant vos paramètres. Sous macOS, cela fonctionne si le launcher est dans Applications.
 * 📰 Actualités, état des services Mojang et Discord Rich Presence.
 
 ## Téléchargement
