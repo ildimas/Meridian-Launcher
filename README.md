@@ -1,211 +1,119 @@
-<p align="center"><img src="./app/assets/images/SealCircle.png" width="150px" height="150px" alt="Meridian"></p>
+<p align="center"><img src="build/icon.png" width="140" height="140" alt="Meridian"></p>
 
 <h1 align="center">Meridian</h1>
 
-<em><h5 align="center">(formerly Electron Launcher)</h5></em>
+<p align="center">
+  <img src="app/assets/images/flags/GB.svg" height="12" alt=""> <b>English</b> ·
+  <img src="app/assets/images/flags/RU.svg" height="12" alt=""> <a href="docs/readme/README.ru.md">Русский</a> ·
+  <img src="app/assets/images/flags/UA.svg" height="12" alt=""> <a href="docs/readme/README.uk.md">Українська</a> ·
+  <img src="app/assets/images/flags/BY.svg" height="12" alt=""> <a href="docs/readme/README.be.md">Беларуская</a> ·
+  <img src="app/assets/images/flags/KZ.svg" height="12" alt=""> <a href="docs/readme/README.kk.md">Қазақ тілі</a> ·
+  <img src="app/assets/images/flags/DE.svg" height="12" alt=""> <a href="docs/readme/README.de.md">Deutsch</a> ·
+  <img src="app/assets/images/flags/FR.svg" height="12" alt=""> <a href="docs/readme/README.fr.md">Français</a>
+</p>
 
-[<p align="center"><img src="https://img.shields.io/github/actions/workflow/status/dscalzi/HeliosLauncher/build.yml?branch=master&style=for-the-badge" alt="gh actions">](https://github.com/dscalzi/HeliosLauncher/actions) [<img src="https://img.shields.io/github/downloads/dscalzi/HeliosLauncher/total.svg?style=for-the-badge" alt="downloads">](https://github.com/dscalzi/HeliosLauncher/releases) <img src="https://forthebadge.com/images/badges/winter-is-coming.svg"  height="28px" alt="winter-is-coming"></p>
+<p align="center"><b>Modded Minecraft launcher.</b> Pick a server, press Play: Java, the mod loader, mods and configs are installed and kept up to date for you.</p>
 
-<p align="center">Join modded servers without worrying about installing Java, Forge, or other mods. We'll handle that for you.</p>
+<p align="center">
+  <a href="https://github.com/ildimas/Helios-Custom-Worlds/releases/latest"><img src="https://img.shields.io/github/v/release/ildimas/Helios-Custom-Worlds?style=for-the-badge&color=004477&label=release" alt="release"></a>
+  <a href="https://github.com/ildimas/Helios-Custom-Worlds/actions/workflows/build.yml"><img src="https://img.shields.io/github/actions/workflow/status/ildimas/Helios-Custom-Worlds/build.yml?branch=master&style=for-the-badge" alt="build"></a>
+  <a href="https://github.com/ildimas/Helios-Custom-Worlds/releases"><img src="https://img.shields.io/github/downloads/ildimas/Helios-Custom-Worlds/total?style=for-the-badge&color=0a508a" alt="downloads"></a>
+</p>
 
-![Screenshot 1](https://i.imgur.com/6o7SmH6.png)
-![Screenshot 2](https://i.imgur.com/x3B34n1.png)
+
+---
+
+Meridian is a fork of [Helios Launcher](https://github.com/dscalzi/HeliosLauncher) with a new interface, modpack support and translations. Servers come from a self-hosted distribution index (`distribution.json`, generated with [Nebula](https://github.com/dscalzi/Nebula)), and players can add their own modpacks on top of them.
 
 ## Features
 
-* 🔒 Full account management.
-  * Add multiple accounts and easily switch between them.
-  * Microsoft (OAuth 2.0) + Mojang (Yggdrasil) authentication fully supported.
-  * Credentials are never stored and transmitted directly to Mojang.
-* 📂 Efficient asset management.
-  * Receive client updates as soon as we release them.
-  * Files are validated before launch. Corrupt or incorrect files will be redownloaded.
-* ☕ **Automatic Java validation.**
-  * If you have an incompatible version of Java installed, we'll install the right one *for you*.
-  * You do not need to have Java installed to run the launcher.
-* 📰 News feed natively built into the launcher.
-* ⚙️ Intuitive settings management, including a Java control panel.
-* Supports all of our servers.
-  * Switch between server configurations with ease.
-  * View the player count of the selected server.
-* Automatic updates. That's right, the launcher updates itself.
-*  View the status of Mojang's services.
+* 🔐 **Accounts**
+  * Microsoft (OAuth 2.0) and Mojang sign-in, several accounts with quick switching.
+  * Offline play under any name, for servers with `online-mode` off.
+* 🧭 **Servers**
+  * Server dial on the main screen with Minecraft version, pack version and live player count.
+  * Files are verified before every launch; missing or corrupted ones are downloaded again.
+  * Optional auto-connect to the server once the game starts.
+* 📦 **Modpacks**
+  * Search and install packs from **Modrinth** and **CurseForge** (CurseForge needs a free API key).
+  * Import `.mrpack`, CurseForge `.zip` and Prism / MultiMC exports by drag and drop.
+  * Any Minecraft version with **Forge**, **NeoForge**, **Fabric** or **Quilt**.
+* 🧩 **Mods and packs**
+  * Required, optional and drop-in mods.
+  * Shaderpacks and resource packs, switched on and off from settings.
+* ☕ **Java**
+  * Not required in advance: if a suitable Java isn't found, the launcher installs it.
+  * Memory slider, custom executable and JVM arguments.
+* 🖼️ **Appearance**
+  * Each modpack has its own rotating wallpapers: pack art, your in-game screenshots (F2) or shots from the Photon Shaders gallery, with author credits.
+  * Interval and slow motion are configurable; hardware acceleration can be turned off.
+* 🌍 **Languages**
+  * Русский, English, Українська, Беларуская, Қазақ тілі, Deutsch, Français. More are in progress.
+  * Switches instantly, can follow the system language and set the same language in Minecraft.
+* 🌐 **Proxy** — HTTP or SOCKS5 for sign-in and downloads, optionally for the game too.
+* 🔄 **Auto-updates** — the launcher updates itself on Windows and Linux; on macOS it offers the new version from GitHub.
+* 📰 News feed, Mojang service status and Discord Rich Presence.
 
-This is not an exhaustive list. Download and install the launcher to gauge all it can do!
+## Download
 
-#### Need Help? [Check the wiki.][wiki]
-
-#### Like the project? Leave a ⭐ star on the repository!
-
-## Downloads
-
-You can download from [GitHub Releases](https://github.com/dscalzi/HeliosLauncher/releases)
-
-#### Latest Release
-
-[![](https://img.shields.io/github/release/dscalzi/HeliosLauncher.svg?style=flat-square)](https://github.com/dscalzi/HeliosLauncher/releases/latest)
-
-#### Latest Pre-Release
-[![](https://img.shields.io/github/release/dscalzi/HeliosLauncher/all.svg?style=flat-square)](https://github.com/dscalzi/HeliosLauncher/releases)
-
-**Supported Platforms**
-
-If you download from the [Releases](https://github.com/dscalzi/HeliosLauncher/releases) tab, select the installer for your system.
+Get the installer for your system from [Releases](https://github.com/ildimas/Helios-Custom-Worlds/releases/latest).
 
 | Platform | File |
-| -------- | ---- |
+| --- | --- |
 | Windows x64 | `Meridian-setup-VERSION.exe` |
-| macOS x64 | `Meridian-setup-VERSION-x64.dmg` |
-| macOS arm64 | `Meridian-setup-VERSION-arm64.dmg` |
+| macOS Intel | `Meridian-setup-VERSION-x64.dmg` |
+| macOS Apple Silicon | `Meridian-setup-VERSION-arm64.dmg` |
 | Linux x64 | `Meridian-setup-VERSION.AppImage` |
+| Debian / Ubuntu | `Meridian-setup-VERSION.deb` |
+| Arch Linux | `Meridian-setup-VERSION.pacman` |
+
+Pre-releases are only offered to players who turn on **Allow Pre-Release Updates** in Settings → Launcher.
 
 ## Console
 
-To open the console, use the following keybind.
+Open the DevTools console with `Ctrl + Shift + I`. Right-click the console and choose **Save as…** to export the log.
 
-```console
-ctrl + shift + i
-```
-
-Ensure that you have the console tab selected. Do not paste anything into the console unless you are 100% sure of what it will do. Pasting the wrong thing can expose sensitive information.
-
-#### Export Output to a File
-
-If you want to export the console output, simply right click anywhere on the console and click **Save as..**
-
-![console example](https://i.imgur.com/T5e73jP.png)
-
+> [!WARNING]
+> Don't paste anything into the console unless you know exactly what it does: it can expose your account.
 
 ## Development
 
-This section details the setup of a basic developmentment environment.
-
-### Getting Started
-
-**System Requirements**
-
-* [Node.js][nodejs] v22
-
----
-
-**Clone and Install Dependencies**
+Requires [Node.js](https://nodejs.org/) 22.
 
 ```console
-> git clone https://github.com/dscalzi/HeliosLauncher.git
-> cd HeliosLauncher
-> npm install
+git clone https://github.com/ildimas/Helios-Custom-Worlds.git
+cd Helios-Custom-Worlds
+npm install
+npm start
 ```
 
----
+Build installers:
 
-**Launch Application**
+| Target | Command |
+| --- | --- |
+| Current platform | `npm run dist` |
+| Windows x64 | `npm run dist:win` |
+| macOS | `npm run dist:mac` |
+| Linux x64 | `npm run dist:linux` |
 
-```console
-> npm start
-```
+macOS builds generally need a Mac. On Linux, `./build.sh` installs dependencies and runs the launcher in one command (`--build` for an unpacked app, `--package` for packages).
 
----
+Pushing a new `version` in `package.json` to `master` makes GitHub Actions build every platform and publish the release.
 
-**Build Installers**
+### Documentation
 
-To build for your current platform.
+* [Releases, updates, news and modpacks](docs/releases-news-and-modpacks.md) (in Russian)
+* [Distribution index](docs/distro.md)
+* [Microsoft authentication](docs/MicrosoftAuth.md)
+* [Adding modpack art](app/assets/images/modpacks/README.md)
 
-```console
-> npm run dist
-```
+### Translations
 
-Build for a specific platform.
+Strings live in [`app/assets/lang`](app/assets/lang): `en_US.toml` is the source, and every other file only overrides what it translates (missing lines fall back to English). Brand name and social links are in `_custom.toml`.
 
-| Platform    | Command              |
-| ----------- | -------------------- |
-| Windows x64 | `npm run dist:win`   |
-| macOS       | `npm run dist:mac`   |
-| Linux x64   | `npm run dist:linux` |
+## Credits
 
-Builds for macOS may not work on Windows/Linux and vice-versa.
+* [Helios Launcher](https://github.com/dscalzi/HeliosLauncher) by Daniel Scalzi, MIT License, see [LICENSE.txt](LICENSE.txt).
+* Wallpapers from the [Photon Shaders gallery](https://modrinth.com/shader/photon-shader/gallery), authors listed in [CREDITS.md](app/assets/images/wallpapers/CREDITS.md).
 
----
-
-### Visual Studio Code
-
-All development of the launcher should be done using [Visual Studio Code][vscode].
-
-Paste the following into `.vscode/launch.json`
-
-```JSON
-{
-  "version": "0.2.0",
-  "configurations": [
-    {
-      "name": "Debug Main Process",
-      "type": "node",
-      "request": "launch",
-      "cwd": "${workspaceFolder}",
-      "program": "${workspaceFolder}/node_modules/electron/cli.js",
-      "args" : ["."],
-      "outputCapture": "std"
-    },
-    {
-      "name": "Debug Renderer Process",
-      "type": "chrome",
-      "request": "launch",
-      "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/electron",
-      "windows": {
-        "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/electron.cmd"
-      },
-      "runtimeArgs": [
-        "${workspaceFolder}/.",
-        "--remote-debugging-port=9222"
-      ],
-      "webRoot": "${workspaceFolder}"
-    }
-  ]
-}
-```
-
-This adds two debug configurations.
-
-#### Debug Main Process
-
-This allows you to debug Electron's [main process][mainprocess]. You can debug scripts in the [renderer process][rendererprocess] by opening the DevTools Window.
-
-#### Debug Renderer Process
-
-This allows you to debug Electron's [renderer process][rendererprocess]. This requires you to install the [Debugger for Chrome][chromedebugger] extension.
-
-Note that you **cannot** open the DevTools window while using this debug configuration. Chromium only allows one debugger, opening another will crash the program.
-
----
-
-### Note on Third-Party Usage
-
-Please give credit to the original author and provide a link to the original source. This is free software, please do at least this much.
-
-For instructions on setting up Microsoft Authentication, see https://github.com/dscalzi/HeliosLauncher/blob/master/docs/MicrosoftAuth.md.
-
----
-
-## Resources
-
-* [Wiki][wiki]
-* [Nebula (Create Distribution.json)][nebula]
-* [v2 Rewrite Branch (Inactive)][v2branch]
-
-The best way to contact the developers is on Discord.
-
-[![discord](https://discordapp.com/api/guilds/211524927831015424/embed.png?style=banner3)][discord]
-
----
-
-### See you ingame.
-
-
-[nodejs]: https://nodejs.org/en/ 'Node.js'
-[vscode]: https://code.visualstudio.com/ 'Visual Studio Code'
-[mainprocess]: https://electronjs.org/docs/tutorial/application-architecture#main-and-renderer-processes 'Main Process'
-[rendererprocess]: https://electronjs.org/docs/tutorial/application-architecture#main-and-renderer-processes 'Renderer Process'
-[chromedebugger]: https://marketplace.visualstudio.com/items?itemName=msjsdiag.debugger-for-chrome 'Debugger for Chrome'
-[discord]: https://discord.gg/zNWUXdt 'Discord'
-[wiki]: https://github.com/dscalzi/HeliosLauncher/wiki 'wiki'
-[nebula]: https://github.com/dscalzi/Nebula 'dscalzi/Nebula'
-[v2branch]: https://github.com/dscalzi/HeliosLauncher/tree/ts-refactor 'v2 branch'
+Meridian is not affiliated with Mojang AB or Microsoft.
