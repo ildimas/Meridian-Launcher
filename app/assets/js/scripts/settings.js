@@ -1977,15 +1977,9 @@ function populateSettingsUpdateInformation(data){
         settingsUpdateTitle.innerHTML = Lang.queryJS(isPrerelease(data.version) ? 'settings.updates.newPreReleaseTitle' : 'settings.updates.newReleaseTitle', { version: data.version })
         settingsUpdateTitle.setAttribute('available', '')
         
-        if(process.platform === 'darwin'){
-            settingsUpdateButtonStatus(Lang.queryJS('settings.updates.downloadButton'), false, () => {
-                shell.openExternal(data.darwindownload)
-            })
-        } else {
-            settingsUpdateButtonStatus(Lang.queryJS('uicore.autoUpdate.promptInstall'), false, () => {
-                startUpdateDownload(data)
-            })
-        }
+        settingsUpdateButtonStatus(Lang.queryJS('uicore.autoUpdate.promptInstall'), false, () => {
+            startUpdateDownload(data)
+        })
     } else {
         settingsUpdateTitle.innerHTML = Lang.queryJS('settings.updates.latestVersionTitle')
         settingsUpdateTitle.removeAttribute('available')

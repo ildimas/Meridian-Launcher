@@ -33,6 +33,11 @@ mac:
       arch:
         - 'x64'
         - 'arm64'
+    # The in-app updater (macupdater.js) installs from the zip.
+    - target: 'zip'
+      arch:
+        - 'x64'
+        - 'arm64'
   artifactName: 'Meridian-setup-${version}-${arch}.${ext}'
   category: 'public.app-category.games'
 
