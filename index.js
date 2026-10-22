@@ -12,6 +12,7 @@ const semver                            = require('semver')
 const { pathToFileURL }                 = require('url')
 const { AZURE_CLIENT_ID, MSFT_OPCODE, MSFT_REPLY_TYPE, MSFT_ERROR, PROXY_OPCODE, SHELL_OPCODE } = require('./app/assets/js/ipcconstants')
 const LangLoader                        = require('./app/assets/js/langloader')
+const MacUpdater                        = require('./app/assets/js/macupdater')
 
 /**
  * A launcher setting saved by the renderer, or undefined before the first save.
@@ -43,6 +44,9 @@ ipcMain.on('languageChanged', (event, selection) => {
     event.returnValue = true
 })
 
+// The update the last check found, for the macOS updater.
+let availableUpdate = null
+
 // Setup auto updater.
 function initAutoUpdater(event, data) {
 
@@ -57,12 +61,13 @@ function initAutoUpdater(event, data) {
         autoUpdater.autoInstallOnAppQuit = false
         autoUpdater.updateConfigPath = path.join(__dirname, 'dev-app-update.yml')
     }
-    // The player is asked first; nothing is downloaded until they agree
-    // (on macOS they download the dmg themselves).
+    // The player is asked first; nothing is downloaded until they agree.
+    // On macOS electron-updater only checks; macupdater.js installs.
     autoUpdater.autoDownload = false
     // The page reloads on a language change and initializes again.
     autoUpdater.removeAllListeners()
     autoUpdater.on('update-available', (info) => {
+        availableUpdate = info
         event.sender.send('autoUpdateNotification', 'update-available', info)
     })
     autoUpdater.on('download-progress', (progress) => {
@@ -109,6 +114,19 @@ ipcMain.on('autoUpdateAction', (event, arg, data) => {
             }
             break
         case 'downloadUpdate':
+            if(process.platform === 'darwin'){
+                // Running from the dmg or Downloads, or a release without a
+                // zip: the player installs the dmg by hand.
+                if(availableUpdate == null || !MacUpdater.canInstall() || !MacUpdater.hasZip(availableUpdate)){
+                    event.sender.send('autoUpdateNotification', 'mac-manual', availableUpdate)
+                    break
+                }
+                const info = availableUpdate
+                MacUpdater.download(info, progress => event.sender.send('autoUpdateNotification', 'download-progress', progress))
+                    .then(() => event.sender.send('autoUpdateNotification', 'update-downloaded', info))
+                    .catch(err => event.sender.send('autoUpdateNotification', 'realerror', err))
+                break
+            }
             autoUpdater.downloadUpdate()
                 .catch(err => {
                     event.sender.send('autoUpdateNotification', 'realerror', err)
@@ -118,7 +136,11 @@ ipcMain.on('autoUpdateAction', (event, arg, data) => {
             // Silent: no installer wizard on Windows. The launcher starts
             // again on the new version; config.json and game files live
             // outside the install folder, so settings and accounts stay.
-            autoUpdater.quitAndInstall(true, true)
+            if(process.platform === 'darwin'){
+                MacUpdater.install()
+            } else {
+                autoUpdater.quitAndInstall(true, true)
+            }
             break
         default:
             console.log('Unknown argument', arg)

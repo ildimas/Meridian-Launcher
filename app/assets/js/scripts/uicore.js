@@ -55,6 +55,9 @@ if(!isDev){
                     promptUpdate(info)
                 }
                 break
+            case 'mac-manual':
+                updateManualMac(updateDownloading || info)
+                break
             case 'download-progress':
                 showUpdateProgress(Math.floor(info.percent))
                 break
@@ -152,20 +155,14 @@ function promptUpdate(info){
         return
     }
     updatePromptVersion = info.version
-    const mac = process.platform === 'darwin'
     setOverlayContent(
         Lang.queryJS('uicore.autoUpdate.promptTitle', { version: info.version }),
-        Lang.queryJS(mac ? 'uicore.autoUpdate.promptDescMac' : 'uicore.autoUpdate.promptDesc'),
-        Lang.queryJS(mac ? 'uicore.autoUpdate.promptDownload' : 'uicore.autoUpdate.promptInstall'),
+        Lang.queryJS('uicore.autoUpdate.promptDesc'),
+        Lang.queryJS('uicore.autoUpdate.promptInstall'),
         Lang.queryJS('uicore.autoUpdate.promptLater')
     )
     setOverlayHandler(() => {
-        if(mac){
-            shell.openExternal(info.darwindownload)
-            toggleOverlay(false)
-        } else {
-            startUpdateDownload(info)
-        }
+        startUpdateDownload(info)
     })
     setDismissHandler(() => {
         toggleOverlay(false)
@@ -208,6 +205,32 @@ function showUpdateProgress(percent){
     button.innerHTML = text
     button.disabled = true
     settingsUpdateButtonStatus(text, true)
+}
+
+/**
+ * macOS can't replace the launcher where it runs (from the dmg or Downloads):
+ * offer the dmg instead, and say how to get updates on their own.
+ *
+ * @param {Object} info The update info from electron-updater.
+ */
+function updateManualMac(info){
+    updateDownloading = null
+    document.getElementById('overlayAcknowledge').disabled = false
+    setOverlayContent(
+        Lang.queryJS('uicore.autoUpdate.promptTitle', { version: info.version }),
+        Lang.queryJS('uicore.autoUpdate.promptDescMac'),
+        Lang.queryJS('uicore.autoUpdate.promptDownload'),
+        Lang.queryJS('uicore.autoUpdate.promptLater')
+    )
+    setOverlayHandler(() => {
+        shell.openExternal(info.darwindownload)
+        toggleOverlay(false)
+    })
+    setDismissHandler(() => {
+        toggleOverlay(false)
+    })
+    toggleOverlay(true, true)
+    populateSettingsUpdateInformation(info)
 }
 
 /**
