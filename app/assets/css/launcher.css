@@ -3777,10 +3777,12 @@ input:checked + .toggleSwitchSlider:before {
     height: 100%;
     object-fit: cover;
 }
-/* Pictures drift in slowly, like a console's game backdrop. */
+/* Pictures drift in slowly, like a console's game backdrop. The timing
+   lives in wp-kenburns: the drift moves in small steps instead of every
+   frame (see there). */
 .wpLayer .wpImg {
     transform-origin: 60% 50%;
-    animation: wp-kenburns 40s ease-in-out infinite alternate;
+    animation: wp-kenburns 40s infinite alternate;
 }
 .wpLayer[still] .wpImg,
 html[noGpu] .wpLayer .wpImg {
@@ -3815,7 +3817,24 @@ body[settingsOpen] #wallpaper .wpImg {
         linear-gradient(180deg, rgba(5, 7, 12, 0.38) 0px, rgba(5, 7, 12, 0) 160px),
         linear-gradient(0deg, rgba(5, 7, 12, 0.58) 0px, rgba(5, 7, 12, 0) 320px);
 }
-@keyframes wp-kenburns { from { transform: scale(1); } to { transform: scale(1.03); } }
+/* Each frame the wallpaper moves, every glass panel over it has to blur
+   it again: on a Retina screen at 120 Hz that kept the GPU busy and the
+   launcher stuttered. 10 steps a second still look smooth (a step is a
+   fraction of a pixel) at a tenth of the work. The stops follow ease-in-out,
+   which a single steps() timing can't. */
+@keyframes wp-kenburns {
+    0% { transform: scale(1); animation-timing-function: steps(40); }
+    10% { transform: scale(1.0006); animation-timing-function: steps(40); }
+    20% { transform: scale(1.0024); animation-timing-function: steps(40); }
+    30% { transform: scale(1.0056); animation-timing-function: steps(40); }
+    40% { transform: scale(1.01); animation-timing-function: steps(40); }
+    50% { transform: scale(1.015); animation-timing-function: steps(40); }
+    60% { transform: scale(1.02); animation-timing-function: steps(40); }
+    70% { transform: scale(1.0244); animation-timing-function: steps(40); }
+    80% { transform: scale(1.0276); animation-timing-function: steps(40); }
+    90% { transform: scale(1.0294); animation-timing-function: steps(40); }
+    100% { transform: scale(1.03); }
+}
 @media (prefers-reduced-motion: reduce) {
     .wpImg {
         animation: none !important;

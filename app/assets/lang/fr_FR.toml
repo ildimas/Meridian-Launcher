@@ -440,6 +440,12 @@ selectAnotherAccountButton = "Choisir un autre compte"
 checkingForUpdateButton = "Recherche de mises à jour…"
 installNowButton = "Installer maintenant"
 checkForUpdatesButton = "Rechercher des mises à jour"
+promptTitle = "La version {version} est disponible"
+promptDesc = "La mise à jour est téléchargée. Installez-la maintenant pour redémarrer le launcher avec, ou plus tard : elle s'installera à la fermeture du launcher."
+promptDescMac = "Une nouvelle version du launcher est sortie. Téléchargez-la sur GitHub, fermez le launcher et remplacez-le par le nouveau depuis le dmg."
+promptInstall = "Installer maintenant"
+promptDownload = "Télécharger"
+promptLater = "Plus tard"
 
 [js.auth.offline]
 invalidNameTitle = "Nom de joueur invalide"

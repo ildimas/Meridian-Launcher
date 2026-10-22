@@ -50,6 +50,7 @@ if(!isDev){
                 if(process.platform === 'darwin'){
                     info.darwindownload = `https://github.com/ildimas/Helios-Custom-Worlds/releases/download/v${info.version}/Meridian-setup-${info.version}${process.arch === 'arm64' ? '-arm64' : '-x64'}.dmg`
                     showUpdateUI(info)
+                    promptUpdate(info)
                 }
                 
                 populateSettingsUpdateInformation(info)
@@ -62,6 +63,7 @@ if(!isDev){
                     }
                 })
                 showUpdateUI(info)
+                promptUpdate(info)
                 break
             case 'update-not-available':
                 loggerAutoUpdater.info('No new update found.')
@@ -105,26 +107,56 @@ function changeAllowPrerelease(val){
 }
 
 function showUpdateUI(info){
-    //TODO Make this message a bit more informative `${info.version}`
     document.getElementById('image_seal_container').setAttribute('update', true)
     document.getElementById('image_seal_container').onclick = () => {
-        /*setOverlayContent('Update Available', 'A new update for the launcher is available. Would you like to install now?', 'Install', 'Later')
-        setOverlayHandler(() => {
-            if(!isDev){
-                ipcRenderer.send('autoUpdateAction', 'installUpdateNow')
-            } else {
-                console.error('Cannot install updates in development environment.')
-                toggleOverlay(false)
-            }
-        })
-        setDismissHandler(() => {
-            toggleOverlay(false)
-        })
-        toggleOverlay(true, true)*/
         switchView(getCurrentView(), VIEWS.settings, 500, 500, () => {
             settingsNavItemListener(document.getElementById('settingsNavAbout'), false)
         })
     }
+}
+
+// The version the player was already asked about; "Later" holds for the session.
+let updatePromptVersion = null
+let updatePromptTimer = null
+
+/**
+ * Ask whether to install a downloaded update now (on macOS: download it from
+ * GitHub). Waits until the launcher is idle: not on the splash or the Microsoft
+ * login, nothing launching or running, no other dialog open. Installing quits
+ * the launcher, which would take a running game with it.
+ *
+ * @param {Object} info The update info from electron-updater.
+ */
+function promptUpdate(info){
+    if(updatePromptVersion === info.version){
+        return
+    }
+    clearTimeout(updatePromptTimer)
+    const view = getCurrentView()
+    if(view == null || view === VIEWS.waiting || launcherBusy() || isOverlayVisible()){
+        updatePromptTimer = setTimeout(() => promptUpdate(info), 5000)
+        return
+    }
+    updatePromptVersion = info.version
+    const mac = process.platform === 'darwin'
+    setOverlayContent(
+        Lang.queryJS('uicore.autoUpdate.promptTitle', { version: info.version }),
+        Lang.queryJS(mac ? 'uicore.autoUpdate.promptDescMac' : 'uicore.autoUpdate.promptDesc'),
+        Lang.queryJS(mac ? 'uicore.autoUpdate.promptDownload' : 'uicore.autoUpdate.promptInstall'),
+        Lang.queryJS('uicore.autoUpdate.promptLater')
+    )
+    setOverlayHandler(() => {
+        if(mac){
+            shell.openExternal(info.darwindownload)
+            toggleOverlay(false)
+        } else {
+            ipcRenderer.send('autoUpdateAction', 'installUpdateNow')
+        }
+    })
+    setDismissHandler(() => {
+        toggleOverlay(false)
+    })
+    toggleOverlay(true, true)
 }
 
 /* jQuery Example

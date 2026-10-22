@@ -440,6 +440,12 @@ selectAnotherAccountButton = "Басқа аккаунтты таңдау"
 checkingForUpdateButton = "Жаңартуларды тексеріп жатырмыз…"
 installNowButton = "Қазір орнату"
 checkForUpdatesButton = "Жаңартуларды тексеру"
+promptTitle = "{version} нұсқасы қолжетімді"
+promptDesc = "Жаңарту жүктеліп қойды. Қазір орнатсаңыз, лаунчер онымен қайта іске қосылады, ал кейінірек десеңіз, лаунчерді жапқанда орнатылады."
+promptDescMac = "Лаунчердің жаңа нұсқасы шықты. Оны GitHub-тан жүктеп, лаунчерді жабыңыз да, dmg ішіндегі жаңасымен ауыстырыңыз."
+promptInstall = "Қазір орнату"
+promptDownload = "Жүктеу"
+promptLater = "Кейінірек"
 
 [js.auth.offline]
 invalidNameTitle = "Ойыншы аты жарамсыз"

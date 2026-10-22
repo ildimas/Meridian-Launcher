@@ -440,6 +440,12 @@ selectAnotherAccountButton = "Выбраць іншы акаўнт"
 checkingForUpdateButton = "Правяраем абнаўленні…"
 installNowButton = "Усталяваць зараз"
 checkForUpdatesButton = "Праверыць абнаўленні"
+promptTitle = "Даступна версія {version}"
+promptDesc = "Абнаўленне ўжо спампавана. Усталюйце зараз, і лаўнчар перазапусціцца з ім, або пазней: яно ўсталюецца, калі вы закрыеце лаўнчар."
+promptDescMac = "Выйшла новая версія лаўнчара. Спампуйце яе з GitHub, закрыйце лаўнчар і замяніце яго новым з dmg."
+promptInstall = "Усталяваць зараз"
+promptDownload = "Спампаваць"
+promptLater = "Пазней"
 
 [js.auth.offline]
 invalidNameTitle = "Недапушчальнае імя гульца"
