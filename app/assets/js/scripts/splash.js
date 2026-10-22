@@ -1,9 +1,10 @@
 /**
  * Startup splash (app.ejs).
  *
- * Every launch picks one of a few Meridian scenes at random (never the same
- * one twice in a row) and plays it around the compass mark until the UI is
- * ready. The palette is fixed to the brand so the splash looks the same
+ * Launches deal the Meridian scenes like a shuffled deck: each one plays
+ * once per round, in random order, and never twice in a row (not even where
+ * one round ends and the next begins). The scene plays around the compass
+ * mark until the UI is ready. The palette is fixed to the brand so the splash looks the same
  * whatever theme or wallpaper is active.
  *
  * Scenes draw on two canvases, one behind the mark and one in front of it
@@ -17,6 +18,8 @@
 
     const SVGNS = 'http://www.w3.org/2000/svg'
     const STORE_LAST = 'meridian.splash.last'
+    // Scenes still to play this round, in order.
+    const STORE_DECK = 'meridian.splash.deck'
     const STORE_FORCE = 'meridian.splash.force'
     const MIN_SHOW_MS = 2600
 
@@ -609,24 +612,45 @@
 
     /* -------------------------------------------------------------- runner */
 
+    function shuffle(list){
+        const out = [...list]
+        for(let i = out.length - 1; i > 0; i--){
+            const j = Math.floor(Math.random() * (i + 1))
+            ;[out[i], out[j]] = [out[j], out[i]]
+        }
+        return out
+    }
+
     function pickScene(){
         const names = Object.keys(SCENES)
         let lastName = null
+        let deck = []
         try {
             const forced = localStorage.getItem(STORE_FORCE)
             if(forced && SCENES[forced]){
                 return forced
             }
             lastName = localStorage.getItem(STORE_LAST)
+            deck = JSON.parse(localStorage.getItem(STORE_DECK) || '[]')
         } catch(e) {
-            // Storage unavailable, any scene will do.
+            // Storage unavailable or garbled: start a fresh round.
         }
-        const pool = names.filter(n => n !== lastName)
-        const name = pool[Math.floor(Math.random() * pool.length)]
+        // Scenes that were renamed or removed since the deck was saved.
+        deck = Array.isArray(deck) ? deck.filter(n => SCENES[n] != null && n !== lastName) : []
+        if(deck.length === 0){
+            deck = shuffle(names)
+            // A new round doesn't open with the scene the last one ended on.
+            if(deck.length > 1 && deck[0] === lastName){
+                const swap = 1 + Math.floor(Math.random() * (deck.length - 1))
+                ;[deck[0], deck[swap]] = [deck[swap], deck[0]]
+            }
+        }
+        const name = deck.shift()
         try {
+            localStorage.setItem(STORE_DECK, JSON.stringify(deck))
             localStorage.setItem(STORE_LAST, name)
         } catch(e) {
-            // Not remembered, so the next launch may repeat it.
+            // Not remembered, so the next launch starts a fresh round.
         }
         return name
     }
