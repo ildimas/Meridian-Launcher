@@ -57,11 +57,16 @@ function initAutoUpdater(event, data) {
         autoUpdater.autoInstallOnAppQuit = false
         autoUpdater.updateConfigPath = path.join(__dirname, 'dev-app-update.yml')
     }
-    if(process.platform === 'darwin'){
-        autoUpdater.autoDownload = false
-    }
+    // The player is asked first; nothing is downloaded until they agree
+    // (on macOS they download the dmg themselves).
+    autoUpdater.autoDownload = false
+    // The page reloads on a language change and initializes again.
+    autoUpdater.removeAllListeners()
     autoUpdater.on('update-available', (info) => {
         event.sender.send('autoUpdateNotification', 'update-available', info)
+    })
+    autoUpdater.on('download-progress', (progress) => {
+        event.sender.send('autoUpdateNotification', 'download-progress', progress)
     })
     autoUpdater.on('update-downloaded', (info) => {
         event.sender.send('autoUpdateNotification', 'update-downloaded', info)
@@ -103,8 +108,17 @@ ipcMain.on('autoUpdateAction', (event, arg, data) => {
                 autoUpdater.allowPrerelease = data
             }
             break
+        case 'downloadUpdate':
+            autoUpdater.downloadUpdate()
+                .catch(err => {
+                    event.sender.send('autoUpdateNotification', 'realerror', err)
+                })
+            break
         case 'installUpdateNow':
-            autoUpdater.quitAndInstall()
+            // Silent: no installer wizard on Windows. The launcher starts
+            // again on the new version; config.json and game files live
+            // outside the install folder, so settings and accounts stay.
+            autoUpdater.quitAndInstall(true, true)
             break
         default:
             console.log('Unknown argument', arg)

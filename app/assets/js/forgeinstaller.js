@@ -148,7 +148,10 @@ function libraryInfo(lib, libDir){
         url: artifact != null ? artifact.url : (lib.url ? lib.url.replace(/\/?$/, '/') + rel : ''),
         sha1: artifact != null ? artifact.sha1 : null,
         // Old installers mark libraries only the server needs.
-        optional: lib.clientreq === false
+        optional: lib.clientreq === false,
+        // No url: not hosted anywhere. Since Forge 1.20.3 that's the patched
+        // client jar, which a processor writes.
+        generated: artifact != null && !artifact.url
     }
 }
 
@@ -164,6 +167,10 @@ async function fetchLibrary(lib, installer, download){
     if(embedded != null){
         await fs.ensureDir(path.dirname(lib.file))
         await fs.writeFile(lib.file, embedded.getData())
+        return
+    }
+    if(lib.generated){
+        // Checked once the processors have run.
         return
     }
     // Old installers point at hosts that moved, so the mirrors are tried too.
@@ -385,6 +392,11 @@ exports.install = async function(opts, tools){
         }
 
         await runProcessors(profile, { java: tools.java, libDir, data, tmp }, tools.onProgress)
+        for(const l of all){
+            if(l.generated && !await fs.pathExists(l.file)){
+                throw new Error(`The installer didn't produce ${l.name}`)
+            }
+        }
 
         // Processor outputs the game reads at launch, like the patched client.
         const onClasspath = new Set(libs.map(l => l.rel))
