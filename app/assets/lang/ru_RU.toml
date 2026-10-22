@@ -508,6 +508,12 @@ selectAnotherAccountButton = "Выбрать другой аккаунт"
 checkingForUpdateButton = "Проверяем обновления…"
 installNowButton = "Установить сейчас"
 checkForUpdatesButton = "Проверить обновления"
+promptTitle = "Доступна версия {version}"
+promptDesc = "Обновление уже скачано. Установите сейчас, и лаунчер перезапустится с ним, или позже: оно установится, когда вы закроете лаунчер."
+promptDescMac = "Вышла новая версия лаунчера. Скачайте её с GitHub, закройте лаунчер и замените его новым из dmg."
+promptInstall = "Установить сейчас"
+promptDownload = "Скачать"
+promptLater = "Позже"
 
 [js.auth.offline]
 invalidNameTitle = "Недопустимое имя игрока"

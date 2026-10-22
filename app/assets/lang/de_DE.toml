@@ -440,6 +440,12 @@ selectAnotherAccountButton = "Anderes Konto wählen"
 checkingForUpdateButton = "Suche nach Updates…"
 installNowButton = "Jetzt installieren"
 checkForUpdatesButton = "Nach Updates suchen"
+promptTitle = "Version {version} ist verfügbar"
+promptDesc = "Das Update ist heruntergeladen. Jetzt installieren startet den Launcher damit neu, Später installiert es beim Schließen des Launchers."
+promptDescMac = "Eine neue Version des Launchers ist erschienen. Lade sie von GitHub herunter, schließe den Launcher und ersetze ihn durch den neuen aus der dmg."
+promptInstall = "Jetzt installieren"
+promptDownload = "Herunterladen"
+promptLater = "Später"
 
 [js.auth.offline]
 invalidNameTitle = "Ungültiger Spielername"
