@@ -749,6 +749,9 @@ async function installCurseForgeZip(zip, manifest, progress, extra = {}){
                     size: f.fileLength,
                     sha1: sha1 ? sha1.value : null,
                     url: page,
+                    // CurseForge's own download link: the browser gets the file
+                    // even when the launcher can't (blocked mods, a refused CDN).
+                    direct: `https://www.curseforge.com/api/v1/mods/${f.modId}/files/${f.id}/download`,
                     blocked,
                     reason: failureReason(err)
                 })

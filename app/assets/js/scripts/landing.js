@@ -1327,6 +1327,15 @@ async function dlAsync(login = true) {
     }
 
     if(login) {
+        // The Minecraft token lasts about a day and is otherwise only checked
+        // when the launcher starts; an expired one fails on servers with
+        // "Invalid session". Refresh it now, or ask to log in again.
+        if(!(await AuthManager.validateSelected())){
+            loggerLaunchSuite.warn('The account session expired and could not be refreshed.')
+            toggleLaunchArea(false)
+            validateSelectedAccount()
+            return
+        }
         const authUser = ConfigManager.getSelectedAccount()
         loggerLaunchSuite.info(`Sending selected account (${authUser.displayName}) to ProcessBuilder.`)
         let pb = new ProcessBuilder(serv, versionData, modLoaderData, authUser, remote.app.getVersion())

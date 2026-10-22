@@ -68,6 +68,7 @@ function mpSetBusy(busy){
 }
 
 function mpShowTask(title){
+    mpStopWatch()
     const task = mpEl('mpTask')
     task.hidden = false
     task.removeAttribute('state')
@@ -114,10 +115,20 @@ function mpEndTask(state, title, detail, action, secondary){
 /**
  * A file as a list item, linked to its CurseForge page when known.
  */
-function mpFileItem(f, note){
+/**
+ * A missing file as a list item: a direct download link when there is one,
+ * else its CurseForge page, and why the launcher couldn't fetch it.
+ */
+function mpFileItem(f){
     const name = escapeSettingsHTML(f.name)
-    const label = f.url ? `<a href="${escapeSettingsHTML(f.url)}">${name}</a>` : name
-    return `<li>${label}${note ? ` <span class="mpFileNote">${escapeSettingsHTML(note)}</span>` : ''}</li>`
+    const href = f.direct || f.url
+    const label = href ? `<a href="${escapeSettingsHTML(href)}" data-file>${name}</a>` : name
+    const note = f.blocked ? Lang.queryJS('settings.modpacks.blockedByAuthor')
+        : f.removed ? Lang.queryJS('settings.modpacks.removedFromSite')
+            : Lang.queryJS('settings.modpacks.netError')
+    // The technical reason (e.g. ECONNREFUSED) stays in the tooltip.
+    const title = f.reason ? ` title="${escapeSettingsHTML(f.reason)}"` : ''
+    return `<li>${label} <span class="mpFileNote"${title}>${escapeSettingsHTML(note)}</span></li>`
 }
 
 /**
@@ -129,43 +140,110 @@ function mpFileItem(f, note){
  * @param {Array.<Object>} missing Files still missing.
  * @param {Object} last found: how many the last check brought in, error: why it failed.
  */
-function mpShowResult(server, missing, last = {}){
+// Files fetched through the browser are picked up from Downloads: how long to
+// wait for them and how often to look.
+const MP_WATCH = { ms: 10 * 60 * 1000, every: 2500 }
+let mpWatch = null
+
+function mpStopWatch(){
+    if(mpWatch != null){
+        clearInterval(mpWatch.timer)
+        mpWatch = null
+    }
+}
+
+/**
+ * Show how an install went. Files that couldn't be downloaded are listed with
+ * direct links; "Download in browser" opens them all and the launcher adds
+ * each one to the pack as it lands in Downloads.
+ *
+ * @param {Object} server The installed pack.
+ * @param {Array.<Object>} missing Files still missing.
+ * @param {{watching?: boolean, timedOut?: boolean, found?: number, error?: string}} view
+ */
+function mpShowResult(server, missing, view = {}){
     const select = { label: Lang.queryJS('settings.modpacks.select'), run: () => mpSelect(server.id) }
-    const title = Lang.queryJS('settings.modpacks.installed', { name: server.name })
     const restricted = server.restricted || []
+    const total = server.missingTotal || missing.length
+    const title = missing.length > 0
+        ? Lang.queryJS('settings.modpacks.missingTitle', { name: server.name, count: missing.length })
+        : Lang.queryJS('settings.modpacks.installed', { name: server.name })
     let detail = ''
-    if(restricted.length > 0){
-        detail += `<p>${Lang.queryJS('settings.modpacks.restricted', { count: restricted.length })}</p>`
-            + `<details class="mpFiles"><summary>${Lang.queryJS('settings.modpacks.showList')}</summary><ul class="mpMissing">${restricted.map(f => mpFileItem(f)).join('')}</ul></details>`
-    }
     if(missing.length > 0){
-        detail += `<p>${Lang.queryJS('settings.modpacks.missingFiles', { count: missing.length })}</p>`
-            + `<ul class="mpMissing">${missing.map(f => mpFileItem(f, f.blocked ? Lang.queryJS('settings.modpacks.blockedByAuthor') : f.removed ? Lang.queryJS('settings.modpacks.removedFromSite') : f.reason)).join('')}</ul>`
-            + `<p>${Lang.queryJS('settings.modpacks.manualHint', { folder: escapeSettingsHTML(remote.app.getPath('downloads')) })}</p>`
+        const lead = view.watching ? Lang.queryJS('settings.modpacks.waiting', { found: total - missing.length, total })
+            : view.timedOut ? Lang.queryJS('settings.modpacks.waitTimedOut')
+                : Lang.queryJS('settings.modpacks.missingLead')
+        detail += `<p>${lead}</p>`
+            + `<details class="mpFiles"${missing.length <= 5 ? ' open' : ''}><summary>${Lang.queryJS('settings.modpacks.fileList', { count: missing.length })}</summary>`
+            + `<ul class="mpMissing">${missing.map(mpFileItem).join('')}</ul></details>`
+    } else if(view.found > 0){
+        detail += `<p>${Lang.queryJS('settings.modpacks.manualAllFound')}</p>`
     }
-    if(last.found > 0){
-        detail += `<p>${Lang.queryJS(missing.length > 0 ? 'settings.modpacks.manualFound' : 'settings.modpacks.manualAllFound', { count: last.found })}</p>`
+    if(restricted.length > 0){
+        detail += `<p class="mpFileNote">${Lang.queryJS('settings.modpacks.restrictedNote', { count: restricted.length })}</p>`
     }
-    if(last.error != null){
-        detail += `<p class="mpTaskError">${Lang.queryJS('settings.modpacks.manualFailed', { message: escapeSettingsHTML(last.error) })}</p>`
+    if(view.error != null){
+        detail += `<p class="mpTaskError">${Lang.queryJS('settings.modpacks.manualFailed', { message: escapeSettingsHTML(view.error) })}</p>`
     }
     if(detail === ''){
         detail = Lang.queryJS('settings.modpacks.installedDetail')
     }
-    const check = missing.length === 0 ? null : {
-        label: Lang.queryJS('settings.modpacks.manualCheck'),
-        run: async () => {
-            mpEl('mpTaskSecondary').disabled = true
-            try {
-                const left = await ModpackManager.importDownloaded(server.id, missing)
-                mpShowResult(server, left, { found: missing.length - left.length })
-            } catch(err) {
-                console.error('Unable to pick up the downloaded files.', err)
-                mpShowResult(server, missing, { error: err.message || String(err) })
-            }
+    const downloadable = missing.filter(f => f.direct || f.url)
+    const download = missing.length === 0 || view.watching || downloadable.length === 0 ? null : {
+        label: Lang.queryJS('settings.modpacks.browserDownload'),
+        run: () => {
+            downloadable.forEach((f, i) => setTimeout(() => shell.openExternal(f.direct || f.url), i * 700))
+            mpWatchDownloads(server, missing)
         }
     }
-    mpEndTask(missing.length > 0 || restricted.length > 0 || last.error != null ? 'warn' : 'done', title, detail, select, check)
+    mpEndTask(missing.length > 0 || view.error != null ? 'warn' : 'done', title, detail, download || select, download ? select : null)
+    // A single link opened by hand is watched for too.
+    for(const a of mpEl('mpTaskDetail').querySelectorAll('a[data-file]')){
+        a.addEventListener('click', () => {
+            if(mpWatch == null) mpWatchDownloads(server, missing)
+        })
+    }
+}
+
+/**
+ * Look in Downloads every few seconds and move each missing file found there
+ * into the pack, until all are in or the wait runs out.
+ */
+function mpWatchDownloads(server, missing){
+    mpStopWatch()
+    server.missingTotal = server.missingTotal || missing.length
+    let left = missing
+    let busy = false
+    const started = Date.now()
+    const watch = { timer: null }
+    mpWatch = watch
+    const tick = async () => {
+        if(busy || mpWatch !== watch) return
+        busy = true
+        try {
+            left = await ModpackManager.importDownloaded(server.id, left)
+        } catch(err) {
+            console.error('Unable to pick up the downloaded files.', err)
+            mpStopWatch()
+            mpShowResult(server, left, { error: err.message || String(err) })
+            return
+        } finally {
+            busy = false
+        }
+        if(mpWatch !== watch) return
+        if(left.length === 0){
+            mpStopWatch()
+            mpShowResult(server, left, { found: server.missingTotal })
+        } else if(Date.now() - started > MP_WATCH.ms){
+            mpStopWatch()
+            mpShowResult(server, left, { timedOut: true })
+        } else {
+            mpShowResult(server, left, { watching: true })
+        }
+    }
+    watch.timer = setInterval(tick, MP_WATCH.every)
+    mpShowResult(server, left, { watching: true })
+    tick()
 }
 
 /**
