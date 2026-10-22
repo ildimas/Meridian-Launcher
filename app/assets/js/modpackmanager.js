@@ -404,7 +404,12 @@ async function forgeModules(pack, progress){
             throw err
         }
         console.error(`Unable to install ${loaderName(pack.loader)} ${pack.loaderVersion}.`, err)
-        throw new ModpackError('loaderUnavailable', { loader: loaderName(pack.loader), version: pack.loaderVersion || '', minecraft: pack.minecraft })
+        const params = { loader: loaderName(pack.loader), version: pack.loaderVersion || '', minecraft: pack.minecraft }
+        // No installer for that version; anything else is a real failure to report.
+        if(err.response != null && err.response.statusCode === 404 && String(err.response.url).endsWith('-installer.jar')){
+            throw new ModpackError('loaderUnavailable', params)
+        }
+        throw new ModpackError('loaderFailed', { ...params, message: err.message || String(err) })
     }
 }
 

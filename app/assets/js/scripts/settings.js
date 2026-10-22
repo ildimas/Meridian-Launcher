@@ -1982,7 +1982,9 @@ function populateSettingsUpdateInformation(data){
                 shell.openExternal(data.darwindownload)
             })
         } else {
-            settingsUpdateButtonStatus(Lang.queryJS('settings.updates.downloadingButton'), true)
+            settingsUpdateButtonStatus(Lang.queryJS('uicore.autoUpdate.promptInstall'), false, () => {
+                startUpdateDownload(data)
+            })
         }
     } else {
         settingsUpdateTitle.innerHTML = Lang.queryJS('settings.updates.latestVersionTitle')

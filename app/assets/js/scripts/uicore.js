@@ -46,24 +46,27 @@ if(!isDev){
                 break
             case 'update-available':
                 loggerAutoUpdater.info('New update available', info.version)
-                
                 if(process.platform === 'darwin'){
                     info.darwindownload = `https://github.com/ildimas/Helios-Custom-Worlds/releases/download/v${info.version}/Meridian-setup-${info.version}${process.arch === 'arm64' ? '-arm64' : '-x64'}.dmg`
+                }
+                if(updateDownloading == null){
                     showUpdateUI(info)
+                    populateSettingsUpdateInformation(info)
                     promptUpdate(info)
                 }
-                
-                populateSettingsUpdateInformation(info)
+                break
+            case 'download-progress':
+                showUpdateProgress(Math.floor(info.percent))
                 break
             case 'update-downloaded':
-                loggerAutoUpdater.info('Update ' + info.version + ' ready to be installed.')
-                settingsUpdateButtonStatus(Lang.queryJS('uicore.autoUpdate.installNowButton'), false, () => {
-                    if(!isDev){
-                        ipcRenderer.send('autoUpdateAction', 'installUpdateNow')
-                    }
-                })
-                showUpdateUI(info)
-                promptUpdate(info)
+                loggerAutoUpdater.info('Update ' + info.version + ' downloaded, installing.')
+                setOverlayContent(
+                    Lang.queryJS('uicore.autoUpdate.downloadingTitle', { version: info.version }),
+                    Lang.queryJS('uicore.autoUpdate.downloadingDesc'),
+                    Lang.queryJS('uicore.autoUpdate.installing')
+                )
+                settingsUpdateButtonStatus(Lang.queryJS('uicore.autoUpdate.installing'), true)
+                ipcRenderer.send('autoUpdateAction', 'installUpdateNow')
                 break
             case 'update-not-available':
                 loggerAutoUpdater.info('No new update found.')
@@ -71,11 +74,19 @@ if(!isDev){
                 break
             case 'ready':
                 updateCheckListener = setInterval(() => {
-                    ipcRenderer.send('autoUpdateAction', 'checkForUpdate')
+                    // A check would reset the progress shown in settings.
+                    if(updateDownloading == null){
+                        ipcRenderer.send('autoUpdateAction', 'checkForUpdate')
+                    }
                 }, 1800000)
                 ipcRenderer.send('autoUpdateAction', 'checkForUpdate')
                 break
             case 'realerror':
+                if(updateDownloading != null){
+                    loggerAutoUpdater.error('Error while downloading the update..', info)
+                    updateDownloadFailed()
+                    break
+                }
                 if(info != null && info.code != null){
                     if(info.code === 'ERR_UPDATER_INVALID_RELEASE_FEED'){
                         loggerAutoUpdater.info('No suitable releases found.')
@@ -115,15 +126,18 @@ function showUpdateUI(info){
     }
 }
 
-// The version the player was already asked about; "Later" holds for the session.
+// The version the player was already asked about; "Later" holds until the
+// next start, when the check finds the update again and asks again.
 let updatePromptVersion = null
 let updatePromptTimer = null
+// The update being downloaded, or null.
+let updateDownloading = null
 
 /**
- * Ask whether to install a downloaded update now (on macOS: download it from
- * GitHub). Waits until the launcher is idle: not on the splash or the Microsoft
- * login, nothing launching or running, no other dialog open. Installing quits
- * the launcher, which would take a running game with it.
+ * Ask whether to download a new version now or later. Waits until the
+ * launcher is idle: not on the splash or the Microsoft login, nothing
+ * launching or running, no other dialog open. Installing restarts the
+ * launcher, which would take a running game with it.
  *
  * @param {Object} info The update info from electron-updater.
  */
@@ -150,13 +164,67 @@ function promptUpdate(info){
             shell.openExternal(info.darwindownload)
             toggleOverlay(false)
         } else {
-            ipcRenderer.send('autoUpdateAction', 'installUpdateNow')
+            startUpdateDownload(info)
         }
     })
     setDismissHandler(() => {
         toggleOverlay(false)
     })
     toggleOverlay(true, true)
+}
+
+/**
+ * Download the update, then install it and restart. Shows the progress in a
+ * dialog that can't be closed: the launcher restarts once it's done.
+ *
+ * @param {Object} info The update info from electron-updater.
+ */
+function startUpdateDownload(info){
+    if(updateDownloading != null){
+        return
+    }
+    updateDownloading = info
+    updatePromptVersion = info.version
+    clearTimeout(updatePromptTimer)
+    setOverlayContent(
+        Lang.queryJS('uicore.autoUpdate.downloadingTitle', { version: info.version }),
+        Lang.queryJS('uicore.autoUpdate.downloadingDesc'),
+        ''
+    )
+    setOverlayHandler(() => {})
+    showUpdateProgress(0)
+    toggleOverlay(true)
+    ipcRenderer.send('autoUpdateAction', 'downloadUpdate')
+}
+
+/**
+ * Show the download progress in the dialog and in settings.
+ *
+ * @param {number} percent How much is downloaded, 0 to 100.
+ */
+function showUpdateProgress(percent){
+    const text = Lang.queryJS('uicore.autoUpdate.downloadingProgress', { percent })
+    const button = document.getElementById('overlayAcknowledge')
+    button.innerHTML = text
+    button.disabled = true
+    settingsUpdateButtonStatus(text, true)
+}
+
+/**
+ * The download failed: say so and offer the update again from settings.
+ */
+function updateDownloadFailed(){
+    const info = updateDownloading
+    updateDownloading = null
+    document.getElementById('overlayAcknowledge').disabled = false
+    setOverlayContent(
+        Lang.queryJS('uicore.autoUpdate.failedTitle'),
+        Lang.queryJS('uicore.autoUpdate.failedDesc'),
+        Lang.queryJS('uicore.autoUpdate.failedOk')
+    )
+    setOverlayHandler(null)
+    toggleOverlay(true)
+    populateSettingsUpdateInformation(info)
 }
 
 /* jQuery Example

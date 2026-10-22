@@ -29,7 +29,8 @@ function mpEl(id){
  */
 function mpErrorText(err){
     if(err instanceof ModpackManager.ModpackError){
-        return Lang.queryJS(`settings.modpacks.errors.${err.key}`, err.params)
+        const params = Object.fromEntries(Object.entries(err.params).map(([k, v]) => [k, escapeSettingsHTML(String(v))]))
+        return Lang.queryJS(`settings.modpacks.errors.${err.key}`, params)
     }
     const res = err != null ? err.response : null
     if(res != null && String(res.url || '').includes('api.curseforge.com') && (res.statusCode === 401 || res.statusCode === 403)){
