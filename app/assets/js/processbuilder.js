@@ -14,6 +14,12 @@ const ProxyManager             = require('./proxymanager')
 
 const logger = LoggerUtil.getLogger('ProcessBuilder')
 
+// Java agent giving Minecraft before 1.6 a native window on macOS, see
+// java/LegacyWindow. Outside app.asar (extraResources), where Java can read it.
+const LEGACY_WINDOW_AGENT = path.join(
+    __dirname.includes('app.asar') ? process.resourcesPath : path.join(__dirname, '..', '..', '..'),
+    'libraries', 'java', 'LegacyWindow.jar')
+
 
 /**
  * Only forge and fabric are top level mod loaders.
@@ -424,6 +430,11 @@ class ProcessBuilder {
         args.push('-Xms' + ConfigManager.getMinRAM(this.server.rawServer.id))
         args = args.concat(ConfigManager.getJVMOptions(this.server.rawServer.id))
         args.push('-Djava.library.path=' + tempNativePath)
+        if(process.platform === 'darwin' && !mcVersionAtLeast('1.6', this.server.rawServer.minecraftVersion)){
+            // These draw into an AWT Canvas, which LWJGL 2 on macOS copies
+            // through a CALayer: slow, wrong colors, not resizable.
+            args.push('-javaagent:' + LEGACY_WINDOW_AGENT)
+        }
         if(this.modManifest.jarMod){
             // FML before 1.5.2 ignores --gameDir and would use ~/.minecraft,
             // and so do mods of that time that find the folder themselves
