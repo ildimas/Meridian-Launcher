@@ -34,6 +34,7 @@ const DiscordWrapper          = require('./assets/js/discordwrapper')
 const ProcessBuilder          = require('./assets/js/processbuilder')
 const PackIcons               = require('./assets/js/packicons')
 const LocalPacks              = require('./assets/js/localpacks')
+const PackCleanup             = require('./assets/js/packcleanup')
 
 // Launch Elements
 const launch_content          = document.getElementById('launch_content')
@@ -1490,6 +1491,13 @@ async function dlAsync(login = true) {
     remote.getCurrentWindow().setProgressBar(-1)
 
     fullRepairModule.destroyReceiver()
+
+    // Mod jars older versions left in mods/ would load twice.
+    try {
+        await PackCleanup.clean(serv, require('path').join(ConfigManager.getInstanceDirectory(), serv.rawServer.id), loggerLaunchSuite)
+    } catch(err) {
+        loggerLaunchSuite.warn('Unable to clean up the pack folder.', err)
+    }
 
     // The pack's files now match this version (see Pack updates).
     if(serv.rawServer.version != null){
