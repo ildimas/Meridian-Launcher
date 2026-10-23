@@ -21,13 +21,36 @@ function storePath(launcherDir){
 }
 
 /**
+ * The Java versions a Minecraft version runs on, as a distribution
+ * javaOptions.supported range. Versions that want Java 8 get exactly 8:
+ * launchwrapper and Forge before 1.17 break on Java 9+.
+ *
+ * @param {number} major The Java major version Mojang declares.
+ * @returns {string} The supported range.
+ */
+exports.javaRange = function(major){
+    return major <= 8 ? '8.x' : `>=${major}.x`
+}
+
+/**
+ * Packs stored before Java 8 was pinned allowed any newer Java.
+ */
+function migrateJavaOptions(server){
+    const java = server.javaOptions
+    if(java != null && java.suggestedMajor != null && java.supported === `>=${java.suggestedMajor}.x`){
+        java.supported = exports.javaRange(java.suggestedMajor)
+    }
+    return server
+}
+
+/**
  * @param {string} launcherDir The launcher directory.
  * @returns {Array.<Object>} The stored servers, in distribution format.
  */
 exports.read = function(launcherDir){
     try {
         const data = JSON.parse(fs.readFileSync(storePath(launcherDir), 'utf-8'))
-        return Array.isArray(data.servers) ? data.servers : []
+        return Array.isArray(data.servers) ? data.servers.map(migrateJavaOptions) : []
     } catch {
         return []
     }
@@ -104,6 +127,11 @@ exports.patchDistributionAPI = function(DistributionAPI){
  * Let vanilla servers through the mod loader step: helios-core requires a
  * loader, and resolves to null here when the server has none.
  *
+ * Forge before 1.13 is read from the version.json inside its jar, and the
+ * version parsed from its maven id, which fails for 1.6.4 and older. Local
+ * packs, and packs from before 1.6 that Meridian Studio publishes, carry the
+ * manifest as a module, so it's read from there.
+ *
  * @param {Function} DistributionIndexProcessor helios-core's processor class.
  */
 exports.patchIndexProcessor = function(DistributionIndexProcessor){
@@ -117,6 +145,10 @@ exports.patchIndexProcessor = function(DistributionIndexProcessor){
         const server = this.distribution.getServerById(this.serverId)
         if(server != null && exports.isVanilla(server)){
             return null
+        }
+        const loader = server != null ? server.modules.find(m => m.rawModule.type === Type.ForgeHosted) : null
+        if(loader != null && loader.subModules.some(m => m.rawModule.type === Type.VersionManifest)){
+            return this.loadVersionManifest(loader)
         }
         return original.apply(this, args)
     }

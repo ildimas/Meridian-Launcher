@@ -1,14 +1,21 @@
 name: Build & Release
 
-# Builds run only for the master branch. Pushes to any other branch
-# (dev, feature branches, ...) never trigger this workflow.
+# Builds run only when a pull request from dev is merged into master (or by
+# hand from the Actions tab, on master). Direct pushes to master, Dependabot
+# PRs merged into master and pushes to dev never trigger it.
 on:
-  push:
+  pull_request:
+    types: [closed]
     branches: [master]
   workflow_dispatch:
 
+env:
+  # The commit that landed on master: the PR's merge commit (whatever the
+  # merge method), or master's head for a manual run.
+  RELEASE_SHA: ${{ github.event.pull_request.merge_commit_sha || github.sha }}
+
 concurrency:
-  group: release-${{ github.ref }}
+  group: release-master
   cancel-in-progress: false
 
 jobs:
@@ -16,7 +23,12 @@ jobs:
   # If that version is already published, the build still runs but nothing is
   # uploaded - bump "version" in package.json to cut a new release.
   prepare:
-    if: github.ref == 'refs/heads/master'
+    if: >-
+      (github.event_name == 'pull_request'
+        && github.event.pull_request.merged == true
+        && github.event.pull_request.head.ref == 'dev'
+        && github.event.pull_request.head.repo.full_name == github.repository)
+      || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/master')
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -25,6 +37,8 @@ jobs:
       publish: ${{ steps.release.outputs.publish }}
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ env.RELEASE_SHA }}
 
       - name: Create draft release
         id: release
@@ -45,7 +59,7 @@ jobs:
               echo "publish=false" >> "$GITHUB_OUTPUT"
             fi
           else
-            gh release create "$TAG" --draft --target "$GITHUB_SHA" --title "$TAG" --generate-notes
+            gh release create "$TAG" --draft --target "$RELEASE_SHA" --title "$TAG" --generate-notes
             echo "publish=true" >> "$GITHUB_OUTPUT"
           fi
 
@@ -63,6 +77,8 @@ jobs:
     steps:
       - name: Check out Git repository
         uses: actions/checkout@v6
+        with:
+          ref: ${{ env.RELEASE_SHA }}
 
       - name: Set up Node
         uses: actions/setup-node@v6
@@ -89,6 +105,9 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+          # electron-builder skips publishing on pull_request events. This
+          # only runs for PRs from dev that are already merged into master.
+          PUBLISH_FOR_PULL_REQUEST: 'true'
         shell: bash
         run: >
           npx electron-builder build

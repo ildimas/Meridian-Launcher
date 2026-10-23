@@ -132,6 +132,9 @@ async function initSettingsValues(){
         const gFn = ConfigManager['get' + cVal]
         const gFnOpts = []
         if(serverDependent) {
+            if(!selectedServerExists()){
+                continue
+            }
             gFnOpts.push(ConfigManager.getSelectedServer())
         }
         if(typeof gFn === 'function'){
@@ -184,6 +187,9 @@ function saveSettingsValues(){
         const sFn = ConfigManager['set' + cVal]
         const sFnOpts = []
         if(serverDependent) {
+            if(!selectedServerExists()){
+                return
+            }
             sFnOpts.push(ConfigManager.getSelectedServer())
         }
         if(typeof sFn === 'function'){
@@ -334,13 +340,47 @@ function settingsSaveDisabled(v){
     settingsNavDone.disabled = v
 }
 
+/**
+ * Whether the selected pack is still in the distribution. Right after it was
+ * removed on the Modpacks tab it is not, and its settings must not be saved.
+ */
+function selectedServerExists(){
+    return ConfigManager.getModConfiguration(ConfigManager.getSelectedServer()) != null
+}
+
 function fullSettingsSave() {
-    saveSettingsValues()
-    saveModConfiguration()
-    ConfigManager.save()
-    saveDropinModConfiguration()
-    saveShaderpackSettings()
-    saveResourcepackSettings()
+    // A failed save must not keep the user from leaving settings.
+    try {
+        saveSettingsValues()
+        if(selectedServerExists()){
+            saveModConfiguration()
+            ConfigManager.save()
+            saveDropinModConfiguration()
+            saveShaderpackSettings()
+            saveResourcepackSettings()
+        } else {
+            ConfigManager.save()
+        }
+    } catch(err) {
+        console.error('Unable to save the settings.', err)
+        settingsSaveFailed(err)
+    }
+}
+
+/**
+ * Tell the user some settings weren't saved, unless a dialog is already open.
+ */
+function settingsSaveFailed(err){
+    if(isOverlayVisible()){
+        return
+    }
+    setOverlayContent(
+        Lang.queryJS('settings.saveFailed.title'),
+        Lang.queryJS('settings.saveFailed.desc', { message: escapeSettingsHTML(err && err.message ? err.message : String(err)) }),
+        Lang.queryJS('settings.saveFailed.okButton')
+    )
+    setOverlayHandler(null)
+    toggleOverlay(true)
 }
 
 /* Closes the settings view and saves all data. */
@@ -834,7 +874,7 @@ function parseModulesForUI(mdls, submodules, servConf){
                             <div class="settingsModStatus"></div>
                             ${settingsIconTile(mdl.rawModule.name, () => IconCache.peek(mdl), () => IconCache.mod(mdl))}
                             <div class="settingsModDetails">
-                                <span class="settingsModName">${mdl.rawModule.name}</span>
+                                <span class="settingsModName">${escapeSettingsHTML(mdl.rawModule.name)}</span>
                                 <span class="settingsModVersion">v${mdl.mavenComponents.version}</span>
                             </div>
                         </div>
@@ -859,7 +899,7 @@ function parseModulesForUI(mdls, submodules, servConf){
                             <div class="settingsModStatus"></div>
                             ${settingsIconTile(mdl.rawModule.name, () => IconCache.peek(mdl), () => IconCache.mod(mdl))}
                             <div class="settingsModDetails">
-                                <span class="settingsModName">${mdl.rawModule.name}</span>
+                                <span class="settingsModName">${escapeSettingsHTML(mdl.rawModule.name)}</span>
                                 <span class="settingsModVersion">v${mdl.mavenComponents.version}</span>
                             </div>
                         </div>
@@ -908,6 +948,9 @@ function bindModsToggleSwitch(){
 function saveModConfiguration(){
     const serv = ConfigManager.getSelectedServer()
     const modConf = ConfigManager.getModConfiguration(serv)
+    if(modConf == null){
+        return
+    }
     modConf.mods = _saveModConfiguration(modConf.mods)
     ConfigManager.setModConfiguration(serv, modConf)
 }
@@ -920,6 +963,10 @@ function saveModConfiguration(){
 function _saveModConfiguration(modConf){
     for(let m of Object.entries(modConf)){
         const tSwitch = settingsModsContainer.querySelectorAll(`[formod='${m[0]}']`)
+        // The tab can still show another pack's mods while it refreshes.
+        if(tSwitch.length === 0){
+            continue
+        }
         if(!tSwitch[0].hasAttribute('dropin')){
             if(typeof m[1] === 'boolean'){
                 modConf[m[0]] = tSwitch[0].checked
@@ -954,20 +1001,21 @@ async function resolveDropinModsForUI(){
 
     for(dropin of CACHE_DROPIN_MODS){
         const jar = path.join(CACHE_SETTINGS_MODS_DIR, dropin.fullName)
-        dropinMods += `<div id="${dropin.fullName}" class="settingsBaseMod settingsDropinMod" ${!dropin.disabled ? 'enabled' : ''}>
+        // File names come from whatever is in the mods folder, imported packs included.
+        dropinMods += `<div id="${escapeSettingsHTML(dropin.fullName)}" class="settingsBaseMod settingsDropinMod" ${!dropin.disabled ? 'enabled' : ''}>
                     <div class="settingsModContent">
                         <div class="settingsModMainWrapper">
                             <div class="settingsModStatus"></div>
                             ${settingsIconTile(dropin.name, () => IconCache.peekFile(jar), () => IconCache.jar(jar))}
                             <div class="settingsModDetails">
-                                <span class="settingsModName">${dropin.name}</span>
+                                <span class="settingsModName">${escapeSettingsHTML(dropin.name)}</span>
                                 <div class="settingsDropinRemoveWrapper">
-                                    <button class="settingsDropinRemoveButton" remmod="${dropin.fullName}">${Lang.queryJS('settings.dropinMods.removeButton')}</button>
+                                    <button class="settingsDropinRemoveButton" remmod="${escapeSettingsHTML(dropin.fullName)}">${Lang.queryJS('settings.dropinMods.removeButton')}</button>
                                 </div>
                             </div>
                         </div>
                         <label class="toggleSwitch">
-                            <input type="checkbox" formod="${dropin.fullName}" dropin ${!dropin.disabled ? 'checked' : ''}>
+                            <input type="checkbox" formod="${escapeSettingsHTML(dropin.fullName)}" dropin ${!dropin.disabled ? 'checked' : ''}>
                             <span class="toggleSwitchSlider"></span>
                         </label>
                     </div>
@@ -1038,6 +1086,7 @@ function bindDropinModFileSystemButton(){
  * of adding/removing the .disabled extension.
  */
 function saveDropinModConfiguration(){
+    if(CACHE_DROPIN_MODS == null) return
     for(dropin of CACHE_DROPIN_MODS){
         const dropinUI = document.getElementById(dropin.fullName)
         if(dropinUI != null){
@@ -1184,6 +1233,7 @@ function saveResourcepackSettings(){
         DropinModUtil.setEnabledResourcepacks(CACHE_SETTINGS_INSTANCE_DIR, CACHE_RESOURCEPACKS, enabled, CACHE_SETTINGS_MC_VERSION)
     } catch(err) {
         console.error('Unable to save resource packs.', err)
+        settingsSaveFailed(err)
     }
 }
 
@@ -1248,24 +1298,20 @@ async function loadSelectedServerOnModsTab(){
         el.innerHTML = `
             <span class="serverListTile settingsSelServTile"></span>
             <div class="serverListingDetails">
-                <span class="serverListingName">${serv.rawServer.name}</span>
-                <span class="serverListingDescription">${serv.rawServer.description}</span>
+                <span class="serverListingName"></span>
+                <span class="serverListingDescription"></span>
                 <div class="serverListingInfo">
-                    <div class="serverListingVersion">${serv.rawServer.minecraftVersion}</div>
-                    <div class="serverListingRevision">${serv.rawServer.version}</div>
-                    ${serv.rawServer.mainServer ? `<div class="serverListingStarWrapper">
-                        <svg id="Layer_1" viewBox="0 0 107.45 104.74" width="20px" height="20px">
-                            <defs>
-                                <style>.cls-1{fill:#fff;}.cls-2{fill:none;stroke:#fff;stroke-miterlimit:10;}</style>
-                            </defs>
-                            <path class="cls-1" d="M100.93,65.54C89,62,68.18,55.65,63.54,52.13c2.7-5.23,18.8-19.2,28-27.55C81.36,31.74,63.74,43.87,58.09,45.3c-2.41-5.37-3.61-26.52-4.37-39-.77,12.46-2,33.64-4.36,39-5.7-1.46-23.3-13.57-33.49-20.72,9.26,8.37,25.39,22.36,28,27.55C39.21,55.68,18.47,62,6.52,65.55c12.32-2,33.63-6.06,39.34-4.9-.16,5.87-8.41,26.16-13.11,37.69,6.1-10.89,16.52-30.16,21-33.9,4.5,3.79,14.93,23.09,21,34C70,86.84,61.73,66.48,61.59,60.65,67.36,59.49,88.64,63.52,100.93,65.54Z"/>
-                            <circle class="cls-2" cx="53.73" cy="53.9" r="38"/>
-                        </svg>
-                        <span class="serverListingStarTooltip">${Lang.queryJS('settings.serverListing.mainServer')}</span>
-                    </div>` : ''}
+                    <div class="serverListingVersion"></div>
+                    <div class="serverListingRevision"></div>
+                    ${serv.rawServer.mainServer ? mainServerBadgeHTML() : ''}
                 </div>
             </div>
         `
+        // Local packs are named by the files the player imported: text only.
+        el.querySelector('.serverListingName').textContent = serv.rawServer.name
+        el.querySelector('.serverListingDescription').textContent = serv.rawServer.description || ''
+        el.querySelector('.serverListingVersion').textContent = serv.rawServer.minecraftVersion
+        el.querySelector('.serverListingRevision').textContent = serv.rawServer.version
         // The pack's logo over its monogram, like the modpack picker.
         paintServerTile(el.querySelector('.settingsSelServTile'), serv.rawServer, ConfigManager.getAppearance(), 'serverListTile')
     }
@@ -1304,6 +1350,10 @@ async function animateSettingsTabRefresh(){
  * Prepare the Mods tab for display.
  */
 async function prepareModsTab(first){
+    // No pack left to show, e.g. offline after removing the last one.
+    if(!selectedServerExists()){
+        return
+    }
     await resolveModsForUI()
     await resolveDropinModsForUI()
     await resolveShaderpacksForUI()
@@ -1561,6 +1611,9 @@ function bindMinMaxRam(server) {
  */
 async function prepareJavaTab(){
     const server = (await DistroAPI.getDistribution()).getServerById(ConfigManager.getSelectedServer())
+    if(server == null){
+        return
+    }
     bindMinMaxRam(server)
     bindRangeSlider(server)
     populateMemoryStatus()
@@ -2352,7 +2405,74 @@ async function prepareSettings(first = false) {
     await prepareJavaTab()
     prepareAboutTab()
     prepareLanguageTab()
+    prepareDistroUrlSetting()
     renderAppearanceTab()
+}
+
+/**
+ * Distribution url
+ */
+
+/**
+ * Show the distribution.json url in use and bind its buttons.
+ */
+function prepareDistroUrlSetting(){
+    const input = document.getElementById('settingsDistroUrlInput')
+    input.placeholder = REMOTE_DISTRO_URL
+    input.value = ConfigManager.getDistributionURL()
+    distroUrlStatus(null)
+    if(input.hasAttribute('bound')){
+        return
+    }
+    input.setAttribute('bound', '')
+    input.addEventListener('input', () => distroUrlStatus(null))
+    input.addEventListener('keydown', e => {
+        if(e.key === 'Enter') applyDistroUrl(input.value)
+    })
+    document.getElementById('settingsDistroUrlApply').onclick = () => applyDistroUrl(input.value)
+    document.getElementById('settingsDistroUrlReset').onclick = () => applyDistroUrl('')
+}
+
+function distroUrlStatus(key){
+    const status = document.getElementById('settingsDistroUrlStatus')
+    status.hidden = key == null
+    status.textContent = key != null ? Lang.queryJS(`settings.distroUrl.${key}`) : ''
+}
+
+/**
+ * Save a new distribution.json url and restart the launcher on it, so the
+ * packs, servers and news all come from the new file.
+ *
+ * @param {string} value The url; empty for the built-in one.
+ */
+function applyDistroUrl(value){
+    const url = String(value || '').trim()
+    if(url !== ''){
+        let parsed = null
+        try {
+            parsed = new URL(url)
+        } catch {
+            // Reported below.
+        }
+        if(parsed == null || (parsed.protocol !== 'https:' && parsed.protocol !== 'http:')){
+            distroUrlStatus('invalid')
+            return
+        }
+    }
+    if(url === ConfigManager.getDistributionURL()){
+        distroUrlStatus('unchanged')
+        return
+    }
+    if(launcherBusy()){
+        distroUrlStatus('busy')
+        return
+    }
+    fullSettingsSave()
+    ConfigManager.setDistributionURL(url)
+    ConfigManager.save()
+    // A plain reload: the preloader fetches the distribution from the new url.
+    document.body.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 140, fill: 'forwards' })
+        .finished.then(() => location.reload())
 }
 
 // Prepare the settings UI on startup.

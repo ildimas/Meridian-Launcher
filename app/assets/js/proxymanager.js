@@ -85,10 +85,12 @@ exports.spawnReceiver = function(transmitter, proxy){
     const hook = path.join(__dirname, 'proxychild.js')
     // The receiver also needs the local modpacks in its distribution.
     const localHook = path.join(__dirname, 'localpackschild.js')
+    // More downloads at once than helios-core's 15.
+    const downloadHook = path.join(__dirname, 'downloadchild.js')
     const fork = child_process.fork
     child_process.fork = function(modulePath, args, options = {}){
         return fork.call(child_process, modulePath, args, Object.assign({}, options, {
-            execArgv: (options.execArgv || process.execArgv).concat(['--require', hook, '--require', localHook]),
+            execArgv: (options.execArgv || process.execArgv).concat(['--require', hook, '--require', localHook, '--require', downloadHook]),
             env: Object.assign({}, options.env || process.env, {
                 CUSTOM_LAUNCHER_PROXY: active != null ? JSON.stringify(active) : ''
             })

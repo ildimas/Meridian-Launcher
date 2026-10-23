@@ -43,10 +43,11 @@ function toUrl(proxy){
  * Create an agent which tunnels requests through the proxy.
  *
  * @param {Object} proxy The proxy configuration.
+ * @param {Object} [options] Agent options, e.g. keepAlive.
  */
-exports.createAgent = function(proxy){
+exports.createAgent = function(proxy, options){
     const url = toUrl(proxy)
-    return proxy.type === 'socks5' ? new SocksProxyAgent(url) : new HttpsProxyAgent(url)
+    return proxy.type === 'socks5' ? new SocksProxyAgent(url, options) : new HttpsProxyAgent(url, options)
 }
 
 /**
@@ -56,7 +57,9 @@ exports.createAgent = function(proxy){
  */
 exports.applyGlobalAgent = function(proxy){
     if(proxy != null){
-        const agent = exports.createAgent(proxy)
+        // Kept-alive tunnels: thousands of small pack files would otherwise
+        // each pay for a new connection and TLS handshake through the proxy.
+        const agent = exports.createAgent(proxy, { keepAlive: true })
         http.globalAgent = agent
         https.globalAgent = agent
     } else {

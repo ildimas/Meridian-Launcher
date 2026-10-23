@@ -4,7 +4,7 @@ const os             = require('os')
 const path           = require('path')
 
 const ConfigManager  = require('./configmanager')
-const { DistroAPI }  = require('./distromanager')
+const { DistroAPI, getRemoteDistroUrl } = require('./distromanager')
 const LangLoader     = require('./langloader')
 const ProxyManager   = require('./proxymanager')
 const { LoggerUtil } = require('helios-core')
@@ -25,6 +25,7 @@ ProxyManager.apply(ConfigManager.getProxy())
 // TODO Fix this
 DistroAPI['commonDir'] = ConfigManager.getCommonDirectory()
 DistroAPI['instanceDir'] = ConfigManager.getInstanceDirectory()
+DistroAPI['remoteUrl'] = getRemoteDistroUrl()
 
 // Load Strings
 LangLoader.setupLanguage(ConfigManager.getLanguage())

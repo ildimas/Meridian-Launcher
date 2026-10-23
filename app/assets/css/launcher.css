@@ -1977,6 +1977,66 @@ input:checked + .toggleSwitchSlider:before {
 }
 
 /* Description for the file selector. */
+/* The distribution.json url (Launcher tab). */
+#settingsDistroUrl {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 89%;
+    margin-bottom: 20px;
+}
+.settingsDistroUrlRow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 6px;
+}
+#settingsContainer #settingsDistroUrlInput {
+    flex: 1;
+    min-width: 0;
+    height: 36px;
+    box-sizing: border-box;
+}
+.settingsDistroUrlReset {
+    border: 1px solid var(--line-strong);
+    background: var(--glass-hover);
+    color: var(--text-1);
+}
+.settingsDistroUrlReset:hover:not(:disabled),
+.settingsDistroUrlReset:focus-visible {
+    background: var(--accent-soft);
+}
+.settingsDistroUrlWarn {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-top: 6px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 90, 90, 0.45);
+    background: rgba(255, 70, 70, 0.12);
+    color: #ff7a7a;
+    font-size: 12.5px;
+    line-height: 1.45;
+}
+.settingsDistroUrlWarn svg {
+    flex: none;
+    width: 16px;
+    height: 16px;
+    margin-top: 1px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+.settingsDistroUrlWarn strong {
+    color: #ff5c5c;
+}
+.settingsDistroUrlStatus {
+    font-size: 12px;
+    color: var(--danger);
+}
 .settingsFileSelDesc {
     font-size: 10px;
     margin: 20px 0px;
@@ -2480,7 +2540,6 @@ input:checked + .toggleSwitchSlider:before {
     bottom: 0px;
     border-radius: 2px;
     background: var(--accent);
-    transition: width 200ms ease;
 }
 #mpTask[indeterminate] #mpTaskFill {
     width: 30% !important;
@@ -2497,6 +2556,49 @@ input:checked + .toggleSwitchSlider:before {
     font-size: 12.5px;
     line-height: 1.45;
     color: var(--text-2);
+}
+#mpTaskDetail {
+    flex: 1;
+    min-width: 0;
+}
+#mpTaskDetail p {
+    margin: 0px 0px 6px;
+}
+#mpTaskDetail p:last-child {
+    margin-bottom: 0px;
+}
+.mpFiles summary {
+    cursor: pointer;
+    color: var(--accent);
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+/* Why a file is missing, e.g. "HTTP 403". */
+.mpFileNote {
+    color: var(--text-3, var(--text-2));
+    opacity: 0.8;
+    font-size: 11.5px;
+}
+.mpTaskError {
+    color: #ff9a9a;
+}
+/* Files the install left out, each linked to its download page. */
+.mpMissing {
+    max-height: 132px;
+    overflow-y: auto;
+    margin: 6px 0px;
+    padding-left: 18px;
+}
+.mpMissing a {
+    color: var(--text-1);
+}
+.mpMissing a:hover {
+    color: var(--accent);
+}
+#mpTaskSecondary,
+#mpTaskAction {
+    flex-shrink: 0;
+    white-space: nowrap;
 }
 
 /* Add: import card and the version form, side by side. */
@@ -2565,6 +2667,86 @@ input:checked + .toggleSwitchSlider:before {
 .mpImport:disabled {
     opacity: 0.5;
     cursor: default;
+}
+.mpFiles {
+    width: 100%;
+    min-width: 0;
+}
+.mpFilesChip {
+    box-sizing: border-box;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 8px 8px 12px;
+    border-radius: 12px;
+    border: 1px solid var(--accent-line);
+    background: var(--accent-soft);
+}
+.mpFilesChip[hidden] {
+    display: none;
+}
+.mpFilesChip > svg {
+    flex: none;
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: var(--accent-hi);
+    stroke-width: 1.8;
+    stroke-linejoin: round;
+}
+.mpFilesText {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+#mpFilesName {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-1);
+}
+#mpFilesNote {
+    font-size: 12px;
+    color: var(--text-2);
+}
+#mpFilesNote[data-state=failed] {
+    color: var(--text-1);
+}
+#mpFilesClear {
+    flex: none;
+    width: 28px;
+    height: 28px;
+    display: grid;
+    place-items: center;
+    padding: 0px;
+    border: 0px;
+    border-radius: 50%;
+    background: transparent;
+    cursor: pointer;
+}
+#mpFilesClear svg {
+    width: 14px;
+    height: 14px;
+    fill: none;
+    stroke: var(--text-2);
+    stroke-width: 2;
+    stroke-linecap: round;
+}
+#mpFilesClear:hover,
+#mpFilesClear:focus-visible {
+    background: var(--glass-hover);
+}
+#mpFilesClear:hover svg {
+    stroke: var(--text-1);
+}
+#mpVersion[drag] {
+    border-color: var(--accent-line);
+    background: var(--glass-hover);
 }
 .mpFormRow {
     width: 100%;
@@ -2712,6 +2894,200 @@ input:checked + .toggleSwitchSlider:before {
     width: 36px;
     height: 36px;
 }
+/* A tile that opens the icon picker (mpPickIcon). */
+.mpTilePick {
+    padding: 0px;
+    border: 0px;
+    cursor: pointer;
+    transition: box-shadow 160ms ease, transform 160ms ease;
+}
+.mpTilePick:hover,
+.mpTilePick:focus-visible {
+    outline: none;
+    transform: scale(1.06);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18), 0 0 0 2px var(--accent);
+}
+.mpIconPicker {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-top: 4px;
+}
+.mpIconGrid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 10px;
+    /* Up to three rows, then it scrolls. The padding leaves room for the
+       selection ring and the hover zoom. */
+    max-height: 176px;
+    overflow-y: auto;
+    padding: 6px;
+    margin: -6px;
+}
+.mpIconGrid::-webkit-scrollbar {
+    width: 8px;
+}
+.mpIconGrid::-webkit-scrollbar-track {
+    background: transparent;
+    margin: 6px 0px;
+}
+.mpIconGrid::-webkit-scrollbar-thumb {
+    border: 2.5px solid transparent;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.28) padding-box;
+}
+.mpIconGrid::-webkit-scrollbar-thumb:hover,
+.mpIconGrid::-webkit-scrollbar-thumb:active {
+    background: var(--accent) padding-box;
+}
+.mpIconOption {
+    padding: 0px;
+    border: 0px;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+    transition: box-shadow 160ms ease, transform 160ms ease;
+}
+.mpIconOption {
+    position: relative;
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background-size: cover;
+}
+.mpIconOption:hover {
+    transform: scale(1.06);
+}
+.mpIconOption:focus-visible {
+    outline: 2px solid #ffffff;
+    outline-offset: 2px;
+}
+/* Add a picture: a dashed +. */
+.mpIconUpload {
+    color: var(--text-2);
+    background: transparent;
+    box-shadow: none;
+    border: 1.5px dashed var(--line-strong);
+    box-sizing: border-box;
+}
+.mpIconUpload:hover {
+    color: var(--text-1);
+    border-color: var(--accent);
+}
+.mpIconUpload svg {
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+}
+.mpIconOption[hidden] {
+    display: none;
+}
+.mpIconOption[selected] {
+    box-shadow: 0 0 0 2px rgba(2, 26, 48, 0.7), 0 0 0 4px var(--accent);
+}
+/* Framing a picture of the user's own (mpCropIcon), over the icon picker. */
+.mpCropLayer {
+    position: fixed;
+    top: 22px;
+    left: 0px;
+    right: 0px;
+    bottom: 0px;
+    z-index: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(1, 10, 20, 0.45);
+}
+.mpCropDialog {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 340px;
+    box-sizing: border-box;
+    padding: 24px 26px 20px;
+    border-radius: var(--radius-panel);
+    background: var(--glass-strong);
+    backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--line);
+    box-shadow: var(--sheen), var(--shadow-float);
+    animation: riseIn 360ms var(--ease-out) both;
+}
+.mpCropTitle {
+    font-size: 19px;
+    font-weight: var(--display-weight);
+    letter-spacing: var(--display-tracking);
+    line-height: 1.3;
+}
+.mpCropHint {
+    margin-top: -6px;
+    font-size: 12.5px;
+    line-height: 1.45;
+    color: var(--text-3);
+}
+.mpCropStage {
+    position: relative;
+    align-self: center;
+    width: 280px;
+    height: 280px;
+    overflow: hidden;
+    border-radius: 18px;
+    background: rgba(1, 10, 20, 0.5);
+    cursor: grab;
+    touch-action: none;
+}
+.mpCropStage:active {
+    cursor: grabbing;
+}
+/* The icon's backdrop (packicons.js BACKDROP) inside the circle. */
+.mpCropBackdrop {
+    position: absolute;
+    inset: 30px;
+    border-radius: 50%;
+    background: linear-gradient(160deg, #004477 0%, #021a30 100%);
+}
+.mpCropImage {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    max-width: none;
+    pointer-events: none;
+    -webkit-user-select: none;
+}
+.mpCropImage[pixel] {
+    image-rendering: pixelated;
+}
+/* Dims everything outside the circle and rings it. */
+.mpCropHole {
+    position: absolute;
+    inset: 30px;
+    border-radius: 50%;
+    box-shadow: 0 0 0 200px rgba(2, 14, 28, 0.66), inset 0 0 0 2px rgba(255, 255, 255, 0.75);
+    pointer-events: none;
+}
+.mpCropZoom {
+    width: 100%;
+    margin: 0px;
+    accent-color: var(--accent);
+    cursor: pointer;
+}
+.mpCropActions {
+    display: flex;
+    flex-direction: row-reverse;
+    align-items: center;
+    gap: 6px;
+    margin-top: 4px;
+}
+.mpCropDone {
+    height: 38px;
+    padding: 0px 18px;
+    font-size: 12.5px;
+}
 .mpRowText {
     flex: 1;
     min-width: 0;
@@ -2733,6 +3109,116 @@ input:checked + .toggleSwitchSlider:before {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+/* Installed packs: the selected one as on the Mods tab, the rest in a list under it. */
+.mpPackCards {
+    position: relative;
+}
+.mpPackCard {
+    width: 100%;
+    margin: 0px;
+}
+.mpPackCards[open] .mpPackCard {
+    border-color: var(--accent-line);
+}
+.mpPackCard .settingsSelServTile {
+    flex: none;
+}
+.mpPackCard .serverListingDescription {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.mpSwitch {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+.mpSwitch svg {
+    width: 14px;
+    height: 14px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transition: transform 160ms ease;
+}
+.mpSwitch[aria-expanded="true"] svg {
+    transform: rotate(180deg);
+}
+.mpPackMenu {
+    display: flex;
+    flex-direction: column;
+    margin-top: 6px;
+    padding: 6px;
+    max-height: 320px;
+    overflow-y: auto;
+    border-radius: var(--radius-l);
+    border: 1px solid var(--line-strong);
+    background: var(--glass-strong);
+    backdrop-filter: var(--glass-blur);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+}
+.mpPackOption {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    cursor: pointer;
+    outline: none;
+}
+.mpPackOption:hover,
+.mpPackOption:focus-visible {
+    background: var(--glass-hover);
+}
+.mpPackOption[selected] {
+    background: var(--accent-soft);
+}
+.mpPackOption .serverListingDetails {
+    flex: 1;
+}
+.mpActionGap {
+    width: 30px;
+    flex: none;
+}
+.mpPackOption[packHidden]:not([selected]) .serverListingName {
+    color: var(--text-2);
+}
+.mpPackActions {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.mpPackBadge {
+    display: inline-flex;
+    align-items: center;
+    height: 18px;
+    padding: 0px 8px;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--line-strong);
+    color: var(--text-2);
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: default;
+}
+.mpPackBadgeHidden {
+    border-style: dashed;
+    color: var(--text-3);
+}
+/* The pack's own logo in the icon picker. */
+.mpIconOriginal .serverListTile {
+    width: 100%;
+    height: 100%;
+    box-shadow: none;
+}
+/* Hidden from the pack pickers: the eye is struck through and lit. */
+.mpHidden {
+    color: var(--accent-hi);
 }
 .mpRemove:hover,
 .mpRemove:focus-visible {
@@ -3335,6 +3821,14 @@ input:checked + .toggleSwitchSlider:before {
     color: var(--text-1);
     font-weight: 600;
     background: rgba(255, 255, 255, 0.16);
+}
+.apSegment button:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+.apSegment button:disabled:hover {
+    color: rgba(255, 255, 255, 0.72);
+    background: transparent;
 }
 .apLink {
     padding: 0px;
@@ -4374,6 +4868,110 @@ body[settingsOpen] #wallpaper .wpImg {
 .heroChip[hidden] {
     display: none;
 }
+#serverHeroUpdate {
+    color: var(--accent);
+    border-color: rgba(125, 180, 230, 0.45);
+}
+/* Tells the player a pack they have got a new version. */
+#packUpdateToast {
+    position: absolute;
+    top: calc(var(--edge) + 60px);
+    right: var(--edge);
+    z-index: 30;
+    width: 340px;
+    box-sizing: border-box;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 10px 14px 16px;
+    border-radius: 20px;
+    background: var(--glass-strong);
+    backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--line);
+    box-shadow: var(--sheen), var(--shadow-float);
+    opacity: 0;
+    transform: translateY(-8px);
+    transition: opacity 300ms var(--ease-out), transform 300ms var(--ease-out);
+}
+#packUpdateToast.packUpdateShown {
+    opacity: 1;
+    transform: none;
+}
+#packUpdateToast[hidden] {
+    display: none;
+}
+.packUpdateIcon {
+    flex: none;
+    width: 20px;
+    height: 20px;
+    margin-top: 1px;
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+.packUpdateBody {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+}
+.packUpdateTitle {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-1);
+}
+.packUpdateText {
+    font-size: 12.5px;
+    line-height: 1.45;
+    color: var(--text-2);
+}
+.packUpdateOpen {
+    margin-top: 6px;
+    height: 28px;
+    padding: 0px 12px;
+    border: 1px solid rgba(125, 180, 230, 0.45);
+    border-radius: var(--radius-pill);
+    background: rgba(125, 180, 230, 0.16);
+    color: var(--text-1);
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+.packUpdateOpen:hover {
+    background: rgba(125, 180, 230, 0.26);
+}
+.packUpdateOpen[hidden] {
+    display: none;
+}
+.packUpdateClose {
+    flex: none;
+    width: 28px;
+    height: 28px;
+    padding: 0px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 50%;
+    background: none;
+    cursor: pointer;
+}
+.packUpdateClose:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+.packUpdateClose svg {
+    width: 14px;
+    height: 14px;
+    fill: none;
+    stroke: var(--text-2);
+    stroke-width: 2;
+    stroke-linecap: round;
+}
 /* Shown while the selected modpack's game is running. */
 #serverHeroRunning {
     gap: 7px;
@@ -4475,7 +5073,6 @@ body[settingsOpen] #wallpaper .wpImg {
 }
 #serverDialTicks {
     transform-origin: 260px 372px;
-    transition: transform 520ms var(--dial-ease);
 }
 #serverDialTicksMinor {
     fill: none;
@@ -4506,20 +5103,14 @@ body[settingsOpen] #wallpaper .wpImg {
     background-size: cover;
     cursor: pointer;
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28), 0 6px 18px rgba(0, 0, 0, 0.3);
-    /* Drawn at the selected size and placed with a transform (landing.js), so
-       turning the dial never re-runs layout. */
+    /* Drawn at the selected size and placed with a transform each frame while
+       the dial turns (placeServerDial), so turning never re-runs layout. */
     left: 0px;
     top: 0px;
     width: 72px;
     height: 72px;
     will-change: transform;
-    transition:
-        transform 520ms var(--dial-ease),
-        opacity 400ms ease,
-        box-shadow 300ms ease;
-}
-.serverTile[fresh] {
-    transition: none;
+    transition: box-shadow 300ms ease;
 }
 .serverTile[selected] {
     cursor: default;
@@ -4534,8 +5125,38 @@ body[settingsOpen] #wallpaper .wpImg {
 .serverTile[running][selected] {
     box-shadow: 0 0 0 3px rgba(2, 26, 48, 0.7), 0 0 0 5px var(--ok), 0 12px 30px rgba(0, 0, 0, 0.35);
 }
+/* A new version of the pack is out (landing.js, Pack updates). */
+.serverTile[update]::after {
+    content: '';
+    position: absolute;
+    top: 10%;
+    right: 10%;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 2px rgba(2, 26, 48, 0.85), 0 0 10px var(--accent);
+}
 .serverTile[hasIcon] .serverTileMono {
     visibility: hidden;
+}
+/* Minecraft item icon for a pack with no logo (packicons.js). */
+.serverGlyph {
+    display: block;
+    /* Just inside the circle, so square icons keep their corners. */
+    width: 68%;
+    height: 68%;
+    background-repeat: no-repeat;
+    image-rendering: pixelated;
+    filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.45));
+}
+/* The user's own picture: the whole tile, smoothly scaled. */
+.serverGlyph.serverGlyphFull {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    image-rendering: auto;
+    filter: none;
 }
 .serverTileIcon {
     position: absolute;
@@ -4789,6 +5410,41 @@ body[settingsOpen] #wallpaper .wpImg {
     display: flex;
     flex-direction: column;
     gap: 2px;
+    /* The scrollbar sits in the menu's own padding, a little off the rows. */
+    margin-right: -8px;
+    padding-right: 4px;
+    /* Rows fade under the heading and the bottom edge while there is more to
+       scroll that way (fadeTop / fadeBottom, set in landing.js). */
+    --fade-top: 0px;
+    --fade-bottom: 0px;
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0px, #000 var(--fade-top), #000 calc(100% - var(--fade-bottom)), transparent 100%);
+}
+#serverMenuList[fadeTop] {
+    --fade-top: 22px;
+}
+#serverMenuList[fadeBottom] {
+    --fade-bottom: 22px;
+}
+#serverMenuList::-webkit-scrollbar {
+    width: 8px;
+}
+#serverMenuList::-webkit-scrollbar-track {
+    background: transparent;
+    margin: 6px 0px;
+}
+/* A 3px glass thumb inside a transparent border; brighter while the list is
+   hovered, accent while dragged. */
+#serverMenuList::-webkit-scrollbar-thumb {
+    border: 2.5px solid transparent;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.12) padding-box;
+}
+#serverMenuList:hover::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.28) padding-box;
+}
+#serverMenuList::-webkit-scrollbar-thumb:hover,
+#serverMenuList::-webkit-scrollbar-thumb:active {
+    background: var(--accent) padding-box;
 }
 .serverListRow {
     display: flex;
@@ -4832,6 +5488,17 @@ body[settingsOpen] #wallpaper .wpImg {
 }
 .serverListRow[running] .serverListRunning {
     display: flex;
+}
+.serverListRow[update] .serverListName::after {
+    content: '';
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    margin-left: 7px;
+    vertical-align: middle;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 6px var(--accent);
 }
 #server_select[running] #serverPickerTile {
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18), 0 0 0 2px var(--ok);
@@ -4996,7 +5663,6 @@ body[settingsOpen] #wallpaper .wpImg {
     stroke-dasharray: 100;
     stroke-dashoffset: 100;
     filter: drop-shadow(0 0 4px var(--accent-soft));
-    transition: stroke-dashoffset 250ms ease;
 }
 
 /* Narrow windows: drop the outer dial tiles so they clear the side blocks. */
@@ -5011,9 +5677,9 @@ body[settingsOpen] #wallpaper .wpImg {
     #landingContainer[dialHidden] #serverPicker {
         width: 260px;
     }
+    /* Their opacity follows the turn in placeServerDial (landing.js). */
     .serverTile[far],
     .serverTile[edge] {
-        opacity: 0 !important;
         pointer-events: none;
     }
 }
@@ -5632,11 +6298,37 @@ body[settingsOpen] #wallpaper .wpImg {
 
 /* Server listing image. */
 .serverListingImg {
+    position: relative;
     flex: 0 0 auto;
     border-radius: 10px;
     height: 48px;
     width: 48px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     background: var(--basalt-2);
+    background-size: cover;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: #ffffff;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+}
+.serverListingImg[hasIcon] .serverListingImgMono {
+    visibility: hidden;
+}
+.serverListingImgIcon {
+    position: absolute;
+    inset: 0px;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+/* A picture of the player's own fills the square tile, not a circle in it. */
+.serverListingImg .serverGlyph.serverGlyphFull {
+    border-radius: 0px;
 }
 
 /* Content container for the server listing's details. */
@@ -5691,39 +6383,24 @@ body[settingsOpen] #wallpaper .wpImg {
     font-variant-numeric: tabular-nums;
 }
 
-/* Star which indicates the default (main) server. */
-.serverListingStarWrapper {
-    display: flex;
+/* Badge which marks the default (main) server. */
+.serverListingMain {
+    display: inline-flex;
     align-items: center;
-    cursor: default;
+    gap: 4px;
     height: 18px;
-    position: relative;
-}
-.serverListingStarWrapper svg {
-    fill: var(--warn) !important;
-    width: 13px;
-    height: 13px;
-}
-/* Tooltip which displays when hovering over the star. */
-.serverListingStarTooltip {
-    visibility: hidden;
-    opacity: 0;
+    padding: 0px 8px 0px 6px;
+    border-radius: var(--radius-pill);
+    background: rgba(255, 210, 122, 0.14);
+    color: var(--warn);
+    font-size: 11px;
+    font-weight: 700;
     white-space: nowrap;
-    padding: 4px 8px;
-    background-color: var(--glass-strong);
-    border: 1px solid var(--line);
-    border-radius: 6px;
-    position: absolute;
-    z-index: 1;
-    left: calc(100% + 6px);
-    font-size: 11.5px;
-    font-weight: 600;
-    transition: visibility 0s linear 0.2s, opacity 0.2s ease;
 }
-.serverListingStarWrapper:hover .serverListingStarTooltip {
-    visibility: visible;
-    opacity: 1;
-    transition-delay:0s;
+.serverListingMain svg {
+    width: 11px;
+    height: 11px;
+    fill: currentColor;
 }
 
 /* Content container which contains the server select actions. */

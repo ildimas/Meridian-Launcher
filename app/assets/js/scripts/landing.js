@@ -32,7 +32,9 @@ const {
 // Internal Requirements
 const DiscordWrapper          = require('./assets/js/discordwrapper')
 const ProcessBuilder          = require('./assets/js/processbuilder')
+const PackIcons               = require('./assets/js/packicons')
 const LocalPacks              = require('./assets/js/localpacks')
+const PackCleanup             = require('./assets/js/packcleanup')
 
 // Launch Elements
 const launch_content          = document.getElementById('launch_content')
@@ -90,9 +92,13 @@ function setLaunchDetails(details){
  */
 function setLaunchPercentage(percent){
     sizeLaunchRing()
-    launch_progress.querySelector('.launchRingFill').style.strokeDashoffset = 100 - Math.max(0, Math.min(100, percent))
+    followLaunchRing(percent)
     launch_progress_label.innerHTML = percent + '%'
 }
+
+const followLaunchRing = progressFollower(p => {
+    launch_progress.querySelector('.launchRingFill').style.strokeDashoffset = 100 - p
+})
 
 // Gap between the pill and its progress ring, and the ring's width, in px.
 const LAUNCH_RING = { gap: 4, width: 3 }
@@ -230,7 +236,11 @@ function renderRunningState(){
     launchButton.toggleAttribute('running', running)
     // Until the check finishes the button keeps saying Play.
     const needsDownload = packInstalled.get(selId) === false
-    document.getElementById('launchButtonLabel').textContent = Lang.queryJS(running ? 'landing.running.button' : needsDownload ? 'landing.running.download' : 'landing.running.play')
+    const update = packUpdateFor(selId)
+    const updateChip = document.getElementById('serverHeroUpdate')
+    updateChip.hidden = running || update == null
+    updateChip.textContent = update != null ? Lang.queryJS('landing.packUpdate.chip', { version: update }) : ''
+    document.getElementById('launchButtonLabel').textContent = Lang.queryJS(running ? 'landing.running.button' : update != null ? 'landing.running.update' : needsDownload ? 'landing.running.download' : 'landing.running.play')
     if(!document.getElementById('landingContainer').hasAttribute('launching')){
         launchButton.disabled = selId == null || running
     }
@@ -238,11 +248,153 @@ function renderRunningState(){
     server_select.toggleAttribute('running', running)
     for(const row of document.getElementById('serverMenuList').children){
         row.toggleAttribute('running', isServerRunning(row.getAttribute('data-id')))
+        row.toggleAttribute('update', packUpdateFor(row.getAttribute('data-id')) != null)
     }
     for(const tile of document.getElementById('serverDialTiles').children){
         tile.toggleAttribute('running', isServerRunning(tile.getAttribute('data-id')))
+        tile.toggleAttribute('update', packUpdateFor(tile.getAttribute('data-id')) != null)
     }
 }
+
+/* Pack updates */
+
+// distribution.json is fetched again this often, and when the window comes
+// back after at least focusGap; the notice hides itself after toastMs.
+const PACK_UPDATE = { every: 10 * 60 * 1000, focusGap: 2 * 60 * 1000, toastMs: 15000 }
+// "<server id>@<version>" the player was already told about this session.
+const packUpdatesTold = new Set()
+let packUpdateCheckedAt = 0
+let packUpdateChecking = false
+let packUpdateToastTimer = null
+
+/**
+ * The new version of a pack the player has, or null when it is up to date,
+ * was never launched here, or is a local modpack.
+ *
+ * @param {string} id The server id.
+ */
+function packUpdateFor(id){
+    const distro = DistroAPI.distribution
+    const serv = distro != null && id != null ? distro.getServerById(id) : null
+    if(serv == null || LocalPacks.isLocal(serv.rawServer) || serv.rawServer.version == null) return null
+    const have = ConfigManager.getPackVersion(id)
+    return have != null && have !== String(serv.rawServer.version) ? String(serv.rawServer.version) : null
+}
+
+/**
+ * Packs installed before versions were remembered count as up to date with
+ * what the distribution says the first time it is seen.
+ */
+function packUpdateBaseline(distro){
+    let changed = false
+    for(const serv of distro.servers){
+        const raw = serv.rawServer
+        if(LocalPacks.isLocal(raw) || raw.version == null || ConfigManager.getPackVersion(raw.id) != null) continue
+        if(fs.existsSync(require('path').join(ConfigManager.getInstanceDirectory(), raw.id))){
+            ConfigManager.setPackVersion(raw.id, raw.version)
+            changed = true
+        }
+    }
+    if(changed) ConfigManager.save()
+}
+
+/**
+ * Tell the player about packs that got a new version, once per version: a
+ * notice on the landing view and, when the launcher is in the background, a
+ * system notification.
+ */
+function announcePackUpdates(distro){
+    const fresh = distro.servers.filter(s => {
+        const v = packUpdateFor(s.rawServer.id)
+        return v != null && !packUpdatesTold.has(`${s.rawServer.id}@${v}`)
+    })
+    if(fresh.length === 0) return
+    for(const s of fresh) packUpdatesTold.add(`${s.rawServer.id}@${s.rawServer.version}`)
+    const one = fresh.length === 1 ? fresh[0].rawServer : null
+    const title = Lang.queryJS('landing.packUpdate.title')
+    const text = one != null
+        ? Lang.queryJS('landing.packUpdate.one', { name: one.name, version: one.version })
+        : Lang.queryJS('landing.packUpdate.many', { names: fresh.map(s => s.rawServer.name).join(', ') })
+    const open = () => {
+        hidePackUpdateToast()
+        if(one != null && one.id !== ConfigManager.getSelectedServer()){
+            updateSelectedServer(DistroAPI.distribution.getServerById(one.id))
+        }
+    }
+
+    const toast = document.getElementById('packUpdateToast')
+    toast.querySelector('.packUpdateTitle').textContent = title
+    toast.querySelector('.packUpdateText').textContent = text
+    const btn = toast.querySelector('.packUpdateOpen')
+    btn.hidden = one == null || one.id === ConfigManager.getSelectedServer()
+    btn.onclick = open
+    toast.hidden = false
+    void toast.offsetWidth
+    toast.classList.add('packUpdateShown')
+    clearTimeout(packUpdateToastTimer)
+    packUpdateToastTimer = setTimeout(hidePackUpdateToast, PACK_UPDATE.toastMs)
+
+    if(!document.hasFocus() && typeof Notification !== 'undefined'){
+        const note = new Notification(title, { body: text, silent: false })
+        note.onclick = () => {
+            const win = remote.getCurrentWindow()
+            if(win.isMinimized()) win.restore()
+            win.show()
+            win.focus()
+            open()
+        }
+    }
+}
+
+function hidePackUpdateToast(){
+    clearTimeout(packUpdateToastTimer)
+    const toast = document.getElementById('packUpdateToast')
+    toast.classList.remove('packUpdateShown')
+    setTimeout(() => {
+        if(!toast.classList.contains('packUpdateShown')) toast.hidden = true
+    }, 320)
+}
+document.querySelector('#packUpdateToast .packUpdateClose').onclick = hidePackUpdateToast
+
+/**
+ * Fetch distribution.json again and show what changed. Skipped while a game
+ * is launching or running, and away from the landing view, so nothing is
+ * swapped under the player's feet.
+ */
+async function checkPackUpdates(){
+    if(packUpdateChecking || DistroAPI.distribution == null) return
+    if(getCurrentView() !== VIEWS.landing || launcherBusy()) return
+    packUpdateChecking = true
+    packUpdateCheckedAt = Date.now()
+    try {
+        const before = JSON.stringify(DistroAPI.rawDistribution)
+        const distro = await DistroAPI.refreshDistributionOrFallback()
+        if(JSON.stringify(DistroAPI.rawDistribution) !== before){
+            onDistroRefresh(distro)
+        }
+        packUpdateBaseline(distro)
+        renderRunningState()
+        announcePackUpdates(distro)
+    } catch(err) {
+        loggerLanding.warn('Unable to check for pack updates.', err)
+    } finally {
+        packUpdateChecking = false
+    }
+}
+
+// First look at the distribution loaded on start, then keep checking.
+const packUpdateStart = setInterval(() => {
+    if(DistroAPI.distribution == null || getCurrentView() !== VIEWS.landing) return
+    clearInterval(packUpdateStart)
+    packUpdateBaseline(DistroAPI.distribution)
+    packUpdateCheckedAt = Date.now()
+    renderRunningState()
+    announcePackUpdates(DistroAPI.distribution)
+    setInterval(checkPackUpdates, PACK_UPDATE.every)
+}, 2000)
+window.addEventListener('focus', () => {
+    if(Date.now() - packUpdateCheckedAt >= PACK_UPDATE.focusGap) checkPackUpdates()
+})
 
 // Bind launch button
 document.getElementById('launch_button').addEventListener('click', async e => {
@@ -341,6 +493,16 @@ function getServerLoaderLabel(serv){
         'net.fabricmc': 'Fabric',
         'org.quiltmc': 'Quilt'
     }
+    // Local packs record their loader; their first module can be a library of
+    // it (NeoForge's is fancymodloader) with an unrelated version.
+    const local = serv.rawServer.local
+    if(local != null && local.loader){
+        if(local.loader === 'vanilla'){
+            return Lang.queryJS('landing.serverHero.vanilla')
+        }
+        const name = { forge: 'Forge', neoforge: 'NeoForge', fabric: 'Fabric', quilt: 'Quilt' }[local.loader] || local.loader
+        return local.loaderVersion ? `${name} ${local.loaderVersion}` : name
+    }
     for(const mdl of serv.modules){
         const type = mdl.rawModule.type
         if(type !== Type.ForgeHosted && type !== Type.Fabric){
@@ -428,6 +590,79 @@ function updateServerHero(serv){
 const SERVER_DIAL = { cx: 260, cy: 372, r: 300, step: 20, tile: 72 }
 let serverDialWheelAt = 0
 
+// Where the dial is turned to: a fractional server index while it turns.
+const serverDialTurn = { pos: null, from: 0, to: 0, start: 0, ms: 0, frame: null }
+
+// Narrow windows show only the neighbouring tiles (matches launcher.css).
+const serverDialNarrow = window.matchMedia('(max-width: 1239px)')
+serverDialNarrow.addEventListener('change', () => {
+    if(serverDialTurn.pos != null) placeServerDial(serverDialTurn.pos)
+})
+
+/**
+ * Put every dial tile on the arc for a dial position. Positions between
+ * servers place tiles between their slots, so a turn of any length follows
+ * the circle; animating each tile's transform instead cuts straight across
+ * it, and over a few steps the tiles dip towards its centre.
+ *
+ * @param {number} pos The server index at the top, fractional mid-turn.
+ */
+function placeServerDial(pos){
+    Array.from(document.getElementById('serverDialTiles').children).forEach((tile, i) => {
+        const d = i - pos
+        const ad = Math.abs(d)
+        const a = d * SERVER_DIAL.step * Math.PI / 180
+        const x = SERVER_DIAL.cx + SERVER_DIAL.r * Math.sin(a)
+        const y = SERVER_DIAL.cy - SERVER_DIAL.r * Math.cos(a)
+        // Selected 72px, neighbours 52px, the rest 42px, blended in between.
+        const size = ad <= 1 ? 72 - 20 * ad : ad <= 2 ? 52 - 10 * (ad - 1) : 42
+        // Narrow windows fade tiles out just past the neighbours, by where they
+        // are mid-turn rather than where they end up, so they clear the side
+        // blocks.
+        const opacity = ad <= 1 ? 1 - 0.08 * ad
+            : serverDialNarrow.matches ? Math.max(0, 0.92 * (1 - 2 * (ad - 1)))
+            : ad <= 2 ? 0.92 - 0.42 * (ad - 1) : Math.max(0, 0.5 * (3 - ad))
+        // Tiles are SERVER_DIAL.tile wide; a transform places and sizes them.
+        tile.style.transform = `translate(${(x - SERVER_DIAL.tile / 2).toFixed(1)}px, ${(y - SERVER_DIAL.tile / 2).toFixed(1)}px) scale(${(size / SERVER_DIAL.tile).toFixed(4)})`
+        tile.style.opacity = opacity.toFixed(3)
+        tile.style.visibility = opacity > 0 ? '' : 'hidden'
+    })
+    document.getElementById('serverDialTicks').style.transform = `rotate(${(-pos * SERVER_DIAL.step).toFixed(3)}deg)`
+}
+
+/**
+ * Turn the dial to a server, along the arc. A new target mid-turn carries on
+ * from where the dial is.
+ *
+ * @param {number} sel The server index to bring to the top.
+ * @param {boolean} jump Place it at once, e.g. when the tiles were rebuilt.
+ */
+function turnServerDial(sel, jump = false){
+    const t = serverDialTurn
+    if(t.frame != null){
+        cancelAnimationFrame(t.frame)
+        t.frame = null
+    }
+    if(jump || t.pos == null || reduceMotion.matches || t.pos === sel){
+        t.pos = sel
+        placeServerDial(sel)
+        return
+    }
+    t.from = t.pos
+    t.to = sel
+    t.start = performance.now()
+    // Longer turns take a little longer, so they stay readable.
+    t.ms = Math.min(900, 420 + 100 * Math.abs(sel - t.from))
+    const step = (now) => {
+        const k = Math.min(1, (now - t.start) / t.ms)
+        // Ease out, close to --dial-ease.
+        t.pos = t.from + (t.to - t.from) * (1 - Math.pow(1 - k, 4))
+        placeServerDial(t.pos)
+        t.frame = k < 1 ? requestAnimationFrame(step) : null
+    }
+    t.frame = requestAnimationFrame(step)
+}
+
 /**
  * Initials shown on a dial tile when a server has no icon.
  */
@@ -442,38 +677,116 @@ function getServerMonogram(raw){
 
 /**
  * Paint a server tile: the server's icon over a monogram on the theme colours.
+ * Without a monogram from the distribution it gets a Minecraft item icon
+ * instead (see packicons.js), which also shows if the logo fails to load.
  *
  * @param {HTMLElement} tile The tile element. Its children are replaced.
  * @param {Object} raw The raw server from distribution.json.
  * @param {Object} appearance The appearance settings.
  * @param {string} prefix Class prefix for the monogram and icon children.
  */
-function paintServerTile(tile, raw, appearance, prefix){
+function paintServerTile(tile, raw, appearance, prefix, ownIcon = false){
+    // An icon the player picked replaces the pack's logo and monogram.
+    const picked = !ownIcon && PackIcons.isPicked(raw.id)
+    const logo = picked ? null : raw.icon
+    tile.setAttribute('data-pack-id', raw.id)
+    tile.setAttribute('data-pack-prefix', prefix)
+    tile.toggleAttribute('data-own-icon', ownIcon)
     tile.style.backgroundImage = 'linear-gradient(160deg, var(--meridian-mid) 0%, var(--meridian-navy) 100%)'
     tile.removeAttribute('hasIcon')
+    tile.removeAttribute('data-pack-icon')
+    tile.removeAttribute('data-pack-mc')
     tile.innerHTML = ''
     const mono = document.createElement('span')
     mono.className = prefix + 'Mono'
     mono.textContent = getServerMonogram(raw)
     tile.appendChild(mono)
-    tile.setAttribute('data-icon', raw.icon || '')
-    if(raw.icon){
+    if(picked || raw.launcherTheme == null || !raw.launcherTheme.monogram){
+        // Filled in now, or once the icons are loaded (applyPackIcons).
+        tile.setAttribute('data-pack-icon', raw.id)
+        tile.setAttribute('data-pack-mc', raw.minecraftVersion || '')
+        // A server with its own logo only needs the icon if that fails.
+        applyPackIcon(tile, !logo)
+    }
+    tile.setAttribute('data-icon', logo || '')
+    if(logo){
         const show = (url) => {
             // The tile may have been repainted for another server meanwhile.
-            if(url == null || tile.getAttribute('data-icon') !== raw.icon) return
+            if(url == null || tile.getAttribute('data-icon') !== logo) return
             const img = document.createElement('img')
             img.className = prefix + 'Icon'
             img.alt = ''
             img.onload = () => tile.setAttribute('hasIcon', '')
-            img.onerror = () => img.remove()
+            img.onerror = () => {
+                img.remove()
+                applyPackIcon(tile, true)
+            }
             img.src = url
             tile.appendChild(img)
         }
-        const cached = IconCache.peek(raw.icon)
+        const cached = IconCache.peek(logo)
         if(cached !== undefined) show(cached)
-        else IconCache.remote(raw.icon).then(show)
+        else IconCache.remote(logo).then(show)
     }
 }
+
+/**
+ * Paint every tile of a pack again, e.g. after its icon was picked.
+ *
+ * @param {Object} raw The pack's raw server.
+ */
+function repaintPackTiles(raw){
+    const appearance = ConfigManager.getAppearance()
+    document.querySelectorAll('[data-pack-id]').forEach(tile => {
+        if(tile.getAttribute('data-pack-id') === raw.id){
+            paintServerTile(tile, raw, appearance, tile.getAttribute('data-pack-prefix'), tile.hasAttribute('data-own-icon'))
+        }
+    })
+}
+
+/**
+ * The packs offered by the dial, the list next to Play and the switch
+ * dialog: all but the hidden ones. A hidden pack stays selected (Play still
+ * launches it), it just isn't offered.
+ *
+ * @param {Object} distro The distribution.
+ * @returns {Array.<Object>} The servers to offer.
+ */
+function pickerServers(distro){
+    if(distro == null) return []
+    return distro.servers.filter(s => !ConfigManager.isPackHidden(s.rawServer.id))
+}
+
+/**
+ * Swap a tile's monogram for its Minecraft icon, if the icons are loaded.
+ *
+ * @param {HTMLElement} tile A tile marked with data-pack-icon.
+ * @param {boolean} load Load the icons if they aren't yet.
+ */
+function applyPackIcon(tile, load = false){
+    const id = tile.getAttribute('data-pack-icon')
+    const icon = id != null ? PackIcons.iconFor(id) : null
+    const mono = tile.firstElementChild
+    if(icon == null){
+        // Only a tile that shows the icon is worth downloading a client for.
+        if(id != null && load) PackIcons.load(tile.getAttribute('data-pack-mc')).then(ok => { if(ok) applyPackIcons() })
+        return
+    }
+    if(mono == null){
+        return
+    }
+    tile.style.backgroundImage = icon.background
+    mono.textContent = ''
+    mono.classList.add('serverGlyph')
+    // The user's own picture fills the tile; item icons sit inside it.
+    mono.classList.toggle('serverGlyphFull', icon.full)
+    Object.assign(mono.style, { backgroundImage: icon.image, backgroundSize: icon.size, backgroundPosition: icon.position })
+}
+
+function applyPackIcons(){
+    document.querySelectorAll('[data-pack-icon]').forEach(tile => applyPackIcon(tile))
+}
+
 
 // Players per server id: { online, max }, null when offline, absent while unknown.
 const serverPlayers = new Map()
@@ -552,9 +865,11 @@ function renderServerMenuStatus(){
  */
 async function renderServerPicker(){
     const distro = await DistroAPI.getDistribution()
-    const servers = distro != null ? distro.servers : []
+    const servers = pickerServers(distro)
     const selId = ConfigManager.getSelectedServer()
-    const sel = Math.max(0, servers.findIndex(s => s.rawServer.id === selId))
+    // -1 when the selected pack is hidden: then no tile or row is marked.
+    const selIndex = selId != null ? servers.findIndex(s => s.rawServer.id === selId) : -1
+    const sel = Math.max(0, selIndex)
     const appearance = ConfigManager.getAppearance()
     const tiles = document.getElementById('serverDialTiles')
     const landing = document.getElementById('landingContainer')
@@ -564,7 +879,7 @@ async function renderServerPicker(){
     // Server list next to Play. Rebuilt when the servers or the theme change.
     const menuList = document.getElementById('serverMenuList')
     const themeKey = appearance.theme
-    const listKey = servers.map(s => s.rawServer.id + ':' + s.rawServer.icon).join('|') + '#' + themeKey
+    const listKey = servers.map(s => s.rawServer.id + ':' + (PackIcons.isPicked(s.rawServer.id) ? '' : s.rawServer.icon)).join('|') + '#' + themeKey
     if(menuList.getAttribute('data-key') !== listKey){
         menuList.innerHTML = ''
         servers.forEach((s, i) => {
@@ -592,11 +907,11 @@ async function renderServerPicker(){
         renderServerMenuStatus()
     }
     Array.from(menuList.children).forEach((row, i) => {
-        row.toggleAttribute('selected', i === sel && selId != null)
-        row.setAttribute('aria-selected', i === sel && selId != null)
+        row.toggleAttribute('selected', i === selIndex)
+        row.setAttribute('aria-selected', i === selIndex)
     })
 
-    const curServ = selId != null ? servers[sel] : null
+    const curServ = selId != null && distro != null ? distro.getServerById(selId) : null
     const pickerTile = document.getElementById('serverPickerTile')
     if(curServ != null){
         if(pickerTile.getAttribute('data-key') !== curServ.rawServer.id + '#' + themeKey){
@@ -618,7 +933,8 @@ async function renderServerPicker(){
     // Dial tiles. Tiles are reused so their position animates between states.
     // Rebuild when the servers or the theme (tile colours) change.
     const tileKey = servers.map(s => s.rawServer.id).join('|') + '#' + themeKey
-    if(tiles.getAttribute('data-key') !== tileKey){
+    const rebuilt = tiles.getAttribute('data-key') !== tileKey
+    if(rebuilt){
         tiles.innerHTML = ''
         servers.forEach((s, i) => {
             const raw = s.rawServer
@@ -628,8 +944,6 @@ async function renderServerPicker(){
             tile.setAttribute('role', 'option')
             tile.setAttribute('aria-label', raw.name)
             tile.setAttribute('data-id', raw.id)
-            // Placed without a transition the first time (see below).
-            tile.setAttribute('fresh', '')
             paintServerTile(tile, raw, appearance, 'serverTile')
             tile.onclick = () => selectServerAt(i)
             tiles.appendChild(tile)
@@ -637,35 +951,24 @@ async function renderServerPicker(){
         tiles.setAttribute('data-key', tileKey)
     }
 
+    // New tiles are placed at once; otherwise the dial turns to the server.
+    turnServerDial(sel, rebuilt)
     Array.from(tiles.children).forEach((tile, i) => {
         const d = i - sel
         const ad = Math.abs(d)
-        const a = d * SERVER_DIAL.step * Math.PI / 180
-        const x = SERVER_DIAL.cx + SERVER_DIAL.r * Math.sin(a)
-        const y = SERVER_DIAL.cy - SERVER_DIAL.r * Math.cos(a)
-        const size = ad === 0 ? SERVER_DIAL.tile : ad === 1 ? 52 : 42
-        // Tiles are SERVER_DIAL.tile wide; a transform places and sizes them.
-        tile.style.transform = `translate(${(x - SERVER_DIAL.tile / 2).toFixed(1)}px, ${(y - SERVER_DIAL.tile / 2).toFixed(1)}px) scale(${(size / SERVER_DIAL.tile).toFixed(4)})`
-        tile.style.opacity = ad === 0 ? 1 : ad === 1 ? 0.92 : ad === 2 ? 0.5 : 0
-        tile.toggleAttribute('selected', d === 0)
+        tile.toggleAttribute('selected', i === selIndex)
         tile.toggleAttribute('far', ad > 2)
         tile.toggleAttribute('edge', ad === 2)
-        tile.setAttribute('aria-selected', d === 0)
+        tile.setAttribute('aria-selected', i === selIndex)
     })
-    const fresh = tiles.querySelectorAll('.serverTile[fresh]')
-    if(fresh.length > 0){
-        void tiles.offsetWidth
-        fresh.forEach(tile => tile.removeAttribute('fresh'))
-    }
 
-    document.getElementById('serverDialTicks').style.transform = `rotate(${-sel * SERVER_DIAL.step}deg)`
-    const cur = servers[sel]
+    const cur = servers[selIndex]
     document.getElementById('serverDialName').textContent = cur != null ? cur.rawServer.name : ''
-    document.getElementById('serverDialPos').textContent = servers.length > 0
+    document.getElementById('serverDialPos').textContent = cur != null
         ? Lang.queryJS('landing.serverHero.position', { current: sel + 1, total: servers.length })
         : ''
-    document.getElementById('serverDialPrev').disabled = sel <= 0
-    document.getElementById('serverDialNext').disabled = sel >= servers.length - 1
+    document.getElementById('serverDialPrev').disabled = selIndex <= 0
+    document.getElementById('serverDialNext').disabled = selIndex >= servers.length - 1
     renderRunningState()
 }
 
@@ -676,7 +979,7 @@ async function selectServerAt(index){
     if(document.getElementById('landingContainer').hasAttribute('launching')){
         return
     }
-    const servers = (await DistroAPI.getDistribution()).servers
+    const servers = pickerServers(await DistroAPI.getDistribution())
     const next = servers[Math.max(0, Math.min(servers.length - 1, index))]
     if(next == null || next.rawServer.id === ConfigManager.getSelectedServer()){
         return
@@ -686,7 +989,7 @@ async function selectServerAt(index){
 }
 
 async function stepServer(delta){
-    const servers = (await DistroAPI.getDistribution()).servers
+    const servers = pickerServers(await DistroAPI.getDistribution())
     const cur = servers.findIndex(s => s.rawServer.id === ConfigManager.getSelectedServer())
     selectServerAt(cur + delta)
 }
@@ -702,7 +1005,18 @@ function setServerMenuActive(index){
     serverMenuActive = Math.max(0, Math.min(rows.length - 1, index))
     Array.from(rows).forEach((row, i) => row.toggleAttribute('active', i === serverMenuActive))
     rows[serverMenuActive].scrollIntoView({ block: 'nearest' })
+    updateServerMenuFade()
 }
+
+/**
+ * Fade the list's top or bottom edge while there is more to scroll that way.
+ */
+function updateServerMenuFade(){
+    const list = document.getElementById('serverMenuList')
+    list.toggleAttribute('fadeTop', list.scrollTop > 1)
+    list.toggleAttribute('fadeBottom', list.scrollTop + list.clientHeight < list.scrollHeight - 1)
+}
+document.getElementById('serverMenuList').addEventListener('scroll', updateServerMenuFade, { passive: true })
 
 function openServerMenu(){
     if(server_select.disabled || server_select.hasAttribute('empty')) return
@@ -1073,8 +1387,12 @@ let hasRPC = false
 // Change this if your server uses something different.
 const GAME_JOINED_REGEX = /\[.+\]: Sound engine started/
 // "Setting user" is printed by every version, including NeoForge without ModLauncher.
-const GAME_LAUNCH_REGEX = /^\[.+\]: (?:MinecraftForge .+ Initialized|ModLauncher .+ starting: .+|Loading Minecraft .+ with Fabric Loader .+|Setting user: .+)$/
+// Before 1.6 it's printed bare, or with FML as "… [INFO] [STDOUT] Setting user: …".
+const GAME_LAUNCH_REGEX = /(?:^\[.+\]: |\[STDOUT\] |^)(?:MinecraftForge .+ Initialized|ModLauncher .+ starting: .+|Loading Minecraft .+ with Fabric Loader .+|Setting user: .+)$/
 const MIN_LINGER = 5000
+// Versions that print none of the lines above (before 1.6) still free the
+// launch area once the game has been up this long.
+const MAX_LINGER = 20000
 
 async function dlAsync(login = true) {
 
@@ -1174,6 +1492,20 @@ async function dlAsync(login = true) {
 
     fullRepairModule.destroyReceiver()
 
+    // Mod jars older versions left in mods/ would load twice.
+    try {
+        await PackCleanup.clean(serv, require('path').join(ConfigManager.getInstanceDirectory(), serv.rawServer.id), loggerLaunchSuite)
+    } catch(err) {
+        loggerLaunchSuite.warn('Unable to clean up the pack folder.', err)
+    }
+
+    // The pack's files now match this version (see Pack updates).
+    if(serv.rawServer.version != null){
+        ConfigManager.setPackVersion(serv.rawServer.id, serv.rawServer.version)
+        ConfigManager.save()
+    }
+    hidePackUpdateToast()
+
     setLaunchDetails(Lang.queryJS('landing.dlAsync.preparingToLaunch'))
 
     const mojangIndexProcessor = new MojangIndexProcessor(
@@ -1195,6 +1527,15 @@ async function dlAsync(login = true) {
     }
 
     if(login) {
+        // The Minecraft token lasts about a day and is otherwise only checked
+        // when the launcher starts; an expired one fails on servers with
+        // "Invalid session". Refresh it now, or ask to log in again.
+        if(!(await AuthManager.validateSelected())){
+            loggerLaunchSuite.warn('The account session expired and could not be refreshed.')
+            toggleLaunchArea(false)
+            validateSelectedAccount()
+            return
+        }
         const authUser = ConfigManager.getSelectedAccount()
         loggerLaunchSuite.info(`Sending selected account (${authUser.displayName}) to ProcessBuilder.`)
         let pb = new ProcessBuilder(serv, versionData, modLoaderData, authUser, remote.app.getVersion())
@@ -1214,17 +1555,23 @@ async function dlAsync(login = true) {
                 DiscordWrapper.updateDetails(Lang.queryJS('landing.discord.loading'))
                 proc.stdout.on('data', gameStateChange)
             }
+            clearTimeout(lingerTimer)
             proc.stdout.removeListener('data', tempListener)
             proc.stderr.removeListener('data', gameErrorListener)
         }
         const start = Date.now()
+        let lingerTimer = null
 
         // Attach a temporary listener to the client output.
         // Will wait for a certain bit of text meaning that
         // the client application has started, and we can hide
-        // the progress bar stuff.
+        // the progress bar stuff. Output arrives in chunks of several
+        // lines, the last one possibly cut off.
+        let pending = ''
         const tempListener = function(data){
-            if(GAME_LAUNCH_REGEX.test(data.trim())){
+            const lines = (pending + data).split('\n')
+            pending = lines.pop()
+            if(lines.some(line => GAME_LAUNCH_REGEX.test(line.trim()))){
                 const diff = Date.now()-start
                 if(diff < MIN_LINGER) {
                     setTimeout(onLoadComplete, MIN_LINGER-diff)
@@ -1277,6 +1624,7 @@ async function dlAsync(login = true) {
             // Bind listeners to stdout.
             proc.stdout.on('data', tempListener)
             proc.stderr.on('data', gameErrorListener)
+            lingerTimer = setTimeout(onLoadComplete, MAX_LINGER)
 
             setLaunchDetails(Lang.queryJS('landing.dlAsync.doneEnjoyServer'))
 

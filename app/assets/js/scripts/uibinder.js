@@ -8,7 +8,7 @@ const { Type }      = require('helios-distribution-types')
 
 const AuthManager   = require('./assets/js/authmanager')
 const ConfigManager = require('./assets/js/configmanager')
-const { DistroAPI } = require('./assets/js/distromanager')
+const { DistroAPI, REMOTE_DISTRO_URL } = require('./assets/js/distromanager')
 const ProxyManager  = require('./assets/js/proxymanager')
 const ThemeEngine   = require('./assets/js/themeengine')
 const IconCache     = require('./assets/js/iconcache')
@@ -102,6 +102,36 @@ async function animateIn(el, ms, { rise = 0, scale = 1, delay = 0 } = {}){
             { opacity: 0, transform: `translateY(${rise}px) scale(${scale})` },
             { opacity: 1, transform: 'none' }
         ], { duration: ms, delay, easing: EASE_OUT_EXPO, fill: 'backwards' }).finished.catch(() => {})
+    }
+}
+
+/**
+ * Make a progress display glide towards the latest value, one step per frame.
+ * A CSS transition restarts on every progress event instead, and with
+ * hundreds of events a second it barely moves and falls far behind.
+ *
+ * @param {function(number)} draw Paints a percentage (0-100).
+ * @returns {function(number)} Sets the percentage to head for. Going back
+ * (a new stage) jumps there at once.
+ */
+function progressFollower(draw){
+    let shown = 0
+    let target = 0
+    let frame = null
+    const step = () => {
+        const diff = target - shown
+        shown = Math.abs(diff) < 0.2 || reduceMotion.matches ? target : shown + diff * 0.35
+        draw(shown)
+        frame = shown !== target ? requestAnimationFrame(step) : null
+    }
+    return (percent) => {
+        target = Math.max(0, Math.min(100, percent))
+        if(target < shown){
+            shown = target
+        }
+        if(frame == null){
+            frame = requestAnimationFrame(step)
+        }
     }
 }
 

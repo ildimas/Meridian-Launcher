@@ -127,6 +127,7 @@
                 <span class="heroChip" id="serverHeroLoader"></span>
                 <span class="heroChip" id="serverHeroRevision"></span>
                 <span class="heroChip" id="serverHeroRunning" hidden><%- lang('landing.gameRunning') %></span>
+                <span class="heroChip" id="serverHeroUpdate" hidden></span>
             </div>
         </div>
         <div id="heroFooter">
@@ -136,6 +137,17 @@
                 </div>
             </div>
         </div>
+    </div>
+    <div id="packUpdateToast" role="status" aria-live="polite" hidden>
+        <svg class="packUpdateIcon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>
+        <div class="packUpdateBody">
+            <span class="packUpdateTitle"></span>
+            <span class="packUpdateText"></span>
+            <button class="packUpdateOpen"><%- lang('landing.packUpdateOpen') %></button>
+        </div>
+        <button class="packUpdateClose" aria-label="<%- lang('landing.packUpdateClose') %>">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
     </div>
     <div id="serverDial" tabindex="0" role="listbox" aria-label="<%- lang('landing.serverDialLabel') %>">
         <svg id="serverDialRing" viewBox="0 0 520 180" aria-hidden="true">

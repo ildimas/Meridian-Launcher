@@ -77,14 +77,16 @@ class ProcessBuilder {
         }
 
         // Hide access token
-        const loggableArgs = [...args]
-        loggableArgs[loggableArgs.findIndex(x => x === this.authUser.accessToken)] = '**********'
+        // Versions before 1.7.10 get it inside the session argument.
+        const token = this.authUser.accessToken
+        const loggableArgs = args.map(x => token && typeof x === 'string' ? x.replaceAll(token, '**********') : x)
 
         logger.info('Launch Arguments:', loggableArgs)
 
         const child = child_process.spawn(ConfigManager.getJavaExecutable(this.server.rawServer.id), args, {
             cwd: this.gameDir,
-            detached: ConfigManager.getLaunchDetached()
+            detached: ConfigManager.getLaunchDetached(),
+            ...(this.modManifest.jarMod && process.platform === 'win32' ? { env: { ...process.env, APPDATA: this.gameDir } } : {})
         })
 
         if(ConfigManager.getLaunchDetached()){
@@ -213,6 +215,44 @@ class ProcessBuilder {
             fMods,
             lMods
         }
+    }
+
+    /**
+     * Where versions before 1.7.10 look for assets. Their indexes ask for the
+     * files by name rather than hash: in the instance's resources folder
+     * (before 1.6) or a virtual folder (1.6 to 1.7.2). Files missing there
+     * are copied from the object store.
+     *
+     * @returns {string} The directory to pass as game_assets.
+     */
+    _prepareLegacyAssets(){
+        const assetsDir = path.join(this.commonDir, 'assets')
+        let index
+        try {
+            index = fs.readJsonSync(path.join(assetsDir, 'indexes', `${this.vanillaManifest.assets}.json`))
+        } catch(err) {
+            logger.warn('Unable to read the asset index.', err)
+            return assetsDir
+        }
+        let target
+        if(index.map_to_resources){
+            target = path.join(this.gameDir, 'resources')
+        } else if(index.virtual){
+            target = path.join(assetsDir, 'virtual', this.vanillaManifest.assets)
+        } else {
+            return assetsDir
+        }
+        for(const [name, obj] of Object.entries(index.objects || {})){
+            const dest = path.join(target, path.normalize(name))
+            if(!fs.existsSync(dest)){
+                const src = path.join(assetsDir, 'objects', obj.hash.substring(0, 2), obj.hash)
+                if(fs.existsSync(src)){
+                    fs.ensureDirSync(path.dirname(dest))
+                    fs.copyFileSync(src, dest)
+                }
+            }
+        }
+        return target
     }
 
     _lteMinorVersion(version) {
@@ -384,6 +424,13 @@ class ProcessBuilder {
         args.push('-Xms' + ConfigManager.getMinRAM(this.server.rawServer.id))
         args = args.concat(ConfigManager.getJVMOptions(this.server.rawServer.id))
         args.push('-Djava.library.path=' + tempNativePath)
+        if(this.modManifest.jarMod){
+            // FML before 1.5.2 ignores --gameDir and would use ~/.minecraft,
+            // and so do mods of that time that find the folder themselves
+            // (from user.home, or %APPDATA% on Windows, see build).
+            args.push('-Dminecraft.applet.TargetDirectory=' + this.gameDir)
+            args.push('-Duser.home=' + this.gameDir)
+        }
 
         // Main Java Class
         args.push(this.modManifest.mainClass)
@@ -607,6 +654,12 @@ class ProcessBuilder {
                     case 'user_properties': // 1.8.9 and below.
                         val = '{}'
                         break
+                    case 'auth_session': // 1.7.2 and below.
+                        val = `token:${this.authUser.accessToken}:${this.authUser.uuid.trim()}`
+                        break
+                    case 'game_assets': // 1.7.2 and below.
+                        val = this._prepareLegacyAssets()
+                        break
                     case 'version_type':
                         val = this.vanillaManifest.type
                         break
@@ -634,8 +687,8 @@ class ProcessBuilder {
             mcArgs.push(ConfigManager.getGameHeight())
         }
         
-        // Mod List File Argument (Forge only)
-        if(!this.usingVanilla) {
+        // Mod List File Argument (Forge only, from 1.5.2)
+        if(!this.usingVanilla && !this.modManifest.jarMod) {
             mcArgs.push('--modListFile')
             if(this._lteMinorVersion(9)) {
                 mcArgs.push(path.basename(this.fmlDir))
@@ -688,9 +741,10 @@ class ProcessBuilder {
     classpathArg(mods, tempNativePath){
         let cpArgs = []
 
-        if(!mcVersionAtLeast('1.17', this.server.rawServer.minecraftVersion) || this.usingFabricLoader || this.usingVanilla) {
+        if((!mcVersionAtLeast('1.17', this.server.rawServer.minecraftVersion) || this.usingFabricLoader || this.usingVanilla) && !this.modManifest.jarMod) {
             // Add the version.jar to the classpath.
-            // Must not be added to the classpath for Forge 1.17+.
+            // Must not be added to the classpath for Forge 1.17+, nor for
+            // Forge before 1.5.2, whose jar contains Minecraft.
             const version = this.vanillaManifest.id
             cpArgs.push(path.join(this.commonDir, 'versions', version, version + '.jar'))
         }

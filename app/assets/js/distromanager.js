@@ -1,16 +1,18 @@
 const { DistributionAPI, HeliosDistribution } = require('helios-core/common')
-const { DistributionIndexProcessor } = require('helios-core/dl')
+const { DistributionIndexProcessor, MojangIndexProcessor } = require('helios-core/dl')
 
 const ConfigManager = require('./configmanager')
+const HeliosFixes   = require('./heliosfixes')
 const LocalPacks    = require('./localpacks')
 
 // Player-added modpacks are part of every distribution load (see localpacks.js).
 LocalPacks.patchDistributionAPI(DistributionAPI)
 LocalPacks.patchIndexProcessor(DistributionIndexProcessor)
+HeliosFixes.patchMojangIndexProcessor(MojangIndexProcessor)
 
 // Old WesterosCraft url.
 // exports.REMOTE_DISTRO_URL = 'http://mc.westeroscraft.com/WesterosCraftLauncher/distribution.json'
-exports.REMOTE_DISTRO_URL = 'https://helios-files.geekcorner.eu.org/distribution.json'
+exports.REMOTE_DISTRO_URL = 'https://files.ilcloud.net/distribution.json'
 
 const api = new DistributionAPI(
     ConfigManager.getLauncherDirectory(),
@@ -21,6 +23,13 @@ const api = new DistributionAPI(
 )
 
 exports.DistroAPI = api
+
+/**
+ * @returns {string} The distribution.json url in use: the player's or the built-in one.
+ */
+exports.getRemoteDistroUrl = function(){
+    return ConfigManager.getDistributionURL() || exports.REMOTE_DISTRO_URL
+}
 
 /**
  * Rebuild the loaded distribution after the local modpacks changed, without

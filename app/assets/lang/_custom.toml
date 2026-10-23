@@ -19,5 +19,5 @@ supportLink = "https://github.com/ildimas/Helios-Custom-Worlds/issues"
 
 [ejs.welcome]
 welcomeHeader = "Welcome aboard"
-welcomeDescription = "This launcher sets up everything our servers need: the right Minecraft version, the mod loader, every mod and config. When a pack updates, it updates too, so you never manage mods by hand."
-welcomeDescCTA = "Sign in once, pick a server, press Play."
+welcomeDescription = "The launcher installs Minecraft, mods and configs for you and keeps packs up to date."
+welcomeDescCTA = "Sign in, pick a modpack, press Play."

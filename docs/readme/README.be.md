@@ -21,6 +21,8 @@
   <a href="https://github.com/ildimas/Helios-Custom-Worlds/releases"><img src="https://img.shields.io/github/downloads/ildimas/Helios-Custom-Worlds/total?style=for-the-badge&color=0a508a" alt="downloads"></a>
 </p>
 
+<p align="center"><img src="../../docs/images/demo.gif" width="800" alt="Meridian: запуск і пераключэнне сервераў"></p>
+
 
 ---
 
