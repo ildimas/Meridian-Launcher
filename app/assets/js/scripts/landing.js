@@ -1394,6 +1394,31 @@ const MIN_LINGER = 5000
 // launch area once the game has been up this long.
 const MAX_LINGER = 20000
 
+/**
+ * The failure text for a file check or download error: the download process's
+ * summary, a hint, and its details (url, file, HTTP status, stack; see
+ * downloadchild.js) in a block the player can select and copy.
+ *
+ * @param {string} [displayable] The download process's report.
+ * @param {string} [hint] Trusted HTML shown under the summary.
+ * @returns {string} HTML for the overlay.
+ */
+function downloadFailureDesc(displayable, hint){
+    if(!displayable){
+        return Lang.queryJS('landing.dlAsync.seeConsoleForDetails')
+    }
+    const escape = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    const [summary, ...details] = displayable.split('\n')
+    let desc = escape(summary)
+    if(hint){
+        desc += '<br><br>' + hint
+    }
+    if(details.length > 0){
+        desc += `<pre class="launchErrorDetails">${escape(details.join('\n'))}</pre>`
+    }
+    return desc
+}
+
 async function dlAsync(login = true) {
 
     // Login parameter is temporary for debug purposes. Allows testing the validation/downloads without
@@ -1438,14 +1463,22 @@ async function dlAsync(login = true) {
     // The download runs in a child process; hand it the proxy and timeouts.
     ProxyManager.spawnReceiver(fullRepairModule, ConfigManager.getProxy())
 
+    // The process exits right after reporting an error; keep that report on screen.
+    let failureShown = false
     fullRepairModule.childProcess.on('error', (err) => {
         loggerLaunchSuite.error('Error during launch', err)
+        failureShown = true
         showLaunchFailure(Lang.queryJS('landing.dlAsync.errorDuringLaunchTitle'), err.message || Lang.queryJS('landing.dlAsync.errorDuringLaunchText'))
     })
-    fullRepairModule.childProcess.on('close', (code, _signal) => {
+    fullRepairModule.childProcess.on('close', (code, signal) => {
         if(code !== 0){
-            loggerLaunchSuite.error(`Full Repair Module exited with code ${code}, assuming error.`)
-            showLaunchFailure(Lang.queryJS('landing.dlAsync.errorDuringLaunchTitle'), Lang.queryJS('landing.dlAsync.seeConsoleForDetails'))
+            loggerLaunchSuite.error(`Full Repair Module exited with code ${code}${signal ? ` (${signal})` : ''}, assuming error.`)
+            // Let a pending error report land first.
+            setTimeout(() => {
+                if(!failureShown){
+                    showLaunchFailure(Lang.queryJS('landing.dlAsync.errorDuringLaunchTitle'), Lang.queryJS('landing.dlAsync.seeConsoleForDetails'))
+                }
+            }, 500)
         }
     })
 
@@ -1458,8 +1491,9 @@ async function dlAsync(login = true) {
         })
         setLaunchPercentage(100)
     } catch (err) {
-        loggerLaunchSuite.error('Error during file validation.')
-        showLaunchFailure(Lang.queryJS('landing.dlAsync.errorDuringFileVerificationTitle'), err.displayable || Lang.queryJS('landing.dlAsync.seeConsoleForDetails'))
+        loggerLaunchSuite.error('Error during file validation.', err.displayable || err)
+        failureShown = true
+        showLaunchFailure(Lang.queryJS('landing.dlAsync.errorDuringFileVerificationTitle'), downloadFailureDesc(err.displayable))
         return
     }
     
@@ -1474,13 +1508,12 @@ async function dlAsync(login = true) {
             })
             setDownloadPercentage(100)
         } catch(err) {
-            loggerLaunchSuite.error('Error during file download.')
-            let desc = err.displayable || Lang.queryJS('landing.dlAsync.seeConsoleForDetails')
+            loggerLaunchSuite.error('Error during file download.', err.displayable || err)
+            failureShown = true
             // A stalled download is almost always the network, not the pack.
-            if(/timed out/i.test(desc)){
-                desc += '<br><br>' + Lang.queryJS('landing.dlAsync.downloadTimedOutHint')
-            }
-            showLaunchFailure(Lang.queryJS('landing.dlAsync.errorDuringFileDownloadTitle'), desc)
+            const hint = /timed out|ETIMEDOUT|ECONNRESET|ENOTFOUND|EAI_AGAIN/i.test(err.displayable || '')
+                ? Lang.queryJS('landing.dlAsync.downloadTimedOutHint') : null
+            showLaunchFailure(Lang.queryJS('landing.dlAsync.errorDuringFileDownloadTitle'), downloadFailureDesc(err.displayable, hint))
             return
         }
     } else {
