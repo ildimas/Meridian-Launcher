@@ -1,4 +1,4 @@
-const { DistributionAPI, HeliosDistribution } = require('helios-core/common')
+const { DistributionAPI, HeliosDistribution, HeliosModule } = require('helios-core/common')
 const { DistributionIndexProcessor, MojangIndexProcessor } = require('helios-core/dl')
 const path = require('path')
 
@@ -10,6 +10,7 @@ const LocalPacks    = require('./localpacks')
 LocalPacks.patchDistributionAPI(DistributionAPI)
 LocalPacks.patchIndexProcessor(DistributionIndexProcessor)
 HeliosFixes.patchMojangIndexProcessor(MojangIndexProcessor)
+HeliosFixes.patchHeliosModule(HeliosModule)
 // Before landing.js and modpackmanager.js take their functions from helios-core/java.
 HeliosFixes.patchJavaGuard(require(path.join(path.dirname(require.resolve('helios-core')), 'java', 'JavaGuard.js')))
 
