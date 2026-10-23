@@ -224,3 +224,67 @@ exports.patchJavaGuard = function(JavaGuard){
         return latestOpenJDK.call(this, major, dataDir, distribution)
     }
 }
+
+// Not allowed in a Windows file name: fs-extra refuses the whole path
+// (EINVAL), and the download fails.
+const WINDOWS_INVALID = /[<>:"|?*\\/\x00-\x1f]/g
+const WINDOWS_RESERVED = /^(con|prn|aux|nul|com\d|lpt\d)(\..*)?$/i
+
+/**
+ * Make a name safe for a folder or file on every platform: the characters
+ * Windows forbids become _, as do the trailing dots and spaces it drops and
+ * its reserved device names.
+ *
+ * @param {string} name A path segment.
+ * @returns {string} The name, safe on Windows.
+ */
+function safeFileName(name){
+    let safe = name.replace(WINDOWS_INVALID, '_').replace(/[. ]+$/, m => '_'.repeat(m.length))
+    if(WINDOWS_RESERVED.test(safe)){
+        safe = '_' + safe
+    }
+    return safe
+}
+
+/**
+ * Keep distribution modules' paths valid on Windows. helios-core makes the
+ * path from the maven id, and Nebula builds ids from the mod's own id, which
+ * old mods spell like "BuildCraft|Core". The maven components are cleaned
+ * rather than only the path, so the id Forge resolves from the mod list
+ * (processbuilder.js) points at the same file. Same on every platform, so a
+ * pack's files are laid out the same everywhere.
+ *
+ * @param {Function} HeliosModule helios-core's module class.
+ */
+exports.patchHeliosModule = function(HeliosModule){
+    const proto = HeliosModule.prototype
+    if(proto.heliosFixesPatched){
+        return
+    }
+    proto.heliosFixesPatched = true
+
+    const resolveMavenComponents = proto.resolveMavenComponents
+    proto.resolveMavenComponents = function(...args){
+        const components = resolveMavenComponents.apply(this, args)
+        if(components != null){
+            for(const key of ['group', 'artifact', 'version', 'classifier', 'extension']){
+                if(components[key] != null){
+                    // Dots in the group are folders, kept as they are.
+                    components[key] = key === 'group'
+                        ? components[key].split('.').map(safeFileName).join('.')
+                        : safeFileName(components[key])
+                }
+            }
+        }
+        return components
+    }
+
+    const resolveLocalPath = proto.resolveLocalPath
+    proto.resolveLocalPath = function(...args){
+        const artifact = this.rawModule.artifact
+        if(artifact?.path != null){
+            artifact.path = artifact.path.split(/[\\/]/).map(s => s === '' || s === '..' || s === '.' ? s : safeFileName(s)).join('/')
+        }
+        return resolveLocalPath.apply(this, args)
+    }
+}

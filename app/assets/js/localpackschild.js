@@ -4,7 +4,7 @@
  * packs through, as the renderer does in distromanager.js. Old Minecraft
  * versions are validated here too, so heliosfixes.js applies as well.
  */
-const { DistributionAPI } = require('helios-core/common')
+const { DistributionAPI, HeliosModule } = require('helios-core/common')
 const { DistributionIndexProcessor, MojangIndexProcessor } = require('helios-core/dl')
 const HeliosFixes = require('./heliosfixes')
 const LocalPacks = require('./localpacks')
@@ -12,3 +12,4 @@ const LocalPacks = require('./localpacks')
 LocalPacks.patchDistributionAPI(DistributionAPI)
 LocalPacks.patchIndexProcessor(DistributionIndexProcessor)
 HeliosFixes.patchMojangIndexProcessor(MojangIndexProcessor)
+HeliosFixes.patchHeliosModule(HeliosModule)
