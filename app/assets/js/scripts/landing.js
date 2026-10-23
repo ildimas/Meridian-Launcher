@@ -1205,8 +1205,12 @@ let hasRPC = false
 // Change this if your server uses something different.
 const GAME_JOINED_REGEX = /\[.+\]: Sound engine started/
 // "Setting user" is printed by every version, including NeoForge without ModLauncher.
-const GAME_LAUNCH_REGEX = /^\[.+\]: (?:MinecraftForge .+ Initialized|ModLauncher .+ starting: .+|Loading Minecraft .+ with Fabric Loader .+|Setting user: .+)$/
+// Before 1.6 it's printed bare, or with FML as "… [INFO] [STDOUT] Setting user: …".
+const GAME_LAUNCH_REGEX = /(?:^\[.+\]: |\[STDOUT\] |^)(?:MinecraftForge .+ Initialized|ModLauncher .+ starting: .+|Loading Minecraft .+ with Fabric Loader .+|Setting user: .+)$/
 const MIN_LINGER = 5000
+// Versions that print none of the lines above (before 1.6) still free the
+// launch area once the game has been up this long.
+const MAX_LINGER = 20000
 
 async function dlAsync(login = true) {
 
@@ -1355,17 +1359,23 @@ async function dlAsync(login = true) {
                 DiscordWrapper.updateDetails(Lang.queryJS('landing.discord.loading'))
                 proc.stdout.on('data', gameStateChange)
             }
+            clearTimeout(lingerTimer)
             proc.stdout.removeListener('data', tempListener)
             proc.stderr.removeListener('data', gameErrorListener)
         }
         const start = Date.now()
+        let lingerTimer = null
 
         // Attach a temporary listener to the client output.
         // Will wait for a certain bit of text meaning that
         // the client application has started, and we can hide
-        // the progress bar stuff.
+        // the progress bar stuff. Output arrives in chunks of several
+        // lines, the last one possibly cut off.
+        let pending = ''
         const tempListener = function(data){
-            if(GAME_LAUNCH_REGEX.test(data.trim())){
+            const lines = (pending + data).split('\n')
+            pending = lines.pop()
+            if(lines.some(line => GAME_LAUNCH_REGEX.test(line.trim()))){
                 const diff = Date.now()-start
                 if(diff < MIN_LINGER) {
                     setTimeout(onLoadComplete, MIN_LINGER-diff)
@@ -1418,6 +1428,7 @@ async function dlAsync(login = true) {
             // Bind listeners to stdout.
             proc.stdout.on('data', tempListener)
             proc.stderr.on('data', gameErrorListener)
+            lingerTimer = setTimeout(onLoadComplete, MAX_LINGER)
 
             setLaunchDetails(Lang.queryJS('landing.dlAsync.doneEnjoyServer'))
 

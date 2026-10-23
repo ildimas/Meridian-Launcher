@@ -874,7 +874,7 @@ function parseModulesForUI(mdls, submodules, servConf){
                             <div class="settingsModStatus"></div>
                             ${settingsIconTile(mdl.rawModule.name, () => IconCache.peek(mdl), () => IconCache.mod(mdl))}
                             <div class="settingsModDetails">
-                                <span class="settingsModName">${mdl.rawModule.name}</span>
+                                <span class="settingsModName">${escapeSettingsHTML(mdl.rawModule.name)}</span>
                                 <span class="settingsModVersion">v${mdl.mavenComponents.version}</span>
                             </div>
                         </div>
@@ -899,7 +899,7 @@ function parseModulesForUI(mdls, submodules, servConf){
                             <div class="settingsModStatus"></div>
                             ${settingsIconTile(mdl.rawModule.name, () => IconCache.peek(mdl), () => IconCache.mod(mdl))}
                             <div class="settingsModDetails">
-                                <span class="settingsModName">${mdl.rawModule.name}</span>
+                                <span class="settingsModName">${escapeSettingsHTML(mdl.rawModule.name)}</span>
                                 <span class="settingsModVersion">v${mdl.mavenComponents.version}</span>
                             </div>
                         </div>
@@ -1001,20 +1001,21 @@ async function resolveDropinModsForUI(){
 
     for(dropin of CACHE_DROPIN_MODS){
         const jar = path.join(CACHE_SETTINGS_MODS_DIR, dropin.fullName)
-        dropinMods += `<div id="${dropin.fullName}" class="settingsBaseMod settingsDropinMod" ${!dropin.disabled ? 'enabled' : ''}>
+        // File names come from whatever is in the mods folder, imported packs included.
+        dropinMods += `<div id="${escapeSettingsHTML(dropin.fullName)}" class="settingsBaseMod settingsDropinMod" ${!dropin.disabled ? 'enabled' : ''}>
                     <div class="settingsModContent">
                         <div class="settingsModMainWrapper">
                             <div class="settingsModStatus"></div>
                             ${settingsIconTile(dropin.name, () => IconCache.peekFile(jar), () => IconCache.jar(jar))}
                             <div class="settingsModDetails">
-                                <span class="settingsModName">${dropin.name}</span>
+                                <span class="settingsModName">${escapeSettingsHTML(dropin.name)}</span>
                                 <div class="settingsDropinRemoveWrapper">
-                                    <button class="settingsDropinRemoveButton" remmod="${dropin.fullName}">${Lang.queryJS('settings.dropinMods.removeButton')}</button>
+                                    <button class="settingsDropinRemoveButton" remmod="${escapeSettingsHTML(dropin.fullName)}">${Lang.queryJS('settings.dropinMods.removeButton')}</button>
                                 </div>
                             </div>
                         </div>
                         <label class="toggleSwitch">
-                            <input type="checkbox" formod="${dropin.fullName}" dropin ${!dropin.disabled ? 'checked' : ''}>
+                            <input type="checkbox" formod="${escapeSettingsHTML(dropin.fullName)}" dropin ${!dropin.disabled ? 'checked' : ''}>
                             <span class="toggleSwitchSlider"></span>
                         </label>
                     </div>
@@ -1297,11 +1298,11 @@ async function loadSelectedServerOnModsTab(){
         el.innerHTML = `
             <span class="serverListTile settingsSelServTile"></span>
             <div class="serverListingDetails">
-                <span class="serverListingName">${serv.rawServer.name}</span>
-                <span class="serverListingDescription">${serv.rawServer.description}</span>
+                <span class="serverListingName"></span>
+                <span class="serverListingDescription"></span>
                 <div class="serverListingInfo">
-                    <div class="serverListingVersion">${serv.rawServer.minecraftVersion}</div>
-                    <div class="serverListingRevision">${serv.rawServer.version}</div>
+                    <div class="serverListingVersion"></div>
+                    <div class="serverListingRevision"></div>
                     ${serv.rawServer.mainServer ? `<div class="serverListingStarWrapper">
                         <svg id="Layer_1" viewBox="0 0 107.45 104.74" width="20px" height="20px">
                             <defs>
@@ -1315,6 +1316,11 @@ async function loadSelectedServerOnModsTab(){
                 </div>
             </div>
         `
+        // Local packs are named by the files the player imported: text only.
+        el.querySelector('.serverListingName').textContent = serv.rawServer.name
+        el.querySelector('.serverListingDescription').textContent = serv.rawServer.description || ''
+        el.querySelector('.serverListingVersion').textContent = serv.rawServer.minecraftVersion
+        el.querySelector('.serverListingRevision').textContent = serv.rawServer.version
         // The pack's logo over its monogram, like the modpack picker.
         paintServerTile(el.querySelector('.settingsSelServTile'), serv.rawServer, ConfigManager.getAppearance(), 'serverListTile')
     }

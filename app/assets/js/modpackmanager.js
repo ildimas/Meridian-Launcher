@@ -18,7 +18,7 @@ const os           = require('os')
 const path         = require('path')
 const semver       = require('semver')
 const { pipeline } = require('stream/promises')
-const { MavenUtil } = require('helios-core/common')
+const { MavenUtil, mcVersionAtLeast } = require('helios-core/common')
 const { Type }     = require('helios-distribution-types')
 const { app }      = require('@electron/remote')
 
@@ -29,6 +29,7 @@ const { JdkDistribution } = require('helios-distribution-types')
 const ConfigManager  = require('./configmanager')
 const ForgeInstaller = require('./forgeinstaller')
 const LocalPacks     = require('./localpacks')
+const PackDetect     = require('./packdetect')
 
 const MODRINTH = 'https://api.modrinth.com/v2'
 const CURSEFORGE = 'https://api.curseforge.com/v1'
@@ -51,6 +52,9 @@ const LOADERS = {
         artifact: 'org.quiltmc:quilt-loader'
     }
 }
+// The first Minecraft release each loader has builds for.
+const LOADER_SINCE = { fabric: '1.14', quilt: '1.14.4', ...ForgeInstaller.SINCE }
+
 // Loaders this launcher can't install; every loader packs use is covered now.
 const UNSUPPORTED_LOADERS = {}
 
@@ -73,10 +77,11 @@ const DOWNLOAD_THREADS = 6
  * settings.modpacks.errors in the language files.
  */
 class ModpackError extends Error {
-    constructor(key, params = {}){
+    constructor(key, params = {}, extra = {}){
         super(key)
         this.key = key
         this.params = params
+        Object.assign(this, extra)
     }
 }
 exports.ModpackError = ModpackError
@@ -392,7 +397,7 @@ async function javaOptions(mc){
         }
         const version = await http().get(entry.url).json()
         const major = version.javaVersion != null ? version.javaVersion.majorVersion : null
-        return major != null ? { supported: `>=${major}.x`, suggestedMajor: major } : null
+        return major != null ? { supported: LocalPacks.javaRange(major), suggestedMajor: major } : null
     } catch {
         return null
     }
@@ -407,7 +412,7 @@ async function javaFor(mc){
     const opts = await javaOptions(mc)
     const major = opts != null ? opts.suggestedMajor : 17
     const dataDir = ConfigManager.getDataDirectory()
-    const found = await discoverBestJvmInstallation(dataDir, `>=${major}.x`)
+    const found = await discoverBestJvmInstallation(dataDir, LocalPacks.javaRange(major))
     if(found != null){
         return javaExecFromRoot(found.path)
     }
@@ -441,10 +446,39 @@ async function forgeModules(pack, progress){
         console.error(`Unable to install ${loaderName(pack.loader)} ${pack.loaderVersion}.`, err)
         const params = { loader: loaderName(pack.loader), version: pack.loaderVersion || '', minecraft: pack.minecraft }
         // No installer for that version; anything else is a real failure to report.
-        if(err.response != null && err.response.statusCode === 404 && String(err.response.url).endsWith('-installer.jar')){
+        if(err.response != null && err.response.statusCode === 404 && /-(installer\.jar|universal\.zip)$/.test(String(err.response.url))){
             throw new ModpackError('loaderUnavailable', params)
         }
         throw new ModpackError('loaderFailed', { ...params, message: err.message || String(err) })
+    }
+}
+
+/**
+ * A pack's own client jar, from before 1.6, as distribution modules. FML's
+ * libraries are taken from the pack's lib folder when they're intact there.
+ */
+async function clientJarModules(pack, progress){
+    try {
+        const res = await ForgeInstaller.installClientJar({ minecraft: pack.minecraft, jar: pack.clientJar }, {
+            http: http(),
+            download,
+            runAll,
+            commonDir: ConfigManager.getCommonDirectory(),
+            onProgress: (done, total) => progress({ stage: 'loader', done, total }),
+            localLib: async (name, sha1) => {
+                const file = path.join(pack.libDir, name)
+                if(!await fs.pathExists(file)) return null
+                const hash = crypto.createHash('sha1').update(await fs.readFile(file)).digest('hex')
+                return sha1 == null || hash === sha1 ? file : null
+            }
+        })
+        return res.modules
+    } catch(err) {
+        if(err instanceof ModpackError){
+            throw err
+        }
+        console.error('Unable to set up the pack\'s client jar.', err)
+        throw new ModpackError('loaderFailed', { loader: loaderName(pack.loader), version: pack.loaderVersion || '', minecraft: pack.minecraft, message: err.message || String(err) })
     }
 }
 
@@ -470,7 +504,9 @@ function packRam(mb){
  */
 async function savePack(pack, progress){
     let modules = []
-    if(ForgeInstaller.isForgeLike(pack.loader)){
+    if(pack.clientJar != null){
+        modules = await clientJarModules(pack, progress)
+    } else if(ForgeInstaller.isForgeLike(pack.loader)){
         modules = await forgeModules(pack, progress)
     } else if(pack.loader !== 'vanilla'){
         modules = await loaderModules(pack.loader, pack.minecraft, pack.loaderVersion, (done, total) => {
@@ -496,6 +532,7 @@ async function savePack(pack, progress){
             source: pack.source,
             loader: pack.loader,
             loaderVersion: pack.loaderVersion || null,
+            ...(pack.clientJar != null ? { clientJar: true } : {}),
             installed: new Date().toISOString()
         }
     }
@@ -963,17 +1000,130 @@ async function installPrism(zip, root, progress){
     })
 }
 
+/* Hand-made packs */
+
+// What a game folder holds that isn't the pack: the launcher's own files,
+// server files, logs and caches. Matched against the top-level name.
+const SKIP_DIRS = new Set(['bin', 'versions', 'libraries', 'assets', 'resources', 'lib', 'natives', 'logs',
+    'crash-reports', 'cache', 'webcache', 'webcache2', 'launcher', 'runtime', 'texturepacks-mp-cache', '.fabric', '.mixin.out'])
+const SKIP_FILES = /^(.*\.(jar|exe|dll|bat|cmd|sh|command|lck|log(\.\d+)?)|launcher_.*\.json|server\.properties|eula\.txt|ops\.(txt|json)|banned-.*\.(txt|json)|white-list\.txt|whitelist\.json|usercache\.json|usernamecache\.json|instance\.cfg|mmc-pack\.json|debug\.stitched_.*\.png)$/i
+
+/**
+ * Copy a game folder's pack files into the instance.
+ */
+async function copyGameFolder(root, dest){
+    for(const name of await fs.readdir(root)){
+        const src = path.join(root, name)
+        const isDir = (await fs.stat(src)).isDirectory()
+        if(isDir ? SKIP_DIRS.has(name.toLowerCase()) : SKIP_FILES.test(name)){
+            continue
+        }
+        await fs.copy(src, safeJoin(dest, name), { overwrite: true })
+    }
+}
+
+/**
+ * Unpack an archive into a new temporary folder.
+ *
+ * @returns {Promise.<string>} The folder; the caller removes it.
+ */
+async function unpack(file){
+    const dir = path.join(os.tmpdir(), `meridian-import-${crypto.randomBytes(4).toString('hex')}`)
+    await fs.ensureDir(dir)
+    try {
+        if(/\.rar$/i.test(file)){
+            const { createExtractorFromFile } = require('node-unrar-js')
+            const extractor = await createExtractorFromFile({ filepath: file, targetPath: dir })
+            // Files are written to disk as the list is walked.
+            Array.from(extractor.extract().files)
+        } else {
+            await extractFolder(new AdmZip(file), '', dir)
+        }
+        return dir
+    } catch(err) {
+        await fs.remove(dir).catch(() => {})
+        if(err instanceof ModpackError){
+            throw err
+        }
+        console.error(`Unable to unpack ${file}.`, err)
+        throw new ModpackError('unknownFormat')
+    }
+}
+
+/**
+ * Install a hand-made pack: a game folder (.minecraft, a MultiMC instance…)
+ * with nothing describing it. What it runs on is worked out from what it
+ * holds (packdetect.js), or given by the player when that fails.
+ *
+ * @param {string} dir The unpacked pack.
+ * @param {string} fallbackName The name to use when the pack has none.
+ * @param {function(Object)} progress Progress callback.
+ * @param {Object} given minecraft, loader, loaderVersion and name the player chose; they win over what's found.
+ */
+async function installGameFolder(dir, fallbackName, progress, given = {}){
+    progress({ stage: 'fetch' })
+    const root = await PackDetect.findRoot(dir)
+    if(root == null){
+        throw new ModpackError('noGameFolder')
+    }
+    const found = await PackDetect.detect(root)
+    const minecraft = given.minecraft || found.minecraft
+    if(!minecraft){
+        throw new ModpackError('unknownVersion', {}, { found })
+    }
+    const sameVersion = minecraft === found.minecraft
+    // The pack's own jar only fits the version it was built for, with its
+    // loader (or with none chosen: a jar without FML, ModLoader or OptiFine only).
+    const clientJar = sameVersion && (given.loader == null || given.loader === (found.loader || 'vanilla')) ? found.clientJar : null
+    let loader
+    let loaderVersion
+    if(clientJar != null){
+        loader = found.loader === 'forge' ? 'forge' : 'vanilla'
+        loaderVersion = loader === 'forge' ? found.loaderVersion : null
+    } else {
+        loader = given.loader || found.loader || 'vanilla'
+        loaderVersion = given.loader != null ? given.loaderVersion : (sameVersion ? found.loaderVersion : null)
+        requireSupportedLoader(loader)
+        if(loader !== 'vanilla' && !loaderVersion){
+            const versions = await exports.loaderVersions(loader, minecraft)
+            const pick = versions.find(v => v.stable) || versions[0]
+            if(pick == null){
+                throw new ModpackError('loaderUnavailable', { loader: loaderName(loader), version: '', minecraft })
+            }
+            loaderVersion = pick.version
+        }
+    }
+
+    const name = given.name || found.name || fallbackName
+    const id = newServerId(name)
+    return await withInstance(id, async (instance) => {
+        await fs.ensureDir(instance)
+        progress({ stage: 'overrides' })
+        await copyGameFolder(root, instance)
+        return await savePack({ id, name, minecraft, loader, loaderVersion, source: 'import', clientJar, libDir: path.join(root, 'lib') }, progress)
+    })
+}
+
 /* Files */
 
 /**
  * Install a pack file: a Modrinth .mrpack, a CurseForge .zip or a Prism /
- * MultiMC .zip, told apart by what they contain.
+ * MultiMC .zip, told apart by what they contain. Any other .zip or .rar, or
+ * a folder, is taken for a hand-made pack.
  *
- * @param {string} file The file on disk.
+ * @param {string} file The file or folder on disk.
  * @param {function(Object)} progress Progress callback.
+ * @param {Object} given For hand-made packs: minecraft, loader, loaderVersion and name chosen by the player.
  * @returns {Promise.<Object>} The new server.
  */
-exports.installFile = async function(file, progress = () => {}){
+exports.installFile = async function(file, progress = () => {}, given = null){
+    const base = path.basename(file).replace(/\.(zip|rar|mrpack)$/i, '')
+    if((await fs.stat(file)).isDirectory()){
+        return await installGameFolder(file, base, progress, given || {})
+    }
+    if(given != null || /\.rar$/i.test(file)){
+        return await installArchive(file, base, progress, given || {})
+    }
     let zip
     try {
         zip = new AdmZip(file)
@@ -998,7 +1148,65 @@ exports.installFile = async function(file, progress = () => {}){
     if(mmc != null){
         return await installPrism(zip, mmc.substring(0, mmc.length - 'mmc-pack.json'.length), progress)
     }
-    throw new ModpackError('unknownFormat')
+    return await installArchive(file, base, progress, {})
+}
+
+/**
+ * Whether a zip is a pack format of its own (Modrinth, CurseForge, Prism),
+ * rather than a game folder.
+ */
+function isDescribedPack(zip){
+    if(zip.getEntry('modrinth.index.json') != null) return true
+    const manifest = zip.getEntry('manifest.json')
+    if(manifest != null){
+        try {
+            if(JSON.parse(manifest.getData().toString('utf-8')).manifestType === 'minecraftModpack') return true
+        } catch {
+            // Some other manifest.json.
+        }
+    }
+    return zip.getEntries().some(e => e.entryName === 'mmc-pack.json' || e.entryName.endsWith('/mmc-pack.json'))
+}
+
+/**
+ * Work out what a hand-made pack runs on, without installing it.
+ *
+ * @param {string} file A .zip, .rar or folder.
+ * @returns {Promise.<{minecraft: string | null, loader: string | null, loaderVersion: string | null, clientJar: boolean, name: string | null}>}
+ */
+exports.detectFile = async function(file){
+    const isDir = (await fs.stat(file)).isDirectory()
+    if(!isDir && /\.(zip|mrpack)$/i.test(file)){
+        let zip
+        try {
+            zip = new AdmZip(file)
+        } catch {
+            throw new ModpackError('unknownFormat')
+        }
+        if(isDescribedPack(zip)){
+            throw new ModpackError('describedPack')
+        }
+    }
+    const dir = isDir ? file : await unpack(file)
+    try {
+        const root = await PackDetect.findRoot(dir)
+        if(root == null){
+            throw new ModpackError('noGameFolder')
+        }
+        const found = await PackDetect.detect(root)
+        return { ...found, clientJar: found.clientJar != null }
+    } finally {
+        if(!isDir) await fs.remove(dir).catch(() => {})
+    }
+}
+
+async function installArchive(file, name, progress, given){
+    const dir = await unpack(file)
+    try {
+        return await installGameFolder(dir, name, progress, given)
+    } finally {
+        await fs.remove(dir).catch(() => {})
+    }
 }
 
 /* Installed packs */
@@ -1030,3 +1238,20 @@ exports.remove = function(id){
 
 exports.LOADER_NAMES = Object.assign({ vanilla: 'Vanilla' }, ...Object.entries(LOADERS).map(([k, v]) => ({ [k]: v.name })), ForgeInstaller.NAMES, UNSUPPORTED_LOADERS)
 exports.isSupportedLoader = (loader) => loader === 'vanilla' || isKnownLoader(loader)
+
+/**
+ * @param {string} loader A loader id.
+ * @returns {string | null} The first Minecraft version the loader has builds for.
+ */
+exports.loaderSince = (loader) => LOADER_SINCE[loader] || null
+
+/**
+ * Whether a loader has builds for a Minecraft version at all.
+ *
+ * @param {string} loader A loader id.
+ * @param {string} mc The Minecraft version.
+ */
+exports.loaderSupports = function(loader, mc){
+    const since = LOADER_SINCE[loader]
+    return since == null || !mc || mcVersionAtLeast(since, mc)
+}

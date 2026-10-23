@@ -277,6 +277,19 @@
                             <button value="forge">Forge</button>
                             <button value="neoforge">NeoForge</button>
                         </div>
+                        <div class="mpFiles" id="mpFiles">
+                            <button type="button" class="apLink" id="mpFilesPick"><%- lang('settings.modpacksFilesAdd') %></button>
+                            <div class="mpFilesChip" id="mpFilesChip" hidden>
+                                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/></svg>
+                                <span class="mpFilesText">
+                                    <span id="mpFilesName"></span>
+                                    <span id="mpFilesNote"></span>
+                                </span>
+                                <button type="button" id="mpFilesClear" title="<%- lang('settings.modpacksFilesClear') %>" aria-label="<%- lang('settings.modpacksFilesClear') %>">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"/></svg>
+                                </button>
+                            </div>
+                        </div>
                         <div class="mpFormRow">
                             <label class="mpField">
                                 <span><%- lang('settings.modpacksMinecraft') %></span>

@@ -8,6 +8,9 @@
  *    downloaded, then the processors run to patch the Minecraft client.
  *  - Older Forge installers (up to 1.12.2) embed the version in the profile
  *    and ship the universal jar; nothing needs patching.
+ *  - Forge before 1.5.2 has no installer at all: its universal zip is merged
+ *    into the Minecraft jar, and FML wants its own libraries in the
+ *    instance's lib folder, from a host that no longer serves them.
  *
  * The result is described the way Nebula describes Forge in a distribution: a
  * ForgeHosted module with the version manifest and every library as
@@ -19,7 +22,7 @@ const crypto        = require('crypto')
 const fs            = require('fs-extra')
 const os            = require('os')
 const path          = require('path')
-const { MavenUtil } = require('helios-core/common')
+const { MavenUtil, isLibraryCompatible, mcVersionAtLeast } = require('helios-core/common')
 const { Type }      = require('helios-distribution-types')
 
 const MOJANG_MANIFEST = 'https://piston-meta.mojang.com/mc/game/version_manifest_v2.json'
@@ -30,11 +33,22 @@ const LIBRARY_MIRRORS = [
     'https://repo1.maven.org/maven2/'
 ]
 
+// Forge before 1.5.2 has no installer: it was patched into the client jar.
+const FORGE_FIRST_INSTALLER = '1.5.2'
+// Forge for 1.2.5 and older also needs ModLoader.
+const FORGE_FIRST_JARMOD = '1.3.2'
+// FML before 1.5.2 downloads its libraries from files.minecraftforge.net,
+// which is gone; Prism Launcher keeps the files.
+const FML_LIBS_MIRROR = 'https://files.prismlauncher.org/fmllibs/'
+// NeoForge forked from Forge at 1.20.1.
+const NEOFORGE_FIRST = '1.20.1'
+
 const KINDS = {
     forge: {
         name: 'Forge',
         metadata: 'https://maven.minecraftforge.net/net/minecraftforge/forge/maven-metadata.xml',
         promotions: 'https://files.minecraftforge.net/net/minecraftforge/forge/promotions_slim.json',
+        universal: (mc, v) => `https://maven.minecraftforge.net/net/minecraftforge/forge/${mc}-${v}/forge-${mc}-${v}-universal.zip`,
         installer: (mc, v) => `https://maven.minecraftforge.net/net/minecraftforge/forge/${mc}-${v}/forge-${mc}-${v}-installer.jar`
     },
     neoforge: {
@@ -49,6 +63,8 @@ const KINDS = {
 }
 
 exports.isForgeLike = (loader) => KINDS[loader] != null
+// The first Minecraft version each loader installs on.
+exports.SINCE = { forge: FORGE_FIRST_JARMOD, neoforge: NEOFORGE_FIRST }
 exports.NAMES = { forge: KINDS.forge.name, neoforge: KINDS.neoforge.name }
 
 function metadataVersions(xml){
@@ -96,6 +112,9 @@ function neoforgePrefix(mc){
  */
 exports.versions = async function(http, loader, mc){
     if(loader === 'forge'){
+        if(!mcVersionAtLeast(FORGE_FIRST_JARMOD, mc)){
+            return []
+        }
         const [xml, promos] = await Promise.all([
             http.get(KINDS.forge.metadata).text(),
             http.get(KINDS.forge.promotions).json().catch(() => ({ promos: {} }))
@@ -104,9 +123,16 @@ exports.versions = async function(http, loader, mc){
         const latest = promos.promos != null ? promos.promos[`${mc}-latest`] : null
         // Metadata lists 1.20.1-47.2.0; the version alone is what packs refer to.
         const list = metadataVersions(xml).filter(v => v.startsWith(`${mc}-`)).map(v => v.substring(mc.length + 1)).sort(byVersionDesc)
-        return list.map(v => ({ version: v, stable: recommended != null ? v === recommended : v === latest }))
+        // Builds up to 1.10.2 carry their branch, 10.13.4.1614-1.7.10, while
+        // promotions name the build alone.
+        const build = (v) => v.split('-')[0]
+        const promoted = recommended != null ? recommended : latest
+        return list.map(v => ({ version: v, stable: build(v) === promoted }))
     }
     if(loader === 'neoforge'){
+        if(!mcVersionAtLeast(NEOFORGE_FIRST, mc)){
+            return []
+        }
         const prefix = neoforgePrefix(mc)
         let list = metadataVersions(await http.get(KINDS.neoforge.metadata).text()).filter(v => v.startsWith(prefix))
         if(list.length === 0){
@@ -313,6 +339,187 @@ async function buildModules(versionJson, libs, extra, commonDir, name, mainLib){
     }]
 }
 
+/* Jar mods (Forge before 1.5.2) */
+
+/**
+ * The UTF-8 constants of a class file, in constant pool order.
+ */
+function classStrings(buf){
+    const strings = []
+    const count = buf.readUInt16BE(8)
+    let i = 10
+    for(let k = 1; k < count; k++){
+        const tag = buf[i]
+        if(tag === 1){
+            const len = buf.readUInt16BE(i + 1)
+            strings.push(buf.toString('utf8', i + 3, i + 3 + len))
+            i += 3 + len
+        } else if(tag === 5 || tag === 6){
+            // Longs and doubles take two slots.
+            i += 9
+            k++
+        } else if([3, 4, 9, 10, 11, 12, 17, 18].includes(tag)){
+            i += 5
+        } else if([7, 8, 16, 19, 20].includes(tag)){
+            i += 3
+        } else if(tag === 15){
+            i += 4
+        } else {
+            throw new Error(`Unknown constant pool tag ${tag}`)
+        }
+    }
+    return strings
+}
+
+/**
+ * The libraries FML checks for in the lib folder, with their SHA-1, as the
+ * universal zip declares them: the names and checksums in CoreFMLLibraries,
+ * in the same order, and from 1.5 the deobfuscation data.
+ *
+ * @param {AdmZip} universal Forge's universal zip.
+ * @returns {Array.<{name: string, sha1: string | null}>}
+ */
+function fmlLibraries(universal){
+    const entry = universal.getEntry('cpw/mods/fml/relauncher/CoreFMLLibraries.class')
+    if(entry == null){
+        return []
+    }
+    const strings = classStrings(entry.getData())
+    const names = strings.filter(s => /^[\w.-]+\.(jar|zip)$/.test(s))
+    const hashes = strings.filter(s => /^[0-9a-f]{40}$/.test(s))
+    const libs = names.map((name, i) => ({ name, sha1: hashes.length === names.length ? hashes[i] : null }))
+
+    const props = universal.getEntry('fmlversion.properties')
+    if(props != null){
+        const text = props.getData().toString('utf-8')
+        const prop = (key) => (text.match(new RegExp(`^${key.replaceAll('.', '\\.')}=(.*)$`, 'm')) || [])[1]
+        const hash = (prop('fmlbuild.deobfuscation.hash') || '').trim()
+        const mc = (prop('fmlbuild.mcversion') || '').trim()
+        if(/^[0-9a-f]{40}$/.test(hash) && mc){
+            libs.push({ name: `deobfuscation_data_${mc}.zip`, sha1: hash })
+        }
+    }
+    return libs
+}
+
+/**
+ * Write a jar without its signature files.
+ *
+ * @param {Array.<AdmZip>} zips Laid over each other in order.
+ * @param {string} file Where to write it.
+ */
+async function writeUnsigned(zips, file){
+    const merged = new AdmZip()
+    for(const zip of zips){
+        for(const e of zip.getEntries()){
+            if(!e.isDirectory && !e.entryName.startsWith('META-INF/')){
+                merged.addFile(e.entryName, e.getData())
+            }
+        }
+    }
+    await fs.ensureDir(path.dirname(file))
+    await merged.writeZipPromise(file)
+}
+
+/**
+ * Describe a client jar that contains Minecraft, and FML's libraries, as
+ * distribution modules.
+ *
+ * @param {string} mc The Minecraft version.
+ * @param {{name: string, rel: string, file: string}} jar The client jar, in the libraries folder.
+ * @param {AdmZip} fml The zip FML's version files are in.
+ * @param {string} id The version manifest's id.
+ * @param {Object} tools As for install, plus localLib(name, sha1) resolving to a file the pack already has.
+ * @param {string} tmp A scratch folder.
+ */
+async function jarModModules(mc, jar, fml, id, tools, tmp){
+    const libs = fmlLibraries(fml).map(l => ({ ...l, file: path.join(tmp, 'fmllibs', l.name), url: FML_LIBS_MIRROR + l.name }))
+    await tools.runAll(libs.map(l => async () => {
+        const local = tools.localLib != null ? await tools.localLib(l.name, l.sha1) : null
+        if(local != null){
+            await fs.copy(local, l.file)
+        } else {
+            await tools.download([l.url], l.file, l.sha1 ? { sha1: l.sha1 } : {})
+        }
+    }), tools.onProgress)
+
+    await ensureVanilla(tools.http, tools.download, tools.commonDir, mc)
+    const vanillaJson = await fs.readJson(path.join(tools.commonDir, 'versions', mc, `${mc}.json`))
+    const versionJson = {
+        id,
+        inheritsFrom: mc,
+        type: vanillaJson.type,
+        mainClass: vanillaJson.mainClass,
+        minecraftArguments: vanillaJson.minecraftArguments,
+        libraries: [],
+        // Read by ProcessBuilder: this jar stands in for the Minecraft one.
+        jarMod: true
+    }
+    const manifestPath = path.join(tools.commonDir, 'versions', id, `${id}.json`)
+    await fs.ensureDir(path.dirname(manifestPath))
+    await fs.writeJson(manifestPath, versionJson, { spaces: 2 })
+
+    const subModules = [{
+        id,
+        name: 'Version manifest',
+        type: Type.VersionManifest,
+        artifact: await artifactOf(manifestPath, '')
+    }]
+    for(const l of libs){
+        // Files land in the instance, where FML looks: lib/ in the game directory.
+        subModules.push({ id: l.name, name: l.name, type: Type.File, artifact: { ...await artifactOf(l.file, l.url), path: `lib/${l.name}` } })
+    }
+    return [{
+        id: jar.name,
+        name: 'Client jar',
+        type: Type.ForgeHosted,
+        artifact: { ...await artifactOf(jar.file, ''), path: jar.rel },
+        subModules
+    }]
+}
+
+/**
+ * Install Forge as a jar mod: its universal zip over the Minecraft jar, which
+ * takes the Minecraft jar's place on the classpath.
+ */
+async function installJarMod(mc, version, tools, tmp){
+    const universalPath = path.join(tmp, 'universal.zip')
+    await tools.download([KINDS.forge.universal(mc, version)], universalPath)
+    const universal = new AdmZip(universalPath)
+
+    const vanillaJar = await ensureVanilla(tools.http, tools.download, tools.commonDir, mc)
+    const rel = `net/minecraftforge/forge/${mc}-${version}/forge-${mc}-${version}-client.jar`
+    const jar = { name: `net.minecraftforge:forge:${mc}-${version}:client`, rel, file: path.join(tools.commonDir, 'libraries', rel) }
+    // Both jars are signed and the merged one matches neither signature.
+    await writeUnsigned([new AdmZip(vanillaJar), universal], jar.file)
+    return await jarModModules(mc, jar, universal, `${mc}-Forge${version}`, tools, tmp)
+}
+
+/**
+ * Use a pack's own client jar, from before 1.6: Minecraft patched with Forge
+ * and whatever other jar mods the pack was built with (OptiFine, Player API…).
+ *
+ * @param {Object} opts minecraft, jar (the pack's bin/minecraft.jar).
+ * @param {Object} tools As for install, plus localLib(name, sha1).
+ * @returns {Promise.<{modules: Array.<Object>}>}
+ */
+exports.installClientJar = async function(opts, tools){
+    const mc = opts.minecraft
+    const source = new AdmZip(opts.jar)
+    const hash = crypto.createHash('sha1').update(await fs.readFile(opts.jar)).digest('hex').substring(0, 8)
+    const version = `${mc}-${hash}`
+    const rel = `meridian/jarmod/client/${version}/client-${version}.jar`
+    const jar = { name: `meridian.jarmod:client:${version}`, rel, file: path.join(tools.commonDir, 'libraries', rel) }
+    const tmp = path.join(os.tmpdir(), `meridian-jarmod-${crypto.randomBytes(4).toString('hex')}`)
+    await fs.ensureDir(tmp)
+    try {
+        await writeUnsigned([source], jar.file)
+        return { modules: await jarModModules(mc, jar, source, `${mc}-jarmod-${hash}`, tools, tmp) }
+    } finally {
+        await fs.remove(tmp).catch(() => {})
+    }
+}
+
 /**
  * Install Forge or NeoForge for a Minecraft version.
  *
@@ -329,6 +536,9 @@ exports.install = async function(opts, tools){
     const tmp = path.join(os.tmpdir(), `meridian-${opts.loader}-${crypto.randomBytes(4).toString('hex')}`)
     await fs.ensureDir(tmp)
     try {
+        if(opts.loader === 'forge' && !mcVersionAtLeast(FORGE_FIRST_INSTALLER, mc)){
+            return { version, modules: await installJarMod(mc, version, tools, tmp) }
+        }
         const installerPath = path.join(tmp, 'installer.jar')
         await tools.download([kind.installer(mc, version)], installerPath)
         const installer = new AdmZip(installerPath)
@@ -345,8 +555,11 @@ exports.install = async function(opts, tools){
             const universal = libraryInfo({ name: profile.install.path }, libDir)
             await fs.ensureDir(path.dirname(universal.file))
             await fs.writeFile(universal.file, installer.getEntry(profile.install.filePath).getData())
+            // Installers before 1.7.10 repeat the vanilla libraries, natives
+            // and other platforms' builds included. Natives come from the
+            // vanilla manifest; a foreign LWJGL would replace the right one.
             const libs = versionJson.libraries
-                .filter(l => l.name !== profile.install.path)
+                .filter(l => l.name !== profile.install.path && l.natives == null && isLibraryCompatible(l.rules, null))
                 .map(l => libraryInfo(l, libDir))
             await tools.runAll(libs.map(l => () => fetchLibrary(l, installer, tools.download)), tools.onProgress)
             const present = []

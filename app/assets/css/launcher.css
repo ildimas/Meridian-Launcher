@@ -2608,6 +2608,86 @@ input:checked + .toggleSwitchSlider:before {
     opacity: 0.5;
     cursor: default;
 }
+.mpFiles {
+    width: 100%;
+    min-width: 0;
+}
+.mpFilesChip {
+    box-sizing: border-box;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 8px 8px 12px;
+    border-radius: 12px;
+    border: 1px solid var(--accent-line);
+    background: var(--accent-soft);
+}
+.mpFilesChip[hidden] {
+    display: none;
+}
+.mpFilesChip > svg {
+    flex: none;
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: var(--accent-hi);
+    stroke-width: 1.8;
+    stroke-linejoin: round;
+}
+.mpFilesText {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+#mpFilesName {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-1);
+}
+#mpFilesNote {
+    font-size: 12px;
+    color: var(--text-2);
+}
+#mpFilesNote[data-state=failed] {
+    color: var(--text-1);
+}
+#mpFilesClear {
+    flex: none;
+    width: 28px;
+    height: 28px;
+    display: grid;
+    place-items: center;
+    padding: 0px;
+    border: 0px;
+    border-radius: 50%;
+    background: transparent;
+    cursor: pointer;
+}
+#mpFilesClear svg {
+    width: 14px;
+    height: 14px;
+    fill: none;
+    stroke: var(--text-2);
+    stroke-width: 2;
+    stroke-linecap: round;
+}
+#mpFilesClear:hover,
+#mpFilesClear:focus-visible {
+    background: var(--glass-hover);
+}
+#mpFilesClear:hover svg {
+    stroke: var(--text-1);
+}
+#mpVersion[drag] {
+    border-color: var(--accent-line);
+    background: var(--glass-hover);
+}
 .mpFormRow {
     width: 100%;
     display: flex;
@@ -3571,6 +3651,14 @@ input:checked + .toggleSwitchSlider:before {
     color: var(--text-1);
     font-weight: 600;
     background: rgba(255, 255, 255, 0.16);
+}
+.apSegment button:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+.apSegment button:disabled:hover {
+    color: rgba(255, 255, 255, 0.72);
+    background: transparent;
 }
 .apLink {
     padding: 0px;
@@ -5913,11 +6001,37 @@ body[settingsOpen] #wallpaper .wpImg {
 
 /* Server listing image. */
 .serverListingImg {
+    position: relative;
     flex: 0 0 auto;
     border-radius: 10px;
     height: 48px;
     width: 48px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     background: var(--basalt-2);
+    background-size: cover;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: #ffffff;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+}
+.serverListingImg[hasIcon] .serverListingImgMono {
+    visibility: hidden;
+}
+.serverListingImgIcon {
+    position: absolute;
+    inset: 0px;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+/* A picture of the player's own fills the square tile, not a circle in it. */
+.serverListingImg .serverGlyph.serverGlyphFull {
+    border-radius: 0px;
 }
 
 /* Content container for the server listing's details. */

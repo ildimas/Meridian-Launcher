@@ -15,7 +15,9 @@ const mpState = {
     total: 0,
     // Bumped per search so late answers to an old query are dropped.
     seq: 0,
-    versionsLoaded: false
+    versionsLoaded: false,
+    // Hand-made pack files attached to the version card: { path, found }.
+    files: null
 }
 
 const mpLoaderSeq = { n: 0 }
@@ -62,7 +64,7 @@ function mpKeyError(err){
 
 function mpSetBusy(busy){
     mpState.busy = busy
-    for(const btn of document.querySelectorAll('#mpContainer [data-install], #mpVersionInstall, #mpImport')){
+    for(const btn of document.querySelectorAll('#mpContainer [data-install], #mpVersionInstall, #mpImport, #mpFilesPick, #mpFilesClear')){
         btn.disabled = busy || btn.hasAttribute('data-unsupported')
     }
 }
@@ -275,13 +277,15 @@ async function mpRun(name, job){
         const server = await job(mpProgress)
         await mpAfterChange()
         mpShowResult(server, server.missing || [])
+        return server
     } catch(err) {
         console.error('Modpack install failed.', err)
         const keyError = mpKeyError(err)
         if(keyError != null){
             mpAskKey(name, job, keyError)
         } else {
-            mpEndTask('error', Lang.queryJS('settings.modpacks.failed', { name }), mpErrorText(err))
+            mpEndTask('error', Lang.queryJS('settings.modpacks.failed', { name }), mpErrorText(err),
+                err.file != null ? { label: Lang.queryJS('settings.modpacks.chooseVersion'), run: () => mpAttachFiles(err.file, err.found) } : null)
         }
     } finally {
         mpSetBusy(false)
@@ -337,7 +341,8 @@ async function mpSelect(id){
 function mpLoaderLabel(raw){
     const loader = raw.local.loader
     const name = ModpackManager.LOADER_NAMES[loader] || loader
-    return raw.local.loaderVersion ? `${name} ${raw.local.loaderVersion}` : name
+    const label = raw.local.loaderVersion ? `${name} ${raw.local.loaderVersion}` : name
+    return raw.local.clientJar ? `${label}, ${Lang.queryJS('settings.modpacks.filesClientJar')}` : label
 }
 
 function mpIconButton(cls, title, svg, onclick){
@@ -737,24 +742,21 @@ async function mpRemove(raw){
 
 /* Import */
 
-function mpBindImport(){
-    const card = mpEl('mpImport')
-    const install = (file) => mpRun(path.basename(file), progress => ModpackManager.installFile(file, progress))
-    card.onclick = async () => {
-        const res = await remote.dialog.showOpenDialog(remote.getCurrentWindow(), {
-            properties: ['openFile'],
-            filters: [{ name: Lang.queryJS('settings.modpacks.fileFilter'), extensions: ['mrpack', 'zip'] }]
-        })
-        if(!res.canceled && res.filePaths.length > 0){
-            install(res.filePaths[0])
-        }
-    }
+/**
+ * Let a card take a dropped file or folder.
+ *
+ * @param {HTMLElement} card The drop target.
+ * @param {function(string)} onPath Called with the dropped item's path.
+ */
+function mpBindDrop(card, onPath){
     card.ondragenter = e => {
         e.preventDefault()
         card.setAttribute('drag', '')
     }
     card.ondragover = e => e.preventDefault()
-    card.ondragleave = () => card.removeAttribute('drag')
+    card.ondragleave = e => {
+        if(!card.contains(e.relatedTarget)) card.removeAttribute('drag')
+    }
     card.ondrop = e => {
         e.preventDefault()
         card.removeAttribute('drag')
@@ -763,8 +765,118 @@ function mpBindImport(){
             return
         }
         const { webUtils } = require('electron')
-        install(webUtils != null && webUtils.getPathForFile != null ? webUtils.getPathForFile(f) : f.path)
+        onPath(webUtils != null && webUtils.getPathForFile != null ? webUtils.getPathForFile(f) : f.path)
     }
+}
+
+async function mpPickFile(extensions){
+    const res = await remote.dialog.showOpenDialog(remote.getCurrentWindow(), {
+        properties: ['openFile'],
+        filters: [{ name: Lang.queryJS('settings.modpacks.fileFilter'), extensions }]
+    })
+    return !res.canceled && res.filePaths.length > 0 ? res.filePaths[0] : null
+}
+
+function mpBindImport(){
+    const card = mpEl('mpImport')
+    const install = (file) => mpRun(path.basename(file), async progress => {
+        try {
+            return await ModpackManager.installFile(file, progress)
+        } catch(err) {
+            // The version can still be chosen by hand.
+            if(err instanceof ModpackManager.ModpackError && err.key === 'unknownVersion'){
+                err.file = file
+            }
+            throw err
+        }
+    })
+    card.onclick = async () => {
+        const file = await mpPickFile(['mrpack', 'zip', 'rar'])
+        if(file != null){
+            install(file)
+        }
+    }
+    mpBindDrop(card, install)
+}
+
+/* Hand-made pack files */
+
+/**
+ * Attach a hand-made pack to the version card: its files go into the
+ * version installed there. What it runs on is filled in when it can be told.
+ *
+ * @param {string} file A .zip, .rar or folder.
+ * @param {Object} found What the import already worked out, if it ran.
+ */
+async function mpAttachFiles(file, found = null){
+    mpState.files = { path: file, found }
+    mpEl('mpFilesPick').hidden = true
+    mpEl('mpFilesChip').hidden = false
+    mpEl('mpFilesName').textContent = path.basename(file)
+    mpEl('mpVersion').scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    const note = mpEl('mpFilesNote')
+    note.removeAttribute('data-state')
+    if(found == null){
+        note.textContent = Lang.queryJS('settings.modpacks.filesDetecting')
+        try {
+            found = await ModpackManager.detectFile(file)
+        } catch(err) {
+            console.error('Unable to read the pack files.', err)
+            if(mpState.files != null && mpState.files.path === file){
+                mpClearFiles()
+                mpEndTask('error', Lang.queryJS('settings.modpacks.failed', { name: path.basename(file) }), mpErrorText(err))
+                mpEl('mpTask').hidden = false
+            }
+            return
+        }
+        // Detached or replaced meanwhile.
+        if(mpState.files == null || mpState.files.path !== file){
+            return
+        }
+        mpState.files.found = found
+    }
+    await mpApplyFound(found)
+    mpUpdateNamePlaceholder()
+}
+
+/**
+ * Fill the version card with what a pack was found to run on.
+ */
+async function mpApplyFound(found){
+    const note = mpEl('mpFilesNote')
+    if(found.minecraft == null){
+        note.setAttribute('data-state', 'failed')
+        note.textContent = Lang.queryJS('settings.modpacks.filesUndetected')
+        return
+    }
+    const loader = found.loader || 'vanilla'
+    const parts = [ModpackManager.LOADER_NAMES[loader] + (found.loaderVersion ? ` ${found.loaderVersion}` : ''), `Minecraft ${found.minecraft}`]
+    if(found.clientJar) parts.push(Lang.queryJS('settings.modpacks.filesClientJar'))
+    note.textContent = Lang.queryJS('settings.modpacks.filesDetected', { found: parts.join(' · ') })
+
+    await mpLoadVersions()
+    const mcSelect = mpEl('mpMinecraft')
+    if([...mcSelect.options].some(o => o.value === found.minecraft)){
+        mcSelect.value = found.minecraft
+    }
+    const btn = mpEl('mpLoader').querySelector(`button[value="${loader}"]`)
+    if(btn != null){
+        for(const other of mpEl('mpLoader').children){
+            other.toggleAttribute('selected', other === btn)
+        }
+    }
+    await mpRefreshLoaderVersions()
+    const versionSelect = mpEl('mpLoaderVersion')
+    if(found.loaderVersion && [...versionSelect.options].some(o => o.value === found.loaderVersion)){
+        versionSelect.value = found.loaderVersion
+    }
+}
+
+function mpClearFiles(){
+    mpState.files = null
+    mpEl('mpFilesPick').hidden = false
+    mpEl('mpFilesChip').hidden = true
+    mpUpdateNamePlaceholder()
 }
 
 /* Plain versions */
@@ -776,6 +888,11 @@ function mpSelectedLoader(){
 function mpUpdateNamePlaceholder(){
     const loader = mpSelectedLoader()
     const mc = mpEl('mpMinecraft').value
+    const files = mpState.files
+    if(files != null){
+        mpEl('mpName').placeholder = (files.found != null && files.found.name) || path.basename(files.path).replace(/\.(zip|rar)$/i, '')
+        return
+    }
     mpEl('mpName').placeholder = mc ? (loader === 'vanilla' ? `Minecraft ${mc}` : `${ModpackManager.LOADER_NAMES[loader]} ${mc}`) : ''
 }
 
@@ -786,6 +903,17 @@ function mpFillSelect(select, options){
         opt.value = o.value
         opt.textContent = o.label
         select.appendChild(opt)
+    }
+}
+
+/**
+ * Grey out the loaders that have no builds for the chosen Minecraft version.
+ */
+function mpUpdateLoaderButtons(mc){
+    for(const btn of mpEl('mpLoader').children){
+        const supported = ModpackManager.loaderSupports(btn.value, mc)
+        btn.disabled = !supported
+        btn.title = supported ? '' : Lang.queryJS('settings.modpacks.loaderSince', { loader: btn.textContent, minecraft: ModpackManager.loaderSince(btn.value) })
     }
 }
 
@@ -801,11 +929,21 @@ async function mpRefreshLoaderVersions(){
     install.removeAttribute('data-unsupported')
     install.disabled = mpState.busy
     mpUpdateNamePlaceholder()
+    const mc = mpEl('mpMinecraft').value
+    mpUpdateLoaderButtons(mc)
     if(loader === 'vanilla'){
         return
     }
     const seq = ++mpLoaderSeq.n
-    const mc = mpEl('mpMinecraft').value
+    if(!ModpackManager.loaderSupports(loader, mc)){
+        // Picked before switching to an older Minecraft version.
+        mpFillSelect(select, [{ value: '', label: Lang.queryJS('settings.modpacks.loaderSince', { loader: ModpackManager.LOADER_NAMES[loader], minecraft: ModpackManager.loaderSince(loader) }) }])
+        select.disabled = true
+        select.title = ''
+        install.setAttribute('data-unsupported', '')
+        install.disabled = true
+        return
+    }
     mpFillSelect(select, [{ value: '', label: Lang.queryJS('settings.modpacks.loading') }])
     select.disabled = true
     let versions = []
@@ -863,18 +1001,33 @@ function mpBindVersion(){
         }
     }
     mpEl('mpMinecraft').onchange = () => mpRefreshLoaderVersions()
-    mpEl('mpVersionInstall').onclick = () => {
+    mpEl('mpFilesPick').onclick = async () => {
+        const file = await mpPickFile(['zip', 'rar'])
+        if(file != null){
+            mpAttachFiles(file)
+        }
+    }
+    mpEl('mpFilesClear').onclick = () => mpClearFiles()
+    mpBindDrop(mpEl('mpVersion'), file => mpAttachFiles(file))
+    mpEl('mpVersionInstall').onclick = async () => {
         const minecraft = mpEl('mpMinecraft').value
         if(!minecraft){
             return
         }
         const name = mpEl('mpName').value.trim() || mpEl('mpName').placeholder
-        mpRun(name, progress => ModpackManager.installVersion({
+        const opts = {
             name,
             minecraft,
             loader: mpSelectedLoader(),
             loaderVersion: mpEl('mpLoaderVersion').value || undefined
-        }, progress))
+        }
+        const files = mpState.files
+        const server = await mpRun(name, progress => files != null
+            ? ModpackManager.installFile(files.path, progress, opts)
+            : ModpackManager.installVersion(opts, progress))
+        if(server != null && files != null && mpState.files === files){
+            mpClearFiles()
+        }
     }
 }
 
