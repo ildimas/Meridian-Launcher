@@ -477,6 +477,8 @@ function updateSelectedServer(serv){
         animateSettingsTabRefresh()
     }
     setLaunchEnabled(serv != null)
+    // News can be for one pack only.
+    renderNews()
 }
 
 /**
@@ -1684,20 +1686,37 @@ async function dlAsync(login = true) {
 }
 
 /**
- * News Loading Functions
+ * News: the feed Meridian Studio publishes as news.json, linked from
+ * distribution.json (`news`). The index is small and asked for again on every
+ * distro refresh, which costs a 304 when nothing changed. An article's text
+ * and pictures load only when it is opened, from files named by their
+ * content and cached for good: Chromium's own bounded cache keeps them, so a
+ * player downloads each once, and years of news never pile up on disk. The
+ * config keeps just the date of the newest article seen.
  */
+
+const { marked }                    = require('marked')
+const DOMPurify                     = require('dompurify')
 
 // DOM Cache
 const newsContent                   = document.getElementById('newsContent')
-const newsArticleTitle              = document.getElementById('newsArticleTitle')
-const newsArticleDate               = document.getElementById('newsArticleDate')
-const newsArticleAuthor             = document.getElementById('newsArticleAuthor')
-const newsArticleComments           = document.getElementById('newsArticleComments')
-const newsNavigationStatus          = document.getElementById('newsNavigationStatus')
-const newsArticleContentScrollable  = document.getElementById('newsArticleContentScrollable')
+const newsList                      = document.getElementById('newsList')
+const newsArticleView               = document.getElementById('newsArticleView')
+const newsArticleScroll             = document.getElementById('newsArticleScroll')
+const newsArticle                   = document.getElementById('newsArticle')
 const nELoadSpan                    = document.getElementById('nELoadSpan')
 
-// News slide caches.
+// Never more than this many articles, whatever the feed holds.
+const NEWS_MAX = 50
+const NEWS_TIMEOUT = 10000
+// On the first run, only articles this recent count as unread.
+const NEWS_FRESH = 14 * 24 * 3600 * 1000
+
+// The loaded feed: { url, articles }, null when it failed to load, undefined
+// before the first load.
+let newsFeed
+// Unread before the drawer was opened, so the badges stay while it is open.
+let newsSeenShown = null
 let newsActive = false
 
 /**
@@ -1715,14 +1734,14 @@ document.getElementById('newsButton').onclick = () => {
     // Toggle tabbing. The drawer leaves the rest of the landing usable.
     if(newsActive){
         $('#newsContainer *').attr('tabindex', '-1')
+        closeNewsArticle()
+        // Badges for what was unread go once the drawer has been seen.
+        newsSeenShown = null
+        renderNews()
     } else {
         $('#newsContainer, #newsContainer *').removeAttr('tabindex')
-        if(newsAlertShown){
-            $('#newsButtonAlert').fadeOut(2000)
-            newsAlertShown = false
-            ConfigManager.setNewsCacheDismissed(true)
-            ConfigManager.save()
-        }
+        newsSeenShown = newsSeen()
+        markNewsSeen()
     }
     slide_(!newsActive)
     newsActive = !newsActive
@@ -1731,9 +1750,9 @@ document.getElementById('newsButton').onclick = () => {
 document.getElementById('newsClose').onclick = () => {
     document.getElementById('newsButton').click()
 }
-
-// Array to store article meta.
-let newsArr = null
+document.getElementById('newsBack').onclick = () => {
+    closeNewsArticle()
+}
 
 // News load animation listener.
 let newsLoadingListener = null
@@ -1744,6 +1763,10 @@ let newsLoadingListener = null
  * @param {boolean} val True to set loading animation, otherwise false.
  */
 function setNewsLoading(val){
+    if(newsLoadingListener != null){
+        clearInterval(newsLoadingListener)
+        newsLoadingListener = null
+    }
     if(val){
         const nLStr = Lang.queryJS('landing.news.checking')
         let dotStr = '..'
@@ -1756,65 +1779,251 @@ function setNewsLoading(val){
             }
             nELoadSpan.innerHTML = nLStr + dotStr
         }, 750)
-    } else {
-        if(newsLoadingListener != null){
-            clearInterval(newsLoadingListener)
-            newsLoadingListener = null
-        }
     }
+}
+
+/**
+ * Show one of the drawer's states.
+ * 
+ * @param {'loading'|'failed'|'none'|'list'} state
+ */
+function setNewsState(state){
+    setNewsLoading(state === 'loading')
+    $('#newsErrorContainer').toggle(state !== 'list')
+    $('#newsErrorLoading').toggle(state === 'loading')
+    $('#newsErrorFailed').toggle(state === 'failed')
+    $('#newsErrorNone').toggle(state === 'none')
+    $(newsContent).toggle(state === 'list')
 }
 
 // Bind retry button.
 newsErrorRetry.onclick = () => {
-    $('#newsErrorFailed').fadeOut(250, () => {
-        initNews()
-        $('#newsErrorLoading').fadeIn(250)
+    initNews()
+}
+
+/**
+ * Date of the newest article the player has seen, in ms, or null.
+ */
+function newsSeen(){
+    const cache = ConfigManager.getNewsCache()
+    return cache != null && Number.isFinite(cache.seen) ? cache.seen : null
+}
+
+function isNewsUnread(article, seen){
+    return article.time > (seen ?? Date.now() - NEWS_FRESH)
+}
+
+/**
+ * Articles for the selected pack: those for everyone and those for it.
+ * Pinned first, then newest first.
+ */
+function visibleNews(){
+    if(newsFeed == null) return []
+    const server = ConfigManager.getSelectedServer()
+    return newsFeed.articles
+        .filter(a => a.servers == null || a.servers.includes(server))
+        .sort((a, b) => (b.pinned - a.pinned) || (b.time - a.time))
+}
+
+function markNewsSeen(){
+    const newest = visibleNews().reduce((m, a) => Math.max(m, a.time), newsSeen() ?? 0)
+    if(newest > 0 && newest !== newsSeen()){
+        ConfigManager.setNewsCache({ seen: newest })
+        ConfigManager.save()
+    }
+    $(newsButtonAlert).fadeOut(250)
+}
+
+function updateNewsAlert(){
+    const seen = newsSeen()
+    const unread = !newsActive && visibleNews().some(a => isNewsUnread(a, seen))
+    if(unread) $(newsButtonAlert).fadeIn(250)
+    else $(newsButtonAlert).hide()
+}
+
+function formatNewsDate(time){
+    return new Date(time).toLocaleDateString(Lang.getCurrent().tag, { day: 'numeric', month: 'long', year: 'numeric' })
+}
+
+// Links in an article resolve against the feed; only web links survive.
+let newsBaseUrl = null
+
+function safeNewsUrl(value, base = newsBaseUrl){
+    try {
+        const url = new URL(value, base || undefined)
+        return url.protocol === 'https:' || url.protocol === 'http:' ? url.toString() : null
+    } catch {
+        return null
+    }
+}
+
+DOMPurify.addHook('afterSanitizeAttributes', (node) => {
+    if(node.tagName === 'IMG'){
+        const src = safeNewsUrl(node.getAttribute('src'))
+        if(src == null){
+            node.remove()
+            return
+        }
+        node.setAttribute('src', src)
+        node.setAttribute('loading', 'lazy')
+        node.setAttribute('decoding', 'async')
+        node.setAttribute('referrerpolicy', 'no-referrer')
+    } else if(node.tagName === 'A'){
+        const href = safeNewsUrl(node.getAttribute('href'))
+        if(href == null) node.removeAttribute('href')
+        else node.setAttribute('href', href)
+    }
+})
+
+/**
+ * Markdown from the feed as safe HTML: no scripts, handlers, styles, frames or
+ * forms; the window runs with Node in it.
+ */
+function renderNewsMarkdown(md){
+    return DOMPurify.sanitize(marked.parse(md, { gfm: true, breaks: true }), {
+        FORBID_TAGS: ['style', 'iframe', 'frame', 'object', 'embed', 'form', 'input', 'button', 'textarea', 'select', 'video', 'audio', 'source', 'svg', 'math'],
+        FORBID_ATTR: ['style', 'srcset']
     })
 }
 
-newsArticleContentScrollable.onscroll = (e) => {
-    if(e.target.scrollTop > Number.parseFloat($('.newsArticleSpacerTop').css('height'))){
-        newsContent.setAttribute('scrolled', '')
-    } else {
-        newsContent.removeAttribute('scrolled')
+/**
+ * Build the cards for the selected pack.
+ */
+function renderNews(){
+    if(newsFeed === undefined) return
+    if(newsFeed == null){
+        setNewsState('failed')
+        return
+    }
+    const list = visibleNews()
+    updateNewsAlert()
+    if(list.length === 0){
+        setNewsState('none')
+        return
+    }
+    const seen = newsActive ? newsSeenShown : newsSeen()
+    newsList.replaceChildren(...list.map(a => {
+        const card = document.createElement('button')
+        card.className = 'newsCard'
+        if(!newsActive) card.setAttribute('tabindex', '-1')
+        if(a.cover){
+            const img = document.createElement('img')
+            img.className = 'newsCardCover'
+            img.src = a.cover
+            img.alt = ''
+            img.loading = 'lazy'
+            img.decoding = 'async'
+            img.referrerPolicy = 'no-referrer'
+            card.appendChild(img)
+        }
+        const body = document.createElement('div')
+        body.className = 'newsCardBody'
+        const meta = document.createElement('div')
+        meta.className = 'newsCardMeta'
+        if(a.pinned){
+            const pin = document.createElement('span')
+            pin.className = 'newsBadge pinned'
+            pin.textContent = Lang.queryJS('landing.news.pinned')
+            meta.appendChild(pin)
+        }
+        if(isNewsUnread(a, seen)){
+            const badge = document.createElement('span')
+            badge.className = 'newsBadge'
+            badge.textContent = Lang.queryJS('landing.news.new')
+            meta.appendChild(badge)
+        }
+        const date = document.createElement('span')
+        date.textContent = formatNewsDate(a.time) + (a.author ? ' · ' + a.author : '')
+        meta.appendChild(date)
+        const title = document.createElement('span')
+        title.className = 'newsCardTitle'
+        title.textContent = a.title
+        body.append(meta, title)
+        if(a.summary){
+            const summary = document.createElement('span')
+            summary.className = 'newsCardSummary'
+            summary.textContent = a.summary
+            body.appendChild(summary)
+        }
+        card.appendChild(body)
+        card.onclick = () => openNewsArticle(a)
+        return card
+    }))
+    setNewsState('list')
+}
+
+// The article on screen, so a body that arrives late doesn't land in another.
+let newsOpen = null
+
+/**
+ * An article's Markdown. The body's link changes with its text, so the
+ * browser cache answers without asking the server again.
+ */
+async function loadNewsBody(a){
+    const res = await fetch(a.body, { signal: AbortSignal.timeout(NEWS_TIMEOUT) })
+    if(!res.ok) throw new Error(`HTTP ${res.status}`)
+    const data = await res.json()
+    if(typeof data.content !== 'string') throw new Error('No content.')
+    return data.content
+}
+
+/**
+ * Show one article in place of the list.
+ */
+async function openNewsArticle(a){
+    newsOpen = a
+    newsBaseUrl = a.body
+    newsArticle.replaceChildren()
+    if(a.cover){
+        const img = document.createElement('img')
+        img.className = 'newsArticleCover'
+        img.src = a.cover
+        img.alt = ''
+        img.referrerPolicy = 'no-referrer'
+        newsArticle.appendChild(img)
+    }
+    const title = document.createElement('h2')
+    title.textContent = a.title
+    const meta = document.createElement('div')
+    meta.className = 'newsArticleMeta'
+    meta.textContent = formatNewsDate(a.time) + (a.author ? ' · ' + a.author : '')
+    const body = document.createElement('div')
+    body.className = 'newsArticleBody'
+    body.setAttribute('loading', '')
+    body.textContent = Lang.queryJS('landing.news.loadingArticle')
+    newsArticle.append(title, meta, body)
+    newsList.style.display = 'none'
+    newsArticleView.style.display = ''
+    newsArticleScroll.scrollTop = 0
+    document.getElementById('newsBack').focus({ focusVisible: false })
+
+    try {
+        const content = await loadNewsBody(a)
+        if(newsOpen !== a) return
+        body.removeAttribute('loading')
+        body.innerHTML = renderNewsMarkdown(content)
+    } catch(err) {
+        if(newsOpen !== a) return
+        loggerLanding.warn('Unable to load the article.', err)
+        // A changed article has a new link: the index may be out of date.
+        body.textContent = Lang.queryJS('landing.news.articleFailed')
+        const retry = document.createElement('button')
+        retry.className = 'newsArticleRetry'
+        retry.textContent = Lang.queryJS('landing.news.retry')
+        retry.onclick = () => initNews()
+        body.appendChild(retry)
     }
 }
 
 /**
- * Reload the news without restarting.
- * 
- * @returns {Promise.<void>} A promise which resolves when the news
- * content has finished loading and transitioning.
+ * Back to the list. The article's pictures go with it.
  */
-function reloadNews(){
-    return new Promise((resolve, reject) => {
-        $('#newsContent').fadeOut(250, () => {
-            $('#newsErrorLoading').fadeIn(250)
-            initNews().then(() => {
-                resolve()
-            })
-        })
-    })
-}
-
-let newsAlertShown = false
-
-/**
- * Show the news alert indicating there is new news.
- */
-function showNewsAlert(){
-    newsAlertShown = true
-    $(newsButtonAlert).fadeIn(250)
-}
-
-async function digestMessage(str) {
-    const msgUint8 = new TextEncoder().encode(str)
-    const hashBuffer = await crypto.subtle.digest('SHA-1', msgUint8)
-    const hashArray = Array.from(new Uint8Array(hashBuffer))
-    const hashHex = hashArray
-        .map((b) => b.toString(16).padStart(2, '0'))
-        .join('')
-    return hashHex
+function closeNewsArticle(){
+    if(newsArticleView.style.display === 'none') return
+    newsOpen = null
+    newsArticle.replaceChildren()
+    newsArticleView.style.display = 'none'
+    newsList.style.display = ''
 }
 
 /**
@@ -1822,115 +2031,27 @@ async function digestMessage(str) {
  * the UI accordingly.
  * 
  * @returns {Promise.<void>} A promise which resolves when the news
- * content has finished loading and transitioning.
+ * content has finished loading.
  */
 async function initNews(){
-
-    setNewsLoading(true)
-
-    const news = await loadNews()
-
-    newsArr = news?.articles || null
-
-    if(newsArr == null){
-        // News Loading Failed
-        setNewsLoading(false)
-
-        await $('#newsErrorLoading').fadeOut(250).promise()
-        await $('#newsErrorFailed').fadeIn(250).promise()
-
-    } else if(newsArr.length === 0) {
-        // No News Articles
-        setNewsLoading(false)
-
-        ConfigManager.setNewsCache({
-            date: null,
-            content: null,
-            dismissed: false
-        })
-        ConfigManager.save()
-
-        await $('#newsErrorLoading').fadeOut(250).promise()
-        await $('#newsErrorNone').fadeIn(250).promise()
-    } else {
-        // Success
-        setNewsLoading(false)
-
-        const lN = newsArr[0]
-        const cached = ConfigManager.getNewsCache()
-        let newHash = await digestMessage(lN.content)
-        let newDate = new Date(lN.date)
-        let isNew = false
-
-        if(cached.date != null && cached.content != null){
-
-            if(new Date(cached.date) >= newDate){
-
-                // Compare Content
-                if(cached.content !== newHash){
-                    isNew = true
-                    showNewsAlert()
-                } else {
-                    if(!cached.dismissed){
-                        isNew = true
-                        showNewsAlert()
-                    }
-                }
-
-            } else {
-                isNew = true
-                showNewsAlert()
-            }
-
-        } else {
-            isNew = true
-            showNewsAlert()
-        }
-
-        if(isNew){
-            ConfigManager.setNewsCache({
-                date: newDate.getTime(),
-                content: newHash,
-                dismissed: false
-            })
-            ConfigManager.save()
-        }
-
-        const switchHandler = (forward) => {
-            let cArt = parseInt(newsContent.getAttribute('article'))
-            let nxtArt = forward ? (cArt >= newsArr.length-1 ? 0 : cArt + 1) : (cArt <= 0 ? newsArr.length-1 : cArt - 1)
-    
-            displayArticle(newsArr[nxtArt], nxtArt+1)
-        }
-
-        document.getElementById('newsNavigateRight').onclick = () => { switchHandler(true) }
-        document.getElementById('newsNavigateLeft').onclick = () => { switchHandler(false) }
-        await $('#newsErrorContainer').fadeOut(250).promise()
-        displayArticle(newsArr[0], 1)
-        await $('#newsContent').fadeIn(250).promise()
-    }
-
-
+    if(newsFeed == null) setNewsState('loading')
+    const feed = await loadNews()
+    // A failed refresh keeps what was loaded before.
+    if(feed != null || newsFeed == null) newsFeed = feed
+    closeNewsArticle()
+    renderNews()
 }
 
 /**
- * Add keyboard controls to the news UI. Left and right arrows toggle
- * between articles. If you are on the landing page, the up arrow will
- * open the news UI.
+ * Add keyboard controls to the news UI. Escape leaves an article, then closes
+ * the drawer. If you are on the landing page, the up arrow opens it.
  */
 document.addEventListener('keydown', (e) => {
     if(newsActive){
         if(e.key === 'Escape'){
-            document.getElementById('newsButton').click()
+            if(newsArticleView.style.display !== 'none') closeNewsArticle()
+            else document.getElementById('newsButton').click()
         }
-        if(e.key === 'ArrowRight' || e.key === 'ArrowLeft'){
-            document.getElementById(e.key === 'ArrowRight' ? 'newsNavigateRight' : 'newsNavigateLeft').click()
-        }
-        // Interferes with scrolling an article using the down arrow.
-        // Not sure of a straight forward solution at this point.
-        // if(e.key === 'ArrowDown'){
-        //     document.getElementById('newsButton').click()
-        // }
     } else {
         if(getCurrentView() === VIEWS.landing){
             if(e.key === 'ArrowUp'){
@@ -1941,98 +2062,40 @@ document.addEventListener('keydown', (e) => {
 })
 
 /**
- * Display a news article on the UI.
+ * Load the feed linked from the distribution index.
  * 
- * @param {Object} articleObject The article meta object.
- * @param {number} index The article index.
- */
-function displayArticle(articleObject, index){
-    newsArticleTitle.innerHTML = articleObject.title
-    newsArticleTitle.href = articleObject.link
-    newsArticleAuthor.innerHTML = 'by ' + articleObject.author
-    newsArticleDate.innerHTML = articleObject.date
-    newsArticleComments.innerHTML = articleObject.comments
-    newsArticleComments.href = articleObject.commentsLink
-    newsArticleContentScrollable.innerHTML = '<div id="newsArticleContentWrapper"><div class="newsArticleSpacerTop"></div>' + articleObject.content + '<div class="newsArticleSpacerBot"></div></div>'
-    Array.from(newsArticleContentScrollable.getElementsByClassName('bbCodeSpoilerButton')).forEach(v => {
-        v.onclick = () => {
-            const text = v.parentElement.getElementsByClassName('bbCodeSpoilerText')[0]
-            text.style.display = text.style.display === 'block' ? 'none' : 'block'
-        }
-    })
-    newsNavigationStatus.innerHTML = Lang.query('ejs.landing.newsNavigationStatus', {currentPage: index, totalPages: newsArr.length})
-    newsContent.setAttribute('article', index-1)
-}
-
-/**
- * Load news information from the RSS feed specified in the
- * distribution index.
+ * @returns {Promise.<{url: string, articles: Array.<Object>}|null>} The feed,
+ * with no articles when the distribution links none; null if it failed.
  */
 async function loadNews(){
-
-    const distroData = await DistroAPI.getDistribution()
-    if(!distroData.rawDistribution.rss) {
-        loggerLanding.debug('No RSS feed provided.')
+    try {
+        const distroData = await DistroAPI.getDistribution()
+        const url = distroData.rawDistribution.news
+        if(!url){
+            loggerLanding.debug('No news feed provided.')
+            return { url: null, articles: [] }
+        }
+        const res = await fetch(url, { cache: 'no-cache', signal: AbortSignal.timeout(NEWS_TIMEOUT) })
+        if(!res.ok) throw new Error(`HTTP ${res.status}`)
+        const data = await res.json()
+        const str = (v) => typeof v === 'string' ? v : ''
+        const articles = (Array.isArray(data.articles) ? data.articles : [])
+            .map(a => ({
+                id: str(a.id),
+                title: str(a.title).trim(),
+                summary: str(a.summary),
+                author: str(a.author),
+                time: new Date(a.date).getTime(),
+                cover: a.cover ? safeNewsUrl(a.cover, url) : null,
+                body: a.body ? safeNewsUrl(a.body, url) : null,
+                servers: Array.isArray(a.servers) && a.servers.length > 0 ? a.servers.map(String) : null,
+                pinned: a.pinned === true
+            }))
+            .filter(a => a.title && Number.isFinite(a.time) && a.body)
+            .slice(0, NEWS_MAX)
+        return { url, articles }
+    } catch(err) {
+        loggerLanding.warn('Unable to load the news.', err)
         return null
     }
-
-    const promise = new Promise((resolve, reject) => {
-        
-        const newsFeed = distroData.rawDistribution.rss
-        const newsHost = new URL(newsFeed).origin + '/'
-        $.ajax({
-            url: newsFeed,
-            success: (data) => {
-                const items = $(data).find('item')
-                const articles = []
-
-                for(let i=0; i<items.length; i++){
-                // JQuery Element
-                    const el = $(items[i])
-
-                    // Resolve date.
-                    const date = new Date(el.find('pubDate').text()).toLocaleDateString(Lang.getCurrent().tag, {month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: 'numeric'})
-
-                    // Resolve comments.
-                    let comments = el.find('slash\\:comments').text() || '0'
-                    comments = comments + ' Comment' + (comments === '1' ? '' : 's')
-
-                    // Fix relative links in content.
-                    let content = el.find('content\\:encoded').text()
-                    let regex = /src="(?!http:\/\/|https:\/\/)(.+?)"/g
-                    let matches
-                    while((matches = regex.exec(content))){
-                        content = content.replace(`"${matches[1]}"`, `"${newsHost + matches[1]}"`)
-                    }
-
-                    let link   = el.find('link').text()
-                    let title  = el.find('title').text()
-                    let author = el.find('dc\\:creator').text()
-
-                    // Generate article.
-                    articles.push(
-                        {
-                            link,
-                            title,
-                            date,
-                            author,
-                            content,
-                            comments,
-                            commentsLink: link + '#comments'
-                        }
-                    )
-                }
-                resolve({
-                    articles
-                })
-            },
-            timeout: 2500
-        }).catch(err => {
-            resolve({
-                articles: null
-            })
-        })
-    })
-
-    return await promise
 }

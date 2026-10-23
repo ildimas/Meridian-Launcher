@@ -591,8 +591,8 @@ select:focus-visible,
 /* Styles for dimmer login span. */
 .loginSpanDim {
     font-size: 12px;
-    color: #848484;
-    font-weight: bold;
+    color: var(--text-3);
+    font-weight: 500;
 }
 
 /* Main login container. */
@@ -607,149 +607,113 @@ select:focus-visible,
     background: rgba(2, 26, 48, 0.5);
 }
 
-/* Login cancel button styles. */
-#loginCancelContainer {
-    position: absolute;
-    top: 5%;
-    right: 5%;
-}
-
-/* Login cancel button styles. */
-#loginCancelButton {
-    background: none;
-    border: none;
-    outline: none;
-    cursor: pointer;
-    transition: 0.25s ease;
-}
-#loginCancelButton:hover #loginCancelIcon,
-#loginCancelButton:hover #loginCancelText,
-#loginCancelButton:focus #loginCancelIcon,
-#loginCancelButton:focus #loginCancelText {
-}
-#loginCancelButton:hover #loginCancelIcon,
-#loginCancelButton:focus #loginCancelIcon {
-}
-#loginCancelButton:active #loginCancelIcon,
-#loginCancelButton:active #loginCancelText {
-    color: var(--text-2);
-    border-color: var(--text-2);
-}
-#loginCancelButton:active #loginCancelIcon {
-    box-shadow: 0px 0px 20px var(--text-2);
-}
-#loginCancelButton:disabled {
-    pointer-events: none;
-}
-#loginCancelButton:disabled #loginCancelIcon,
-#loginCancelButton:disabled #loginCancelText {
-    color: var(--text-2);
-    border-color: var(--text-2);
-}
-
-/* The X in a circle icon for the cancel button. */
-#loginCancelIcon {
-    border-radius: 50%;
-    border: 1px solid white;
-    box-sizing: border-box;
-    height: 30px;
-    width: 30px;
-    font-size: 19px;
-    line-height: 30px;
-    margin: 0 auto;
-    margin-bottom: 5px;
-    transition: 0.25s ease;
-}
-/* Text for the login cancel button. */
-#loginCancelText {
-    font-size: 15px;
-    transition: 0.25s ease;
-}
-
-/* Login content wrapper. */
+/* Login content wrapper: the glass card, matching the login options view. */
 #loginContent {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100%;
-    padding: 0px 25px;
+    position: relative;
+    width: 360px;
+    max-height: calc(100% - 48px);
+    overflow-y: auto;
+    box-sizing: border-box;
+    padding: 28px;
+    border-radius: var(--radius-panel);
+    background: var(--glass);
+    backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--line);
+    box-shadow: var(--sheen), var(--shadow-float);
+    animation: riseIn 420ms var(--ease-out) both;
 }
 
 /* Login form. */
 #loginForm {
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    align-items: center;
+    align-items: stretch;
 }
 
 /* Login form anchor styles. */
 #loginForm a {
     font-size: 12px;
-    color: #848484;
-    font-weight: bold;
+    color: var(--text-3);
+    font-weight: 500;
     text-decoration: none;
-    transition: 0.25s ease;
+    transition: color 160ms var(--ease-out);
 }
 #loginForm a:hover,
 #loginForm a:focus {
-    color: #a2a2a2;
+    color: var(--accent-hi);
     outline: none;
 }
 #loginForm a:active {
-    color: #8b8b8b;
+    color: var(--accent);
+}
+
+/* Logo and title. */
+#loginHeader {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 22px;
 }
 
 /* Logo on login form. */
 #loginImageSeal {
     border-radius: 50%;
-    border: 2px solid var(--line-strong);
-    background: rgba(1, 2, 1, 0.5);
-    height: 125px;
-    width: 125px;
-    box-shadow: 0px 0px 10px 0px rgb(0, 0, 0);
-    margin-bottom: 20px;
+    border: 1px solid var(--line-strong);
+    background: rgba(1, 2, 1, 0.35);
+    height: 72px;
+    width: 72px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
 }
 
 /* Header on login view. */
 #loginSubheader {
     font-family: var(--font-ui);
-    font-weight: 600;
-    margin-bottom: 25px;
-    font-size: 12px;
-    letter-spacing: 1px;
-    font-weight: bold;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: var(--text-1);
 }
 
 /* Container to organize login field elements. */
 .loginFieldContainer {
-    position: relative;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    margin-bottom: 4px;
+}
+
+/* Input with its icon inside. */
+.loginFieldWrap {
+    position: relative;
+    display: flex;
     align-items: center;
 }
 
 /* SVG icons on the login view. */
 .loginSVG {
-    fill: #fff;
-    height: 20px;
-    width: 20px;
+    position: absolute;
+    left: 16px;
+    fill: var(--text-3);
+    height: 15px;
+    width: 15px;
+    pointer-events: none;
+    transition: fill 160ms ease;
+}
+.loginFieldWrap:focus-within .loginSVG {
+    fill: var(--accent);
 }
 
 /* Span which displays errors related to login field content. */
 .loginErrorSpan {
     font-family: var(--font-ui);
-    font-weight: 600;
-    font-weight: bold;
-    font-size: 8px;
-    color: #ff1b0c;
-    width: 100%;
-    text-align: right;
-    position: absolute;
-    top: 7px;
+    font-weight: 500;
+    font-size: 11px;
+    line-height: 16px;
+    min-height: 16px;
+    padding: 2px 16px 0px;
+    color: var(--danger);
     opacity: 0;
-    transition: 0.25s ease;
+    transition: opacity 0.25s ease;
 }
 
 .shake {
@@ -760,15 +724,15 @@ select:focus-visible,
     10%, 90% {
         transform: translate3d(-1px, 0, 0);
     }
-    
+
     20%, 80% {
         transform: translate3d(2px, 0, 0);
     }
-  
+
     30%, 50%, 70% {
         transform: translate3d(-4px, 0, 0);
     }
-  
+
     40%, 60% {
         transform: translate3d(4px, 0, 0);
     }
@@ -776,106 +740,90 @@ select:focus-visible,
 
 /* Login text input styles. */
 .loginField {
-    font-family: var(--font-ui);
-    background: none;
-    border-width: 1.5px 0px 0px 0px;
-    border-style: solid;
-    width: 250px;
-    margin-bottom: 20px;
-    border-color: var(--text-1);
-    color: var(--text-2);
-    font-weight: bold;
-    text-align: center;
+    width: 100%;
+    height: 44px;
     box-sizing: border-box;
-    padding: 7.5px;
-    font-size: 10px;
-    letter-spacing: 1px;
+    padding: 0px 16px 0px 42px;
+    border-radius: var(--radius-pill);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text-1);
+    font-family: var(--font-ui);
+    font-size: 13px;
+    outline: none;
+    transition: border-color 160ms ease, background 160ms ease;
 }
 .loginField:focus {
-    outline: none;
+    border-color: var(--accent-line);
+    background: rgba(255, 255, 255, 0.09);
 }
 .loginField:disabled {
-    color: var(--line);
+    color: var(--text-3);
 }
-.loginField::-webkit-input-placeholder {
-    color: var(--text-2);
-    font-size: 10px;
-    letter-spacing: 1px;
-    text-align: center;
-    font-weight: bold;
-}
-.loginField:focus::-webkit-input-placeholder {
-    color: transparent;
+.loginField::placeholder {
+    color: var(--text-3);
+    font-size: 11px;
+    letter-spacing: 0.06em;
 }
 
-/* Add spacing between password field and options bar. */
-#labelPassword {
-    margin-bottom: 13px;
-}
-
-/* Container which contains the forgot and remember options. */
+/* Container which contains the remember and forgot options. */
 #loginOptions {
     display: flex;
     justify-content: space-between;
-    width: 100%;
+    align-items: center;
+    margin: 4px 4px 18px;
 }
 
 /* Remember option text. */
 #loginRememberText {
-    padding-right: 10px;
-    transition: 0.25s ease;
+    transition: color 160ms ease;
 }
 
 /* Login button styles. */
 #loginButton {
-    background: none;
-    font-weight: bold;
-    letter-spacing: 2px;
-    border: none;
-    padding: 15px 5px;
-    margin: 10px 0px;
+    height: 46px;
+    width: 100%;
+    border: 0px;
+    border-radius: var(--radius-pill);
+    background: var(--accent);
+    color: var(--accent-ink);
+    font-family: var(--font-ui);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
     cursor: pointer;
-    position: relative;
-    right: -20px;
-    transition: 0.5s ease;
+    outline: none;
+    transition: filter 160ms ease, opacity 160ms ease;
+}
+#loginButton:hover,
+#loginButton:focus-visible {
+    filter: brightness(1.07);
+}
+#loginButton:active {
+    filter: brightness(0.95);
 }
 #loginButton:disabled {
-    color: var(--text-2);
+    opacity: 0.45;
     pointer-events: none;
 }
 #loginButton[loading] {
-    color: var(--text-1);
-}
-#loginButton:hover,
-#loginButton:focus {
-    outline: none;
-}
-#loginButton:active {
-    color: var(--text-3);
+    opacity: 1;
 }
 #loginSVG {
-    -webkit-transform: translate3d(0, 0, 0);
     overflow: visible;
     transform: rotate(90deg);
-    margin-left: 20px;
-    transition: 0.25s ease;
-    width: 20px;
-    height: 20px;
+    margin-left: 12px;
+    width: 14px;
+    height: 14px;
 }
-#loginButton:hover #loginSVG,
-#loginButton:focus #loginSVG {
-}
-#loginButton:active #loginSVG .arrowLine {
-    stroke: var(--text-3);
-}
-#loginButton:active #loginSVG {
-}
-#loginButton:disabled #loginSVG .arrowLine {
-    stroke: var(--text-2);
+#loginSVG .arrowLine {
+    stroke: currentColor;
+    stroke-width: 2.5px;
 }
 
 #loginButtonContent {
     display: flex;
+    justify-content: center;
     align-items: center;
 }
 
@@ -890,9 +838,9 @@ select:focus-visible,
 
 
 .circle-loader {
-    margin-left: 20px;
-    border: 2px solid var(--line);
-    border-left-color: var(--text-1);
+    margin-left: 12px;
+    border: 2px solid rgba(2, 26, 48, 0.25);
+    border-left-color: var(--accent-ink);
     animation-name: loader-spin;
     animation-duration: 1s;
     animation-iteration-count: infinite;
@@ -901,12 +849,12 @@ select:focus-visible,
     display: inline-block;
     vertical-align: top;
     border-radius: 50%;
-    width: 16px;
-    height: 16px;
+    width: 14px;
+    height: 14px;
 }
 .load-complete {
     animation: none;
-    border-color: var(--text-1);
+    border-color: var(--accent-ink);
     transition: border 500ms ease-out;
 }
 .checkmark {
@@ -920,14 +868,14 @@ select:focus-visible,
 }
 .checkmark:after {
     opacity: 1;
-    height: 8px;
-    width: 4px;
+    height: 7px;
+    width: 3.5px;
     transform-origin: left top;
-    border-right: 2px solid #ffffff;
-    border-top: 2px solid #ffffff;
+    border-right: 2px solid var(--accent-ink);
+    border-top: 2px solid var(--accent-ink);
     content: '';
-    left: 2px;
-    top: 8px;
+    left: 1.5px;
+    top: 7px;
     position: absolute;
 }
 @keyframes loader-spin {
@@ -946,64 +894,63 @@ select:focus-visible,
     }
     20% {
         height: 0;
-        width: 4px;
+        width: 3.5px;
         opacity: 1;
     }
     40% {
-        height: 8px;
-        width: 4px;
+        height: 7px;
+        width: 3.5px;
         opacity: 1;
     }
     100% {
-        height: 8px;
-        width: 4px;
+        height: 7px;
+        width: 3.5px;
         opacity: 1;
     }
 }
-
-
-
-/*.spinningCircle {
-    margin-left: 20px;
-    height: 16px;
-    width: 16px;
-    border-radius: 50%;
-    border: 2px solid rgba(255,255,255,0);
-    border-top-color: var(--text-1);
-    border-right-color: var(--text-1);
-    border-left-color: var(--line);
-    border-bottom-color: var(--line);
-    animation: single2 4s infinite linear;
-}
-
-@keyframes single2 {
-    0% {
-        transform: rotate(0deg);
-    }
-    100% {
-        transform: rotate(720deg);
-    }
-}*/
 
 /* Disclaimer container. */
 #loginDisclaimer {
     display: flex;
     flex-direction: column;
-    justify-content: center;
     align-items: center;
+    gap: 4px;
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px solid var(--line);
 }
 
 /* Add spacing between register anchor and disclaimer. */
 #loginRegisterSpan {
-    margin-bottom: 5px;
+    margin-bottom: 4px;
+}
+#loginForm #loginRegisterSpan a {
+    color: var(--accent);
+    font-weight: 600;
+}
+#loginForm #loginRegisterSpan a:hover,
+#loginForm #loginRegisterSpan a:focus {
+    color: var(--accent-hi);
 }
 
 /* Disclaimer text styles. */
 .loginDisclaimerText {
-    font-size: 7px;
-    color: #848484;
-    font-weight: bold;
+    margin: 0px;
+    font-size: 11px;
+    line-height: 1.45;
+    color: var(--text-3);
     text-align: center;
+}
+
+/* Login cancel button. */
+#loginCancelContainer {
+    display: flex;
+    justify-content: center;
+    margin-top: 12px;
+}
+#loginCancelButton:disabled {
+    color: var(--text-3);
+    pointer-events: none;
 }
 
 /* * *
@@ -1013,11 +960,10 @@ select:focus-visible,
 /* Checkbox container. */
 #checkmarkContainer {
     display: flex;
-    justify-content: flex-end;
     align-items: center;
+    gap: 8px;
     position: relative;
     cursor: pointer;
-    font-size: 22px;
     -webkit-user-select: none;
 }
 
@@ -1026,33 +972,35 @@ select:focus-visible,
     opacity: 0;
     cursor: pointer;
     position: absolute;
+    margin: 0px;
 }
 
 /* Create a custom checkbox. */
 .loginCheckmark {
     position: relative;
-    height: 10px;
-    width: 10px;
-    border: 1px solid #848484;
-    border-radius: 1px;
-    background: none;
-    transition: 0.25s ease;
+    flex-shrink: 0;
+    height: 14px;
+    width: 14px;
+    box-sizing: border-box;
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.06);
+    transition: background 160ms ease, border-color 160ms ease;
 }
-/* On hover and focus, add a grey border color. */
+/* On hover and focus, brighten the option. */
 #checkmarkContainer:hover input ~ *,
-#checkmarkContainer input:focus ~ * {
-    color: #a2a2a2;
-    border-color: #a2a2a2;
+#checkmarkContainer input:focus-visible ~ * {
+    color: var(--text-1);
+    border-color: var(--accent-line);
 }
-/* On keydown, darken the checkbox a bit. */
-#checkmarkContainer input:active ~ *:not(#loginRememberText) {
-    color: #8d8d8d;
-    border-color: #8d8d8d;
+#checkmarkContainer input:checked ~ .loginCheckmark {
+    background: var(--accent);
+    border-color: var(--accent);
 }
 #checkmarkContainer[disabled] {
     pointer-events: none;
+    opacity: 0.6;
 }
-/* For checked -> #checkmarkContainer input:checked ~ * */
 /* Create the checkmark/indicator (hidden when not checked). */
 .loginCheckmark:after {
     content: "";
@@ -1065,11 +1013,11 @@ select:focus-visible,
 /* Style the checkmark/indicator. */
 #checkmarkContainer .loginCheckmark:after {
     position: absolute;
-    left: 3.5px;
-    top: 0.5px;
-    width: 2px;
-    height: 6px;
-    border: solid #a2a2a2;
+    left: 4px;
+    top: 1px;
+    width: 3px;
+    height: 7px;
+    border: solid var(--accent-ink);
     border-width: 0 2px 2px 0;
     transform: rotate(45deg);
 }
@@ -5849,190 +5797,268 @@ body[settingsOpen] #wallpaper .wpImg {
     min-height: 0;
     display: flex;
     flex-direction: column;
+}
+
+/* The list: one card per article, newest first. */
+#newsList {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 0px 12px 14px;
+}
+.newsCard {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    padding: 0px;
+    border-radius: var(--radius-card);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    overflow: hidden;
+    text-align: left;
+    font-family: var(--font-ui);
+    cursor: pointer;
+    outline: none;
+    transition: background 160ms ease, border-color 160ms ease;
+}
+.newsCard:hover,
+.newsCard:focus-visible {
+    background: rgba(255, 255, 255, 0.09);
+    border-color: var(--accent-line);
+}
+.newsCardCover {
+    display: block;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    background: rgba(255, 255, 255, 0.04);
+}
+.newsCardBody {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 12px 14px 14px;
+}
+.newsCardMeta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.62);
+}
+.newsBadge {
+    padding: 1px 8px;
+    border-radius: var(--radius-pill);
+    background: var(--accent);
+    color: var(--accent-ink);
+    font-family: var(--font-ui);
+    font-size: 10.5px;
+    font-weight: 700;
+}
+.newsBadge.pinned {
+    background: rgba(255, 255, 255, 0.12);
+    color: var(--text-1);
+}
+.newsCardTitle {
+    font-size: 15px;
+    font-weight: var(--display-weight);
+    letter-spacing: var(--display-tracking);
+    line-height: 1.3;
+    color: var(--text-1);
+}
+.newsCardSummary {
+    font-size: 12.5px;
+    line-height: 1.45;
+    color: rgba(255, 255, 255, 0.72);
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* One article, in place of the list. */
+#newsArticleView {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
     margin: 0px 12px 14px;
     border-radius: var(--radius-card);
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.08);
     overflow: hidden;
 }
-/* Drop shadow displayed when content is scrolled out of view. */
-#newsContent:before {
-    content: '';
+#newsBack {
     position: absolute;
-    left: 0px;
-    right: 0px;
-    z-index: 1;
-    height: 8px;
-    margin-top: var(--news-head, 0px);
-    background: linear-gradient(rgba(0, 0, 0, 0.35), transparent);
-    opacity: 0;
-    transition: opacity 0.25s ease;
-    pointer-events: none;
-}
-#newsContent[scrolled]:before {
-    opacity: 1;
-}
-#newsStatusContainer {
+    top: 10px;
+    left: 10px;
+    z-index: 2;
     display: flex;
-    flex-direction: column;
-    gap: 10px;
-    padding: 14px 14px 12px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    flex-shrink: 0;
+    align-items: center;
+    gap: 4px;
+    height: 32px;
+    padding: 0px 12px 0px 8px;
+    border-radius: var(--radius-pill);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(12, 14, 20, 0.72);
+    backdrop-filter: blur(10px);
+    color: var(--text-1);
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    outline: none;
+    transition: background 160ms ease;
 }
-#newsStatusContent {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+#newsBack:hover,
+#newsBack:focus-visible {
+    background: rgba(40, 44, 54, 0.9);
 }
-#newsTitleContainer {
-    display: flex;
+#newsBack svg {
+    width: 14px;
+    height: 14px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
 }
-#newsArticleTitle {
-    font-size: 15px;
+#newsArticleScroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+}
+#newsArticle {
+    padding-bottom: 20px;
+    font-size: 13px;
+    line-height: 1.55;
+    color: rgba(255, 255, 255, 0.88);
+    overflow-wrap: anywhere;
+}
+#newsArticle > h2 {
+    margin: 52px 16px 4px;
+    font-size: 18px;
     font-weight: var(--display-weight);
     letter-spacing: var(--display-tracking);
-    line-height: 1.3;
-    color: var(--text-1);
-    text-decoration: none;
-    transition: color 160ms ease;
-    outline: none;
-}
-#newsArticleTitle:hover,
-#newsArticleTitle:focus {
-    color: var(--accent);
-}
-#newsMetaContainer {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 4px 10px;
-}
-#newsArticleDateWrapper,
-#newsArticleAuthorWrapper {
-    display: flex;
-}
-#newsArticleDate {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    color: rgba(255, 255, 255, 0.7);
-}
-#newsArticleAuthor,
-#newsArticleComments {
-    font-size: 12px;
-    color: rgba(255, 255, 255, 0.72);
-    text-decoration: none;
-    outline: none;
-}
-#newsArticleComments:hover,
-#newsArticleComments:focus {
+    line-height: 1.25;
     color: var(--text-1);
 }
-#newsNavigationContainer {
-    display: flex;
-    align-items: center;
-    gap: 2px;
-    -webkit-user-select: none;
+.newsArticleCover + h2 {
+    margin-top: 14px !important;
 }
-#newsNavigationStatus {
+.newsArticleCover {
+    display: block;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+}
+.newsArticleMeta {
+    margin: 0px 16px;
     font-family: var(--font-mono);
     font-size: 11px;
-    color: rgba(255, 255, 255, 0.72);
-    margin: 0px 8px;
+    color: rgba(255, 255, 255, 0.62);
 }
-#newsNavigateLeft,
-#newsNavigateRight {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
+.newsArticleBody {
+    padding: 4px 16px 0px;
+}
+.newsArticleBody[loading] {
+    padding-top: 14px;
+    color: rgba(255, 255, 255, 0.62);
+}
+.newsArticleRetry {
+    display: block;
+    margin-top: 10px;
+    height: 34px;
+    padding: 0px 14px;
     border-radius: var(--radius-pill);
+    border: 1px solid rgba(255, 255, 255, 0.14);
     background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    outline: none;
+    font-size: 12px;
+    font-weight: 500;
     cursor: pointer;
     transition: background 160ms ease;
 }
-#newsNavigateLeft:hover,
-#newsNavigateRight:hover {
+.newsArticleRetry:hover {
     background: rgba(255, 255, 255, 0.14);
 }
-#newsNavigationLeftSVG,
-#newsNavigationRightSVG {
-    width: 11px;
+.newsArticleBody h1,
+.newsArticleBody h2,
+.newsArticleBody h3 {
+    color: var(--text-1);
+    letter-spacing: -0.02em;
+    line-height: 1.3;
+    margin: 18px 0px 6px;
 }
-#newsNavigationLeftSVG {
-    transform: rotate(-90deg);
+.newsArticleBody h1 { font-size: 17px; }
+.newsArticleBody h2 { font-size: 15px; }
+.newsArticleBody h3 { font-size: 13.5px; }
+.newsArticleBody p { margin: 10px 0px; }
+.newsArticleBody strong { color: var(--text-1); }
+.newsArticleBody a {
+    color: var(--accent);
+    outline: none;
 }
-#newsNavigationRightSVG {
-    transform: rotate(90deg);
-}
-#newsNavigationContainer .arrowLine {
-    stroke-width: 3px !important;
-}
-#newsArticleContainer {
-    flex: 1;
-    min-height: 0;
-}
-#newsArticleContent {
-    height: 100%;
-}
-#newsArticleContentScrollable {
-    height: 100%;
-    overflow-y: auto;
-    box-sizing: border-box;
-    padding: 0px 14px;
-    font-size: 13px;
-    line-height: 1.5;
-    color: rgba(255, 255, 255, 0.88);
-}
-#newsArticleContentScrollable h1,
-#newsArticleContentScrollable h2,
-#newsArticleContentScrollable h3,
-#newsArticleContentScrollable strong {
+.newsArticleBody a:hover,
+.newsArticleBody a:focus {
     color: var(--text-1);
 }
-#newsArticleContentScrollable img,
-#newsArticleContentScrollable iframe {
-    max-width: 100%;
+.newsArticleBody img {
     display: block;
-    margin: 0 auto;
+    max-width: 100%;
+    margin: 12px auto;
     border-radius: 10px;
 }
-#newsArticleContentScrollable a {
-    color: var(--accent);
-    outline: none;
+.newsArticleBody ul,
+.newsArticleBody ol {
+    padding-left: 22px;
+    margin: 10px 0px;
 }
-#newsArticleContentScrollable a:hover,
-#newsArticleContentScrollable a:focus {
-    color: var(--text-1);
+.newsArticleBody li + li { margin-top: 3px; }
+.newsArticleBody blockquote {
+    margin: 12px 0px;
+    padding: 4px 0px 4px 14px;
+    border-left: 3px solid var(--accent-line);
+    color: var(--text-2);
 }
-.bbCodeSpoilerButton {
+.newsArticleBody code {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    padding: 1px 5px;
+    border-radius: 5px;
+    background: rgba(255, 255, 255, 0.08);
+}
+.newsArticleBody pre {
+    padding: 12px 14px;
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.3);
+    overflow-x: auto;
+}
+.newsArticleBody pre code {
+    padding: 0px;
     background: none;
-    border: none;
-    outline: none;
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: 600;
+}
+.newsArticleBody hr {
+    border: 0px;
+    border-top: 1px solid var(--line-strong);
+    margin: 18px 0px;
+}
+.newsArticleBody table {
+    border-collapse: collapse;
     width: 100%;
-    border-bottom: 1px solid var(--line);
-    padding-bottom: 12px;
+    font-size: 12px;
 }
-.bbCodeSpoilerButton:hover,
-.bbCodeSpoilerButton:focus {
-    color: var(--accent);
-}
-.bbCodeSpoilerText {
-    display: none;
-    padding: 12px 0px;
-    border-bottom: 1px solid var(--line);
-}
-.newsArticleSpacerTop {
-    height: 14px;
-}
-.newsArticleSpacerBot {
-    height: 18px;
+.newsArticleBody th,
+.newsArticleBody td {
+    border: 1px solid var(--line);
+    padding: 5px 8px;
+    text-align: left;
 }
 #newsErrorContainer {
     flex: 1;

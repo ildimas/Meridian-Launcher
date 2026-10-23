@@ -20,7 +20,7 @@ launchButton = "ГУЛЯЦЬ"
 gameRunning = "Запушчана"
 launchButtonPlaceholder = "Модпак не выбраны"
 launchDetails = "Пачакайце…"
-newsNavigationStatus = "{currentPage} з {totalPages}"
+newsBack = "Назад"
 newsErrorLoadSpan = "Правяраем навіны…"
 newsErrorFailedSpan = "Не ўдалося загрузіць навіны"
 newsErrorRetryButton = "Паўтарыць"
@@ -336,6 +336,11 @@ checkConsoleForDetails = "Падрабязнасці ў кансолі (CTRL + S
 
 [js.landing.news]
 checking = "Правяраем навіны"
+new = "Новае"
+pinned = "Замацавана"
+loadingArticle = "Загружаем…"
+articleFailed = "Не ўдалося загрузіць артыкул"
+retry = "Паўтарыць"
 
 [js.landing.discord]
 loading = "Загрузка гульні…"

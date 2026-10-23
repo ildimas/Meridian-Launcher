@@ -8,7 +8,7 @@ asar: true
 compression: 'maximum'
 
 files:
-  - '!{dist,.gitignore,.vscode,docs,dev-app-update.yml,.nvmrc,mise.toml,eslint.config.mjs,branding,PRODUCT.md,DESIGN.md,.impeccable}'
+  - '!{dist,java,.gitignore,.vscode,docs,dev-app-update.yml,.nvmrc,mise.toml,eslint.config.mjs,branding,PRODUCT.md,DESIGN.md,.impeccable}'
 
 extraResources:
   - 'libraries'

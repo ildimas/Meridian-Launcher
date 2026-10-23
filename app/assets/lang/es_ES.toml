@@ -21,7 +21,7 @@ launchButton = "JUGAR"
 gameRunning = "En juego"
 launchButtonPlaceholder = "Ningún modpack seleccionado"
 launchDetails = "Espera un momento.."
-newsNavigationStatus = "{currentPage} de {totalPages}"
+newsBack = "Volver"
 newsErrorLoadSpan = "Buscando noticias.."
 newsErrorFailedSpan = "No se pudieron cargar las noticias"
 newsErrorRetryButton = "Reintentar"
@@ -338,6 +338,11 @@ checkConsoleForDetails = "Consulta la consola (CTRL + Shift + i) para ver más d
 
 [js.landing.news]
 checking = "Buscando noticias"
+new = "Nuevo"
+pinned = "Fijado"
+loadingArticle = "Cargando…"
+articleFailed = "No se pudo cargar el artículo"
+retry = "Reintentar"
 
 [js.landing.discord]
 loading = "Cargando el juego.."

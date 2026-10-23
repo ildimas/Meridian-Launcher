@@ -20,7 +20,7 @@ launchButton = "ГРАТИ"
 gameRunning = "Запущено"
 launchButtonPlaceholder = "Модпак не вибрано"
 launchDetails = "Зачекайте…"
-newsNavigationStatus = "{currentPage} з {totalPages}"
+newsBack = "Назад"
 newsErrorLoadSpan = "Перевіряємо новини…"
 newsErrorFailedSpan = "Не вдалося завантажити новини"
 newsErrorRetryButton = "Повторити"
@@ -336,6 +336,11 @@ checkConsoleForDetails = "Подробиці в консолі (CTRL + Shift + i
 
 [js.landing.news]
 checking = "Перевіряємо новини"
+new = "Нове"
+pinned = "Закріплено"
+loadingArticle = "Завантажуємо…"
+articleFailed = "Не вдалося завантажити статтю"
+retry = "Повторити"
 
 [js.landing.discord]
 loading = "Завантаження гри…"

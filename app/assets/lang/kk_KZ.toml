@@ -20,7 +20,7 @@ launchButton = "ОЙНАУ"
 gameRunning = "Іске қосылған"
 launchButtonPlaceholder = "Модпак таңдалмаған"
 launchDetails = "Күте тұрыңыз…"
-newsNavigationStatus = "{currentPage} / {totalPages}"
+newsBack = "Артқа"
 newsErrorLoadSpan = "Жаңалықтарды тексеріп жатырмыз…"
 newsErrorFailedSpan = "Жаңалықтарды жүктеу мүмкін болмады"
 newsErrorRetryButton = "Қайталау"
@@ -336,6 +336,11 @@ checkConsoleForDetails = "Толығырақ консольде (CTRL + Shift + 
 
 [js.landing.news]
 checking = "Жаңалықтарды тексеріп жатырмыз"
+new = "Жаңа"
+pinned = "Бекітілген"
+loadingArticle = "Жүктеліп жатыр…"
+articleFailed = "Мақаланы жүктеу мүмкін болмады"
+retry = "Қайталау"
 
 [js.landing.discord]
 loading = "Ойын жүктелуде…"

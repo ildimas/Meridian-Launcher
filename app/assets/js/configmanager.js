@@ -117,9 +117,7 @@ const DEFAULT_CONFIG = {
         }
     },
     newsCache: {
-        date: null,
-        content: null,
-        dismissed: false
+        seen: null // Date of the newest article seen, in ms.
     },
     clientToken: null,
     selectedServer: null, // Resolved
@@ -238,7 +236,7 @@ exports.getTempNativeFolder = function(){
 
 /**
  * Retrieve the news cache to determine
- * whether or not there is newer news.
+ * whether or not there is unread news.
  * 
  * @returns {Object} The news cache object.
  */
@@ -253,15 +251,6 @@ exports.getNewsCache = function(){
  */
 exports.setNewsCache = function(newsCache){
     config.newsCache = newsCache
-}
-
-/**
- * Set whether or not the news has been dismissed (checked)
- * 
- * @param {boolean} dismissed Whether or not the news has been dismissed (checked).
- */
-exports.setNewsCacheDismissed = function(dismissed){
-    config.newsCache.dismissed = dismissed
 }
 
 /**
