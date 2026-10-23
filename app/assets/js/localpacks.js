@@ -129,7 +129,8 @@ exports.patchDistributionAPI = function(DistributionAPI){
  *
  * Forge before 1.13 is read from the version.json inside its jar, and the
  * version parsed from its maven id, which fails for 1.6.4 and older. Local
- * packs store the manifest alongside, so it's read from there.
+ * packs, and packs from before 1.6 that Meridian Studio publishes, carry the
+ * manifest as a module, so it's read from there.
  *
  * @param {Function} DistributionIndexProcessor helios-core's processor class.
  */
@@ -145,11 +146,9 @@ exports.patchIndexProcessor = function(DistributionIndexProcessor){
         if(server != null && exports.isVanilla(server)){
             return null
         }
-        if(server != null && exports.isLocal(server.rawServer)){
-            const loader = server.modules.find(m => m.rawModule.type === Type.ForgeHosted)
-            if(loader != null && loader.subModules.some(m => m.rawModule.type === Type.VersionManifest)){
-                return this.loadVersionManifest(loader)
-            }
+        const loader = server != null ? server.modules.find(m => m.rawModule.type === Type.ForgeHosted) : null
+        if(loader != null && loader.subModules.some(m => m.rawModule.type === Type.VersionManifest)){
+            return this.loadVersionManifest(loader)
         }
         return original.apply(this, args)
     }
