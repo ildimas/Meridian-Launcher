@@ -376,13 +376,12 @@ function mpPackTile(raw, appearance){
 }
 
 /**
- * Hide a pack from the pack pickers or show it again. The selected pack
- * can't be hidden: the picker would have nothing to point at.
+ * Hide a pack from the pack pickers or show it again. Any pack can be
+ * hidden, the selected one too: Play still launches it.
  */
-function mpHideButton(raw, selected){
+function mpHideButton(raw){
     const hidden = ConfigManager.isPackHidden(raw.id)
-    const title = Lang.queryJS(hidden ? 'settings.modpacks.show'
-        : raw.id === selected ? 'settings.modpacks.hideSelected' : 'settings.modpacks.hide')
+    const title = Lang.queryJS(hidden ? 'settings.modpacks.show' : 'settings.modpacks.hide')
     const svg = hidden
         ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18M10.6 6.1A9.8 9.8 0 0 1 12 6c6 0 9.5 6 9.5 6a17 17 0 0 1-3.2 3.9M6.6 6.6A17 17 0 0 0 2.5 12S6 18 12 18c1.7 0 3.2-.5 4.5-1.1M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>'
         : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12S6 6 12 6s9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6z"/><circle cx="12" cy="12" r="3"/></svg>'
@@ -392,51 +391,152 @@ function mpHideButton(raw, selected){
         mpRenderInstalled()
         renderServerPicker()
     })
-    btn.disabled = !hidden && raw.id === selected
     return btn
 }
 
+const MP_FOLDER_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>'
+const MP_REMOVE_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg>'
+
+function mpSpan(cls, text){
+    const span = document.createElement('span')
+    span.className = cls
+    span.textContent = text
+    return span
+}
+
+// Whether the pack list under the selected pack's card is open.
+const mpMenu = { open: false }
+
 /**
- * "Hidden" after a pack's details, when it is.
+ * The details of a pack as on the Mods and Java tabs: name, description,
+ * then its Minecraft version and where it comes from.
  */
-function mpHiddenMeta(raw, parts){
-    return ConfigManager.isPackHidden(raw.id) ? parts.concat(Lang.queryJS('settings.modpacks.hiddenMeta')) : parts
+function mpPackDetails(raw, compact = false){
+    const fromServer = raw.local == null
+    const details = document.createElement('div')
+    details.className = 'serverListingDetails'
+    details.appendChild(mpSpan('serverListingName', raw.name))
+    if(raw.description && !compact){
+        details.appendChild(mpSpan('serverListingDescription', raw.description))
+    }
+    const info = document.createElement('div')
+    info.className = 'serverListingInfo'
+    info.appendChild(mpSpan('serverListingVersion', raw.minecraftVersion))
+    if(fromServer){
+        if(raw.version) info.appendChild(mpSpan('serverListingRevision', raw.version))
+        const badge = mpSpan('mpPackBadge', Lang.queryJS('settings.modpacks.source.server'))
+        badge.title = Lang.queryJS('settings.modpacks.serverLocked')
+        info.appendChild(badge)
+    } else {
+        info.appendChild(mpSpan('serverListingRevision', `${mpLoaderLabel(raw)} · ${Lang.queryJS(`settings.modpacks.source.${raw.local.source}`)}`))
+    }
+    if(ConfigManager.isPackHidden(raw.id)){
+        info.appendChild(mpSpan('mpPackBadge mpPackBadgeHidden', Lang.queryJS('settings.modpacks.hiddenMeta')))
+    }
+    details.appendChild(info)
+    return details
 }
 
 /**
- * A pack from distribution.json: it can be picked, but only the server changes it.
+ * Open the pack's folder, and remove it unless it's a default pack: those
+ * come from distribution.json and the server would bring them back.
  */
-function mpRenderServerRow(list, raw, appearance, selected){
-    const row = document.createElement('div')
-    row.className = 'mpRow mpRowServer'
-    row.setAttribute('role', 'listitem')
-    row.toggleAttribute('selected', raw.id === selected)
-    row.toggleAttribute('packHidden', ConfigManager.isPackHidden(raw.id))
+function mpFileButtons(raw){
+    const buttons = [mpIconButton('', Lang.queryJS('settings.modpacks.openFolder'), MP_FOLDER_SVG, () => {
+        const dir = ModpackManager.instanceDir(raw.id)
+        DropinModUtil.validateDir(dir)
+        shell.openPath(dir)
+    })]
+    if(raw.local != null){
+        buttons.push(mpIconButton('mpRemove', Lang.queryJS('settings.modpacks.remove'), MP_REMOVE_SVG, () => {
+            mpMenu.open = false
+            mpConfirmRemove(raw)
+        }))
+    }
+    return buttons
+}
 
-    const tile = mpPackTile(raw, appearance)
+/**
+ * The selected pack's card. The default packs come from distribution.json,
+ * so their files can be opened but they can't be removed: the server would
+ * bring them back.
+ */
+function mpRenderPackCard(box, raw, appearance){
+    const card = document.createElement('div')
+    card.className = 'settingsSelServContainer mpPackCard'
 
-    const text = document.createElement('div')
-    text.className = 'mpRowText'
-    const name = document.createElement('span')
-    name.className = 'mpRowName'
-    name.textContent = raw.name
-    const meta = document.createElement('span')
-    meta.className = 'mpRowMeta'
-    meta.textContent = mpHiddenMeta(raw, [raw.minecraftVersion, raw.version, Lang.queryJS('settings.modpacks.source.server')].filter(Boolean)).join(' · ')
-    const note = document.createElement('span')
-    note.className = 'mpRowNote'
-    note.textContent = Lang.queryJS('settings.modpacks.serverLocked')
-    text.append(name, meta, note)
+    const content = document.createElement('div')
+    content.className = 'settingsSelServContent'
+    if(raw != null){
+        const tile = mpPackTile(raw, appearance)
+        tile.classList.add('settingsSelServTile')
+        content.append(tile, mpPackDetails(raw))
+    } else {
+        content.appendChild(mpSpan('serverListingName', Lang.queryJS('landing.selectedServer.noSelection')))
+    }
 
-    const use = document.createElement('button')
-    use.type = 'button'
-    use.className = 'mpButton mpButtonSmall'
-    use.disabled = raw.id === selected
-    use.textContent = Lang.queryJS(raw.id === selected ? 'settings.modpacks.selected' : 'settings.modpacks.select')
-    use.onclick = () => mpSelect(raw.id)
+    const actions = document.createElement('div')
+    actions.className = 'mpPackActions'
+    if(raw != null){
+        actions.append(...mpFileButtons(raw))
+    }
+    const toggle = document.createElement('button')
+    toggle.type = 'button'
+    toggle.className = 'settingsSwitchServerButton mpSwitch'
+    toggle.setAttribute('aria-expanded', mpMenu.open)
+    toggle.innerHTML = '<span></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>'
+    toggle.firstChild.textContent = Lang.queryEJS('settings.switchServerButton')
+    toggle.onclick = (e) => {
+        e.stopPropagation()
+        mpMenu.open = !mpMenu.open
+        mpRenderInstalled()
+    }
+    actions.appendChild(toggle)
 
-    row.append(tile, text, use, mpHideButton(raw, selected))
-    list.appendChild(row)
+    card.append(content, actions)
+    box.appendChild(card)
+}
+
+/**
+ * Every pack, hidden ones too: a click selects it, the eye hides it from
+ * the pack pickers, the folder and bin work as on the card.
+ */
+function mpRenderPackMenu(box, packs, appearance, selected){
+    const menu = document.createElement('div')
+    menu.className = 'mpPackMenu'
+    menu.setAttribute('role', 'listbox')
+    for(const raw of packs){
+        const row = document.createElement('div')
+        row.className = 'mpPackOption'
+        row.setAttribute('role', 'option')
+        row.tabIndex = 0
+        row.toggleAttribute('selected', raw.id === selected)
+        row.setAttribute('aria-selected', raw.id === selected)
+        row.toggleAttribute('packHidden', ConfigManager.isPackHidden(raw.id))
+        const tile = document.createElement('span')
+        tile.className = 'serverListTile'
+        paintServerTile(tile, raw, appearance, 'serverListTile')
+        const pick = () => {
+            mpMenu.open = false
+            if(raw.id === selected) mpRenderInstalled()
+            else mpSelect(raw.id)
+        }
+        row.onclick = pick
+        row.onkeydown = (e) => {
+            if(e.key === 'Enter' || e.key === ' '){
+                e.preventDefault()
+                pick()
+            }
+        }
+        const actions = document.createElement('div')
+        actions.className = 'mpPackActions'
+        actions.append(mpHideButton(raw), ...mpFileButtons(raw))
+        // Without a remove button the default pack's buttons still line up.
+        if(raw.local == null) actions.appendChild(mpSpan('mpActionGap', ''))
+        row.append(tile, mpPackDetails(raw, true), actions)
+        menu.appendChild(row)
+    }
+    box.appendChild(menu)
 }
 
 async function mpRenderInstalled(){
@@ -453,56 +553,32 @@ async function mpRenderInstalled(){
     if(seq !== mpInstalledSeq.n){
         return
     }
-    const packs = ModpackManager.installed()
-    const list = mpEl('mpInstalled')
-    mpEl('mpInstalledSection').hidden = packs.length === 0 && servers.length === 0
-    list.innerHTML = ''
+    const packs = servers.concat(ModpackManager.installed())
+    const box = mpEl('mpInstalled')
+    mpEl('mpInstalledSection').hidden = packs.length === 0
+    box.innerHTML = ''
     const appearance = ConfigManager.getAppearance()
     const selected = ConfigManager.getSelectedServer()
-    for(const raw of servers){
-        mpRenderServerRow(list, raw, appearance, selected)
-    }
-    for(const raw of packs){
-        const row = document.createElement('div')
-        row.className = 'mpRow'
-        row.setAttribute('role', 'listitem')
-        row.toggleAttribute('selected', raw.id === selected)
-        row.toggleAttribute('packHidden', ConfigManager.isPackHidden(raw.id))
-
-        const tile = mpPackTile(raw, appearance)
-
-        const text = document.createElement('div')
-        text.className = 'mpRowText'
-        const name = document.createElement('span')
-        name.className = 'mpRowName'
-        name.textContent = raw.name
-        const meta = document.createElement('span')
-        meta.className = 'mpRowMeta'
-        meta.textContent = mpHiddenMeta(raw, [mpLoaderLabel(raw), raw.minecraftVersion, Lang.queryJS(`settings.modpacks.source.${raw.local.source}`)]).join(' · ')
-        text.append(name, meta)
-
-        const use = document.createElement('button')
-        use.type = 'button'
-        use.className = 'mpButton mpButtonSmall'
-        use.disabled = raw.id === selected
-        use.textContent = Lang.queryJS(raw.id === selected ? 'settings.modpacks.selected' : 'settings.modpacks.select')
-        use.onclick = () => mpSelect(raw.id)
-
-        const folder = mpIconButton('', Lang.queryJS('settings.modpacks.openFolder'),
-            '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>',
-            () => {
-                const dir = ModpackManager.instanceDir(raw.id)
-                DropinModUtil.validateDir(dir)
-                shell.openPath(dir)
-            })
-        const remove = mpIconButton('mpRemove', Lang.queryJS('settings.modpacks.remove'),
-            '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg>',
-            () => mpConfirmRemove(raw))
-
-        row.append(tile, text, use, mpHideButton(raw, selected), folder, remove)
-        list.appendChild(row)
+    mpRenderPackCard(box, packs.find(raw => raw.id === selected), appearance)
+    box.toggleAttribute('open', mpMenu.open)
+    if(mpMenu.open){
+        mpRenderPackMenu(box, packs, appearance, selected)
     }
 }
+
+// The pack list closes on a click elsewhere or Escape.
+document.addEventListener('click', (e) => {
+    if(mpMenu.open && !mpEl('mpInstalled').contains(e.target)){
+        mpMenu.open = false
+        mpRenderInstalled()
+    }
+})
+document.addEventListener('keydown', (e) => {
+    if(e.key === 'Escape' && mpMenu.open){
+        mpMenu.open = false
+        mpRenderInstalled()
+    }
+})
 
 // Pictures that can be used as a pack's own icon.
 const MP_ICON_TYPES = ['.png', '.jpg', '.jpeg', '.webp', '.gif']

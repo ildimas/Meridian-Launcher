@@ -745,15 +745,15 @@ function repaintPackTiles(raw){
 
 /**
  * The packs offered by the dial, the list next to Play and the switch
- * dialog: all but the hidden ones, though the selected pack always shows.
+ * dialog: all but the hidden ones. A hidden pack stays selected (Play still
+ * launches it), it just isn't offered.
  *
  * @param {Object} distro The distribution.
  * @returns {Array.<Object>} The servers to offer.
  */
 function pickerServers(distro){
     if(distro == null) return []
-    const selected = ConfigManager.getSelectedServer()
-    return distro.servers.filter(s => s.rawServer.id === selected || !ConfigManager.isPackHidden(s.rawServer.id))
+    return distro.servers.filter(s => !ConfigManager.isPackHidden(s.rawServer.id))
 }
 
 /**
@@ -866,7 +866,9 @@ async function renderServerPicker(){
     const distro = await DistroAPI.getDistribution()
     const servers = pickerServers(distro)
     const selId = ConfigManager.getSelectedServer()
-    const sel = Math.max(0, servers.findIndex(s => s.rawServer.id === selId))
+    // -1 when the selected pack is hidden: then no tile or row is marked.
+    const selIndex = selId != null ? servers.findIndex(s => s.rawServer.id === selId) : -1
+    const sel = Math.max(0, selIndex)
     const appearance = ConfigManager.getAppearance()
     const tiles = document.getElementById('serverDialTiles')
     const landing = document.getElementById('landingContainer')
@@ -904,11 +906,11 @@ async function renderServerPicker(){
         renderServerMenuStatus()
     }
     Array.from(menuList.children).forEach((row, i) => {
-        row.toggleAttribute('selected', i === sel && selId != null)
-        row.setAttribute('aria-selected', i === sel && selId != null)
+        row.toggleAttribute('selected', i === selIndex)
+        row.setAttribute('aria-selected', i === selIndex)
     })
 
-    const curServ = selId != null ? servers[sel] : null
+    const curServ = selId != null && distro != null ? distro.getServerById(selId) : null
     const pickerTile = document.getElementById('serverPickerTile')
     if(curServ != null){
         if(pickerTile.getAttribute('data-key') !== curServ.rawServer.id + '#' + themeKey){
@@ -953,19 +955,19 @@ async function renderServerPicker(){
     Array.from(tiles.children).forEach((tile, i) => {
         const d = i - sel
         const ad = Math.abs(d)
-        tile.toggleAttribute('selected', d === 0)
+        tile.toggleAttribute('selected', i === selIndex)
         tile.toggleAttribute('far', ad > 2)
         tile.toggleAttribute('edge', ad === 2)
-        tile.setAttribute('aria-selected', d === 0)
+        tile.setAttribute('aria-selected', i === selIndex)
     })
 
-    const cur = servers[sel]
+    const cur = servers[selIndex]
     document.getElementById('serverDialName').textContent = cur != null ? cur.rawServer.name : ''
-    document.getElementById('serverDialPos').textContent = servers.length > 0
+    document.getElementById('serverDialPos').textContent = cur != null
         ? Lang.queryJS('landing.serverHero.position', { current: sel + 1, total: servers.length })
         : ''
-    document.getElementById('serverDialPrev').disabled = sel <= 0
-    document.getElementById('serverDialNext').disabled = sel >= servers.length - 1
+    document.getElementById('serverDialPrev').disabled = selIndex <= 0
+    document.getElementById('serverDialNext').disabled = selIndex >= servers.length - 1
     renderRunningState()
 }
 

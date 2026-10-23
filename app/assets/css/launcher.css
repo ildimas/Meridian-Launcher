@@ -3110,11 +3110,105 @@ input:checked + .toggleSwitchSlider:before {
     overflow: hidden;
     text-overflow: ellipsis;
 }
-/* Packs from distribution.json: greyed out, since only the server changes them. */
-.mpRowServer:not([selected]) .mpTile,
-.mpRowServer:not([selected]) .mpRowText {
-    opacity: 0.55;
-    filter: grayscale(1);
+/* Installed packs: the selected one as on the Mods tab, the rest in a list under it. */
+.mpPackCards {
+    position: relative;
+}
+.mpPackCard {
+    width: 100%;
+    margin: 0px;
+}
+.mpPackCards[open] .mpPackCard {
+    border-color: var(--accent-line);
+}
+.mpPackCard .settingsSelServTile {
+    flex: none;
+}
+.mpPackCard .serverListingDescription {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.mpSwitch {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+.mpSwitch svg {
+    width: 14px;
+    height: 14px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transition: transform 160ms ease;
+}
+.mpSwitch[aria-expanded="true"] svg {
+    transform: rotate(180deg);
+}
+.mpPackMenu {
+    display: flex;
+    flex-direction: column;
+    margin-top: 6px;
+    padding: 6px;
+    max-height: 320px;
+    overflow-y: auto;
+    border-radius: var(--radius-l);
+    border: 1px solid var(--line-strong);
+    background: var(--glass-strong);
+    backdrop-filter: var(--glass-blur);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+}
+.mpPackOption {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    cursor: pointer;
+    outline: none;
+}
+.mpPackOption:hover,
+.mpPackOption:focus-visible {
+    background: var(--glass-hover);
+}
+.mpPackOption[selected] {
+    background: var(--accent-soft);
+}
+.mpPackOption .serverListingDetails {
+    flex: 1;
+}
+.mpActionGap {
+    width: 30px;
+    flex: none;
+}
+.mpPackOption[packHidden]:not([selected]) .serverListingName {
+    color: var(--text-2);
+}
+.mpPackActions {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.mpPackBadge {
+    display: inline-flex;
+    align-items: center;
+    height: 18px;
+    padding: 0px 8px;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--line-strong);
+    color: var(--text-2);
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: default;
+}
+.mpPackBadgeHidden {
+    border-style: dashed;
+    color: var(--text-3);
 }
 /* The pack's own logo in the icon picker. */
 .mpIconOriginal .serverListTile {
@@ -3125,16 +3219,6 @@ input:checked + .toggleSwitchSlider:before {
 /* Hidden from the pack pickers: the eye is struck through and lit. */
 .mpHidden {
     color: var(--accent-hi);
-}
-.mpRow[packHidden]:not([selected]) .mpRowName {
-    color: var(--text-2);
-}
-.mpRowNote {
-    font-size: 11.5px;
-    color: var(--text-3);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
 }
 .mpRemove:hover,
 .mpRemove:focus-visible {
