@@ -1,5 +1,6 @@
 const { DistributionAPI, HeliosDistribution } = require('helios-core/common')
 const { DistributionIndexProcessor, MojangIndexProcessor } = require('helios-core/dl')
+const path = require('path')
 
 const ConfigManager = require('./configmanager')
 const HeliosFixes   = require('./heliosfixes')
@@ -9,6 +10,8 @@ const LocalPacks    = require('./localpacks')
 LocalPacks.patchDistributionAPI(DistributionAPI)
 LocalPacks.patchIndexProcessor(DistributionIndexProcessor)
 HeliosFixes.patchMojangIndexProcessor(MojangIndexProcessor)
+// Before landing.js and modpackmanager.js take their functions from helios-core/java.
+HeliosFixes.patchJavaGuard(require(path.join(path.dirname(require.resolve('helios-core')), 'java', 'JavaGuard.js')))
 
 // Old WesterosCraft url.
 // exports.REMOTE_DISTRO_URL = 'http://mc.westeroscraft.com/WesterosCraftLauncher/distribution.json'

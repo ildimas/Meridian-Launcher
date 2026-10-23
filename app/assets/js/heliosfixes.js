@@ -113,3 +113,114 @@ exports.patchMojangIndexProcessor = function(MojangIndexProcessor){
 }
 
 exports.useArm64Lwjgl2 = useArm64Lwjgl2
+
+// Java 8 for Apple Silicon. helios-core installs Corretto there, and Corretto 8
+// for macOS aarch64 turns its JIT off seconds into every pre-1.13 version
+// ("CodeCache is full. Compiler has been disabled." with the cache nearly
+// empty), leaving the game interpreted and slow for the rest of the session.
+// Azul Zulu 8 and Liberica 8 run the same packs without it; Zulu is also what
+// Prism Launcher suggests for Java 8 on these Macs.
+const ZULU_API = 'https://api.azul.com/metadata/v1/zulu/packages/'
+// Used when the Azul API can't be reached.
+const ZULU8_ARM64 = {
+    name: 'zulu8.96.0.205-ca-jre8.0.504-macosx_aarch64.tar.gz',
+    download_url: 'https://cdn.azul.com/zulu/bin/zulu8.96.0.205-ca-jre8.0.504-macosx_aarch64.tar.gz',
+    size: 40158500,
+    sha256_hash: '2bf60d7d93268a4f37b3ec5e8b710ccab240e7217966e557939d4c39fc72a9cd'
+}
+
+function isAppleSilicon(){
+    return process.platform === 'darwin' && process.arch === 'arm64'
+}
+
+/**
+ * @param {Object} details A JVM as filterApplicableJavaPaths describes it.
+ * @returns {boolean} Whether it's a Corretto 8 on Apple Silicon.
+ */
+function isBrokenJava8(details){
+    return isAppleSilicon() && details.semver.major === 8 && /amazon/i.test(details.vendor ?? '')
+}
+
+/**
+ * The latest Zulu 8 JRE for Apple Silicon, as helios-core's latestOpenJDK
+ * describes a download.
+ *
+ * @param {Object} JavaGuard helios-core's JavaGuard module.
+ * @param {string} dataDir The launcher's data directory.
+ */
+async function latestZulu8(JavaGuard, dataDir){
+    const { join } = require('path')
+    const got = require('got')
+    const { LoggerUtil } = require('helios-core')
+    const query = new URLSearchParams({
+        java_version: '8',
+        os: 'macos',
+        arch: 'aarch64',
+        archive_type: 'tar.gz',
+        java_package_type: 'jre',
+        javafx_bundled: 'false',
+        crac_supported: 'false',
+        latest: 'true',
+        release_status: 'ga',
+        availability_types: 'CA',
+        certifications: 'tck',
+        page_size: '1'
+    })
+    let pkg = ZULU8_ARM64
+    try {
+        const [found] = await got(`${ZULU_API}?${query}`, { timeout: { request: 15000 } }).json()
+        if(found != null){
+            pkg = await got(ZULU_API + found.package_uuid, { timeout: { request: 15000 } }).json()
+        }
+    } catch(err) {
+        LoggerUtil.getLogger('HeliosFixes').warn(`Azul API unavailable, using ${pkg.name}.`, err)
+    }
+    return {
+        url: pkg.download_url,
+        size: pkg.size,
+        id: pkg.name,
+        hash: pkg.sha256_hash,
+        algo: 'sha256',
+        path: join(JavaGuard.getLauncherRuntimeDir(dataDir), pkg.name)
+    }
+}
+
+/**
+ * On Apple Silicon, install Zulu instead of Corretto for Java 8, and don't
+ * pick or keep a Corretto 8: an already selected one fails validation, so
+ * the launcher scans again and offers to install Zulu.
+ *
+ * Patch before anything destructures helios-core/java: its exports read
+ * through to these.
+ *
+ * @param {Object} JavaGuard helios-core's JavaGuard module.
+ */
+exports.patchJavaGuard = function(JavaGuard){
+    if(JavaGuard.heliosFixesPatched){
+        return
+    }
+    JavaGuard.heliosFixesPatched = true
+
+    // helios-core's own, but without the Corretto 8s.
+    JavaGuard.discoverBestJvmInstallation = async function(dataDir, semverRange){
+        const paths = await JavaGuard.getValidatableJavaPaths(dataDir)
+        const details = JavaGuard.filterApplicableJavaPaths(await JavaGuard.resolveJvmSettings(paths), semverRange)
+            .filter(d => !isBrokenJava8(d))
+        JavaGuard.rankApplicableJvms(details)
+        return details.length > 0 ? details[0] : null
+    }
+
+    const validateSelectedJvm = JavaGuard.validateSelectedJvm
+    JavaGuard.validateSelectedJvm = async function(...args){
+        const details = await validateSelectedJvm.apply(this, args)
+        return details != null && isBrokenJava8(details) ? null : details
+    }
+
+    const latestOpenJDK = JavaGuard.latestOpenJDK
+    JavaGuard.latestOpenJDK = async function(major, dataDir, distribution){
+        if(isAppleSilicon() && Number(major) === 8){
+            return latestZulu8(JavaGuard, dataDir)
+        }
+        return latestOpenJDK.call(this, major, dataDir, distribution)
+    }
+}
