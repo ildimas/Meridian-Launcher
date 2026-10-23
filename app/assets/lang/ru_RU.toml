@@ -9,7 +9,7 @@ updateAvailableTooltip = "Доступно обновление"
 usernamePlaceholder = "Имя пользователя"
 usernameEditButton = "Изменить"
 settingsTooltip = "Настройки"
-serverStatusPlaceholder = "Не в сети"
+serverStatusPlaceholder = "Сервер не в сети"
 mojangStatus = "Mojang"
 mojangStatusChecking = "Проверка"
 mojangStatusTooltipTitle = "Сервисы Mojang"
@@ -20,7 +20,7 @@ launchButton = "ИГРАТЬ"
 gameRunning = "Запущена"
 launchButtonPlaceholder = "Модпак не выбран"
 launchDetails = "Подождите…"
-newsNavigationStatus = "{currentPage} из {totalPages}"
+newsBack = "Назад"
 newsErrorLoadSpan = "Проверяем новости…"
 newsErrorFailedSpan = "Не удалось загрузить новости"
 newsErrorRetryButton = "Повторить"
@@ -265,7 +265,7 @@ noSelection = "Модпак не выбран"
 loading = "Загрузка…"
 
 [js.landing.serverStatus]
-offline = "Не в сети"
+offline = "Сервер не в сети"
 playerCount = "Игроков: {online}/{max}"
 checking = "Проверка"
 
@@ -337,6 +337,11 @@ checkConsoleForDetails = "Подробности в консоли (CTRL + Shift
 
 [js.landing.news]
 checking = "Проверяем новости"
+new = "Новое"
+pinned = "Закреплено"
+loadingArticle = "Загружаем…"
+articleFailed = "Не удалось загрузить статью"
+retry = "Повторить"
 
 [js.landing.discord]
 loading = "Загрузка игры…"

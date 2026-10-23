@@ -20,7 +20,7 @@ launchButton = "JOUER"
 gameRunning = "En cours"
 launchButtonPlaceholder = "Aucun modpack choisi"
 launchDetails = "Veuillez patienter…"
-newsNavigationStatus = "{currentPage} sur {totalPages}"
+newsBack = "Retour"
 newsErrorLoadSpan = "Recherche d'actualités…"
 newsErrorFailedSpan = "Impossible de charger les actualités"
 newsErrorRetryButton = "Réessayer"
@@ -336,6 +336,11 @@ checkConsoleForDetails = "Consultez la console (CTRL + Maj + i) pour plus de dé
 
 [js.landing.news]
 checking = "Recherche d'actualités"
+new = "Nouveau"
+pinned = "Épinglé"
+loadingArticle = "Chargement…"
+articleFailed = "Impossible de charger l’article"
+retry = "Réessayer"
 
 [js.landing.discord]
 loading = "Chargement du jeu…"
