@@ -235,7 +235,11 @@ function renderRunningState(){
     launchButton.toggleAttribute('running', running)
     // Until the check finishes the button keeps saying Play.
     const needsDownload = packInstalled.get(selId) === false
-    document.getElementById('launchButtonLabel').textContent = Lang.queryJS(running ? 'landing.running.button' : needsDownload ? 'landing.running.download' : 'landing.running.play')
+    const update = packUpdateFor(selId)
+    const updateChip = document.getElementById('serverHeroUpdate')
+    updateChip.hidden = running || update == null
+    updateChip.textContent = update != null ? Lang.queryJS('landing.packUpdate.chip', { version: update }) : ''
+    document.getElementById('launchButtonLabel').textContent = Lang.queryJS(running ? 'landing.running.button' : update != null ? 'landing.running.update' : needsDownload ? 'landing.running.download' : 'landing.running.play')
     if(!document.getElementById('landingContainer').hasAttribute('launching')){
         launchButton.disabled = selId == null || running
     }
@@ -243,11 +247,153 @@ function renderRunningState(){
     server_select.toggleAttribute('running', running)
     for(const row of document.getElementById('serverMenuList').children){
         row.toggleAttribute('running', isServerRunning(row.getAttribute('data-id')))
+        row.toggleAttribute('update', packUpdateFor(row.getAttribute('data-id')) != null)
     }
     for(const tile of document.getElementById('serverDialTiles').children){
         tile.toggleAttribute('running', isServerRunning(tile.getAttribute('data-id')))
+        tile.toggleAttribute('update', packUpdateFor(tile.getAttribute('data-id')) != null)
     }
 }
+
+/* Pack updates */
+
+// distribution.json is fetched again this often, and when the window comes
+// back after at least focusGap; the notice hides itself after toastMs.
+const PACK_UPDATE = { every: 10 * 60 * 1000, focusGap: 2 * 60 * 1000, toastMs: 15000 }
+// "<server id>@<version>" the player was already told about this session.
+const packUpdatesTold = new Set()
+let packUpdateCheckedAt = 0
+let packUpdateChecking = false
+let packUpdateToastTimer = null
+
+/**
+ * The new version of a pack the player has, or null when it is up to date,
+ * was never launched here, or is a local modpack.
+ *
+ * @param {string} id The server id.
+ */
+function packUpdateFor(id){
+    const distro = DistroAPI.distribution
+    const serv = distro != null && id != null ? distro.getServerById(id) : null
+    if(serv == null || LocalPacks.isLocal(serv.rawServer) || serv.rawServer.version == null) return null
+    const have = ConfigManager.getPackVersion(id)
+    return have != null && have !== String(serv.rawServer.version) ? String(serv.rawServer.version) : null
+}
+
+/**
+ * Packs installed before versions were remembered count as up to date with
+ * what the distribution says the first time it is seen.
+ */
+function packUpdateBaseline(distro){
+    let changed = false
+    for(const serv of distro.servers){
+        const raw = serv.rawServer
+        if(LocalPacks.isLocal(raw) || raw.version == null || ConfigManager.getPackVersion(raw.id) != null) continue
+        if(fs.existsSync(require('path').join(ConfigManager.getInstanceDirectory(), raw.id))){
+            ConfigManager.setPackVersion(raw.id, raw.version)
+            changed = true
+        }
+    }
+    if(changed) ConfigManager.save()
+}
+
+/**
+ * Tell the player about packs that got a new version, once per version: a
+ * notice on the landing view and, when the launcher is in the background, a
+ * system notification.
+ */
+function announcePackUpdates(distro){
+    const fresh = distro.servers.filter(s => {
+        const v = packUpdateFor(s.rawServer.id)
+        return v != null && !packUpdatesTold.has(`${s.rawServer.id}@${v}`)
+    })
+    if(fresh.length === 0) return
+    for(const s of fresh) packUpdatesTold.add(`${s.rawServer.id}@${s.rawServer.version}`)
+    const one = fresh.length === 1 ? fresh[0].rawServer : null
+    const title = Lang.queryJS('landing.packUpdate.title')
+    const text = one != null
+        ? Lang.queryJS('landing.packUpdate.one', { name: one.name, version: one.version })
+        : Lang.queryJS('landing.packUpdate.many', { names: fresh.map(s => s.rawServer.name).join(', ') })
+    const open = () => {
+        hidePackUpdateToast()
+        if(one != null && one.id !== ConfigManager.getSelectedServer()){
+            updateSelectedServer(DistroAPI.distribution.getServerById(one.id))
+        }
+    }
+
+    const toast = document.getElementById('packUpdateToast')
+    toast.querySelector('.packUpdateTitle').textContent = title
+    toast.querySelector('.packUpdateText').textContent = text
+    const btn = toast.querySelector('.packUpdateOpen')
+    btn.hidden = one == null || one.id === ConfigManager.getSelectedServer()
+    btn.onclick = open
+    toast.hidden = false
+    void toast.offsetWidth
+    toast.classList.add('packUpdateShown')
+    clearTimeout(packUpdateToastTimer)
+    packUpdateToastTimer = setTimeout(hidePackUpdateToast, PACK_UPDATE.toastMs)
+
+    if(!document.hasFocus() && typeof Notification !== 'undefined'){
+        const note = new Notification(title, { body: text, silent: false })
+        note.onclick = () => {
+            const win = remote.getCurrentWindow()
+            if(win.isMinimized()) win.restore()
+            win.show()
+            win.focus()
+            open()
+        }
+    }
+}
+
+function hidePackUpdateToast(){
+    clearTimeout(packUpdateToastTimer)
+    const toast = document.getElementById('packUpdateToast')
+    toast.classList.remove('packUpdateShown')
+    setTimeout(() => {
+        if(!toast.classList.contains('packUpdateShown')) toast.hidden = true
+    }, 320)
+}
+document.querySelector('#packUpdateToast .packUpdateClose').onclick = hidePackUpdateToast
+
+/**
+ * Fetch distribution.json again and show what changed. Skipped while a game
+ * is launching or running, and away from the landing view, so nothing is
+ * swapped under the player's feet.
+ */
+async function checkPackUpdates(){
+    if(packUpdateChecking || DistroAPI.distribution == null) return
+    if(getCurrentView() !== VIEWS.landing || launcherBusy()) return
+    packUpdateChecking = true
+    packUpdateCheckedAt = Date.now()
+    try {
+        const before = JSON.stringify(DistroAPI.rawDistribution)
+        const distro = await DistroAPI.refreshDistributionOrFallback()
+        if(JSON.stringify(DistroAPI.rawDistribution) !== before){
+            onDistroRefresh(distro)
+        }
+        packUpdateBaseline(distro)
+        renderRunningState()
+        announcePackUpdates(distro)
+    } catch(err) {
+        loggerLanding.warn('Unable to check for pack updates.', err)
+    } finally {
+        packUpdateChecking = false
+    }
+}
+
+// First look at the distribution loaded on start, then keep checking.
+const packUpdateStart = setInterval(() => {
+    if(DistroAPI.distribution == null || getCurrentView() !== VIEWS.landing) return
+    clearInterval(packUpdateStart)
+    packUpdateBaseline(DistroAPI.distribution)
+    packUpdateCheckedAt = Date.now()
+    renderRunningState()
+    announcePackUpdates(DistroAPI.distribution)
+    setInterval(checkPackUpdates, PACK_UPDATE.every)
+}, 2000)
+window.addEventListener('focus', () => {
+    if(Date.now() - packUpdateCheckedAt >= PACK_UPDATE.focusGap) checkPackUpdates()
+})
 
 // Bind launch button
 document.getElementById('launch_button').addEventListener('click', async e => {
@@ -1309,6 +1455,13 @@ async function dlAsync(login = true) {
     remote.getCurrentWindow().setProgressBar(-1)
 
     fullRepairModule.destroyReceiver()
+
+    // The pack's files now match this version (see Pack updates).
+    if(serv.rawServer.version != null){
+        ConfigManager.setPackVersion(serv.rawServer.id, serv.rawServer.version)
+        ConfigManager.save()
+    }
+    hidePackUpdateToast()
 
     setLaunchDetails(Lang.queryJS('landing.dlAsync.preparingToLaunch'))
 

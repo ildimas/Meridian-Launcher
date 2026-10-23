@@ -2,6 +2,8 @@
 # Lines missing here fall back to en_US.toml.
 
 [ejs.landing]
+packUpdateOpen = "Таңдау"
+packUpdateClose = "Жабу"
 wallpaperCreditBy = "автор:"
 updateAvailableTooltip = "Жаңарту қолжетімді"
 usernamePlaceholder = "Пайдаланушы аты"
@@ -250,8 +252,15 @@ checking = "Тексерілуде"
 [js.landing.running]
 play = "ОЙНАУ"
 download = "ЖҮКТЕУ"
+update = "ЖАҢАРТУ"
 button = "ІСКЕ ҚОСЫЛҒАН"
 badge = "Іске қосылған"
+
+[js.landing.packUpdate]
+chip = "Жаңарту v{version}"
+title = "Жинақ жаңартылды"
+one = "«{name}» — {version} нұсқасы. Жаңа файлдар іске қосқанда жүктеледі."
+many = "Жаңа нұсқалар: {names}. Файлдар іске қосқанда жүктеледі."
 
 [js.landing.serverHero]
 minecraftVersion = "MC {version}"

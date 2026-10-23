@@ -1,4 +1,6 @@
 [ejs.landing]
+packUpdateOpen = "Select"
+packUpdateClose = "Close"
 wallpaperCreditBy = "by"
 updateAvailableTooltip = "Update Available"
 usernamePlaceholder = "Username"
@@ -262,8 +264,15 @@ checking = "Checking"
 [js.landing.running]
 play = "PLAY"
 download = "DOWNLOAD"
+update = "UPDATE"
 button = "RUNNING"
 badge = "Running"
+
+[js.landing.packUpdate]
+chip = "Update v{version}"
+title = "Modpack updated"
+one = "{name} is now v{version}. The new files download when you play."
+many = "New versions of {names}. The files download when you play."
 
 [js.landing.serverHero]
 minecraftVersion = "MC {version}"

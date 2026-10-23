@@ -2,10 +2,11 @@
  * Theme engine.
  *
  * Owns the wallpaper behind every view. Each modpack has one set of pictures:
- *   - its pack images: what ships in images/modpacks/<server id>/ plus
- *     pictures the player added. A pack with neither gets a few pictures
- *     from the bundled Photon Shaders gallery (images/wallpapers/), always
- *     the same ones for that pack.
+ *   - its pack images: what ships in images/modpacks/<server id>/, the
+ *     wallpapers its distribution.json entry lists (packwallpapers.js) and
+ *     pictures the player added. A pack with none of these gets a few
+ *     pictures from the bundled Photon Shaders gallery (images/wallpapers/),
+ *     always the same ones for that pack.
  *   - the player's screenshots of that modpack (F2 in game).
  * Every picture is in rotation unless the player unticked it (Settings >
  * Appearance). They take turns in a shuffled order, and pictures with a
@@ -18,6 +19,7 @@ const path = require('path')
 const { pathToFileURL } = require('url')
 
 const ConfigManager = require('./configmanager')
+const PackWallpapers = require('./packwallpapers')
 const Screenshots = require('./screenshots')
 const GALLERY = require('../images/wallpapers/wallpapers.json')
 
@@ -113,6 +115,24 @@ function modpackShots(id){
     return list
 }
 
+/**
+ * The wallpapers a modpack's distribution.json entry lists, those already
+ * downloaded. The rest are fetched, and the wallpaper repaints as they land.
+ */
+function remoteShots(id){
+    // Required here: the distribution manager loads after the theme engine.
+    const raw = require('./distromanager').DistroAPI.rawDistribution
+    const servers = raw != null && Array.isArray(raw.servers) ? raw.servers : []
+    const server = servers.find(s => s.id === id)
+    return PackWallpapers.cached(server, servers, () => refresh()).map(w => ({
+        key: `remote|${id}|${w.md5}`,
+        kind: 'pack',
+        file: w.file,
+        url: photoUrl(w.file),
+        credit: w.author ? { author: w.author } : null
+    }))
+}
+
 function packSettings(appearance, id){
     return appearance.packs[id] || {}
 }
@@ -140,8 +160,9 @@ function gallerySample(id){
 }
 
 /**
- * A modpack's pack images: what ships with it plus what the player added,
- * or a few gallery pictures when it has neither.
+ * A modpack's pack images: what ships with it, what its distribution.json
+ * entry lists and what the player added, or a few gallery pictures when it
+ * has none of these.
  *
  * @returns {{borrowed: boolean, items: Array.<Object>}}
  */
@@ -149,7 +170,7 @@ function packArt(id){
     const added = (packSettings(ConfigManager.getAppearance(), id).added || [])
         .filter(p => fs.existsSync(p))
         .map(p => ({ key: `photo|${p}`, kind: 'added', file: p }))
-    const own = modpackShots(id).concat(added)
+    const own = modpackShots(id).concat(remoteShots(id), added)
     if(own.length > 0){
         return { borrowed: false, items: own }
     }

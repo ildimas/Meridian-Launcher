@@ -124,7 +124,9 @@ const DEFAULT_CONFIG = {
     selectedAccount: null,
     authenticationDatabase: {},
     modConfigurations: [],
-    javaConfig: {}
+    javaConfig: {},
+    // Per server id: the pack version whose files were last prepared for launch.
+    packVersions: {}
 }
 
 let config = null
@@ -894,6 +896,28 @@ exports.getAppearance = function(def = false){
  */
 exports.setAppearance = function(appearance){
     config.settings.launcher.appearance = Object.assign(exports.getAppearance(), appearance)
+}
+
+/**
+ * The pack version whose files were last prepared for launch, or null if the
+ * pack was never launched from this launcher.
+ *
+ * @param {string} serverId The server id.
+ * @returns {string | null}
+ */
+exports.getPackVersion = function(serverId){
+    const v = config.packVersions[serverId]
+    return typeof v === 'string' ? v : null
+}
+
+/**
+ * Remember the pack version whose files are on disk now.
+ *
+ * @param {string} serverId The server id.
+ * @param {string} version The pack version from distribution.json.
+ */
+exports.setPackVersion = function(serverId, version){
+    config.packVersions[serverId] = String(version)
 }
 
 /**

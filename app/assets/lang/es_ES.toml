@@ -3,6 +3,8 @@
 # Lines missing here fall back to en_US.toml.
 
 [ejs.landing]
+packUpdateOpen = "Seleccionar"
+packUpdateClose = "Cerrar"
 wallpaperCreditBy = "por"
 updateAvailableTooltip = "Actualización disponible"
 usernamePlaceholder = "Nombre de usuario"
@@ -266,8 +268,15 @@ checking = "Comprobando"
 [js.landing.running]
 play = "JUGAR"
 download = "DESCARGAR"
+update = "ACTUALIZAR"
 button = "EN JUEGO"
 badge = "En juego"
+
+[js.landing.packUpdate]
+chip = "Actualización v{version}"
+title = "Modpack actualizado"
+one = "{name} ya está en la v{version}. Los archivos nuevos se descargan al jugar."
+many = "Nuevas versiones: {names}. Los archivos se descargan al jugar."
 
 [js.landing.serverHero]
 minecraftVersion = "MC {version}"

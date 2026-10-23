@@ -2,6 +2,8 @@
 # Lines missing here fall back to en_US.toml.
 
 [ejs.landing]
+packUpdateOpen = "Обрати"
+packUpdateClose = "Закрити"
 wallpaperCreditBy = "від"
 updateAvailableTooltip = "Доступне оновлення"
 usernamePlaceholder = "Ім'я користувача"
@@ -250,8 +252,15 @@ checking = "Перевірка"
 [js.landing.running]
 play = "ГРАТИ"
 download = "ЗАВАНТАЖИТИ"
+update = "ОНОВИТИ"
 button = "ЗАПУЩЕНО"
 badge = "Запущено"
+
+[js.landing.packUpdate]
+chip = "Оновлення v{version}"
+title = "Збірку оновлено"
+one = "«{name}» — версія {version}. Нові файли завантажаться під час запуску."
+many = "Нові версії: {names}. Файли завантажаться під час запуску."
 
 [js.landing.serverHero]
 minecraftVersion = "MC {version}"
