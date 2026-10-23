@@ -39,7 +39,7 @@
     "lodash.merge": "^4.6.2",
     "node-unrar-js": "^2.0.2",
     "semver": "^7.7.3",
-    "socks-proxy-agent": "^8.0.5",
+    "socks-proxy-agent": "^10.1.0",
     "toml": "^5.0.1"
   },
   "devDependencies": {
