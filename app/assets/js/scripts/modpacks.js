@@ -359,31 +359,117 @@ function mpIconButton(cls, title, svg, onclick){
     return btn
 }
 
-function mpRenderInstalled(){
+const mpInstalledSeq = { n: 0 }
+
+/**
+ * A pack's tile in the installed list; a click picks another icon.
+ */
+function mpPackTile(raw, appearance){
+    const tile = document.createElement('button')
+    tile.type = 'button'
+    tile.className = 'serverListTile mpTile mpTilePick'
+    paintServerTile(tile, raw, appearance, 'serverListTile')
+    tile.title = Lang.queryJS('settings.modpacks.iconChange')
+    tile.setAttribute('aria-label', tile.title)
+    tile.onclick = () => mpPickIcon(raw)
+    return tile
+}
+
+/**
+ * Hide a pack from the pack pickers or show it again. The selected pack
+ * can't be hidden: the picker would have nothing to point at.
+ */
+function mpHideButton(raw, selected){
+    const hidden = ConfigManager.isPackHidden(raw.id)
+    const title = Lang.queryJS(hidden ? 'settings.modpacks.show'
+        : raw.id === selected ? 'settings.modpacks.hideSelected' : 'settings.modpacks.hide')
+    const svg = hidden
+        ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18M10.6 6.1A9.8 9.8 0 0 1 12 6c6 0 9.5 6 9.5 6a17 17 0 0 1-3.2 3.9M6.6 6.6A17 17 0 0 0 2.5 12S6 18 12 18c1.7 0 3.2-.5 4.5-1.1M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>'
+        : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12S6 6 12 6s9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6z"/><circle cx="12" cy="12" r="3"/></svg>'
+    const btn = mpIconButton(hidden ? 'mpHidden' : '', title, svg, () => {
+        ConfigManager.setPackHidden(raw.id, !hidden)
+        ConfigManager.save()
+        mpRenderInstalled()
+        renderServerPicker()
+    })
+    btn.disabled = !hidden && raw.id === selected
+    return btn
+}
+
+/**
+ * "Hidden" after a pack's details, when it is.
+ */
+function mpHiddenMeta(raw, parts){
+    return ConfigManager.isPackHidden(raw.id) ? parts.concat(Lang.queryJS('settings.modpacks.hiddenMeta')) : parts
+}
+
+/**
+ * A pack from distribution.json: it can be picked, but only the server changes it.
+ */
+function mpRenderServerRow(list, raw, appearance, selected){
+    const row = document.createElement('div')
+    row.className = 'mpRow mpRowServer'
+    row.setAttribute('role', 'listitem')
+    row.toggleAttribute('selected', raw.id === selected)
+    row.toggleAttribute('packHidden', ConfigManager.isPackHidden(raw.id))
+
+    const tile = mpPackTile(raw, appearance)
+
+    const text = document.createElement('div')
+    text.className = 'mpRowText'
+    const name = document.createElement('span')
+    name.className = 'mpRowName'
+    name.textContent = raw.name
+    const meta = document.createElement('span')
+    meta.className = 'mpRowMeta'
+    meta.textContent = mpHiddenMeta(raw, [raw.minecraftVersion, raw.version, Lang.queryJS('settings.modpacks.source.server')].filter(Boolean)).join(' · ')
+    const note = document.createElement('span')
+    note.className = 'mpRowNote'
+    note.textContent = Lang.queryJS('settings.modpacks.serverLocked')
+    text.append(name, meta, note)
+
+    const use = document.createElement('button')
+    use.type = 'button'
+    use.className = 'mpButton mpButtonSmall'
+    use.disabled = raw.id === selected
+    use.textContent = Lang.queryJS(raw.id === selected ? 'settings.modpacks.selected' : 'settings.modpacks.select')
+    use.onclick = () => mpSelect(raw.id)
+
+    row.append(tile, text, use, mpHideButton(raw, selected))
+    list.appendChild(row)
+}
+
+async function mpRenderInstalled(){
+    const seq = ++mpInstalledSeq.n
+    let servers = []
+    try {
+        servers = (await DistroAPI.getDistribution()).servers
+            .map(serv => serv.rawServer)
+            .filter(raw => raw.local == null)
+    } catch(err){
+        console.warn('Could not list the distribution packs.', err)
+    }
+    // A newer render started while the distribution was loading.
+    if(seq !== mpInstalledSeq.n){
+        return
+    }
     const packs = ModpackManager.installed()
     const list = mpEl('mpInstalled')
-    mpEl('mpInstalledSection').hidden = packs.length === 0
+    mpEl('mpInstalledSection').hidden = packs.length === 0 && servers.length === 0
     list.innerHTML = ''
     const appearance = ConfigManager.getAppearance()
     const selected = ConfigManager.getSelectedServer()
+    for(const raw of servers){
+        mpRenderServerRow(list, raw, appearance, selected)
+    }
     for(const raw of packs){
         const row = document.createElement('div')
         row.className = 'mpRow'
         row.setAttribute('role', 'listitem')
         row.toggleAttribute('selected', raw.id === selected)
+        row.toggleAttribute('packHidden', ConfigManager.isPackHidden(raw.id))
 
-        // A pack shown with a Minecraft icon (no logo of its own) can pick another.
-        const pickable = !raw.icon && (raw.launcherTheme == null || !raw.launcherTheme.monogram)
-        const tile = document.createElement(pickable ? 'button' : 'span')
-        tile.className = 'serverListTile mpTile'
-        paintServerTile(tile, raw, appearance, 'serverListTile')
-        if(pickable){
-            tile.type = 'button'
-            tile.classList.add('mpTilePick')
-            tile.title = Lang.queryJS('settings.modpacks.iconChange')
-            tile.setAttribute('aria-label', tile.title)
-            tile.onclick = () => mpPickIcon(raw)
-        }
+        const tile = mpPackTile(raw, appearance)
 
         const text = document.createElement('div')
         text.className = 'mpRowText'
@@ -392,7 +478,7 @@ function mpRenderInstalled(){
         name.textContent = raw.name
         const meta = document.createElement('span')
         meta.className = 'mpRowMeta'
-        meta.textContent = [mpLoaderLabel(raw), raw.minecraftVersion, Lang.queryJS(`settings.modpacks.source.${raw.local.source}`)].join(' · ')
+        meta.textContent = mpHiddenMeta(raw, [mpLoaderLabel(raw), raw.minecraftVersion, Lang.queryJS(`settings.modpacks.source.${raw.local.source}`)]).join(' · ')
         text.append(name, meta)
 
         const use = document.createElement('button')
@@ -413,7 +499,7 @@ function mpRenderInstalled(){
             '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg>',
             () => mpConfirmRemove(raw))
 
-        row.append(tile, text, use, folder, remove)
+        row.append(tile, text, use, mpHideButton(raw, selected), folder, remove)
         list.appendChild(row)
     }
 }
@@ -429,9 +515,11 @@ async function mpPickIcon(raw){
         return
     }
     const saved = PackIcons.choiceFor(raw.id)
-    // An icon name, or { custom } / a new { file, url } picture.
+    // An icon name, or { custom } / a new { file, url } picture, or { original }:
+    // the logo (or monogram) the pack comes with, if it has one.
     let upload = saved.custom ? { custom: saved.custom } : null
-    let choice = upload || { icon: saved.icon }
+    const original = raw.icon || (raw.launcherTheme != null && raw.launcherTheme.monogram) ? { original: true } : null
+    let choice = original != null && !PackIcons.isPicked(raw.id) ? original : upload || { icon: saved.icon }
 
     const grid = document.createElement('div')
     grid.className = 'mpIconGrid'
@@ -453,6 +541,24 @@ async function mpPickIcon(raw){
         btn.style.backgroundImage = icon.background
         btn.firstChild.classList.toggle('serverGlyphFull', icon.full)
         Object.assign(btn.firstChild.style, { backgroundImage: icon.image, backgroundSize: icon.size, backgroundPosition: icon.position })
+    }
+    if(original != null){
+        const btn = document.createElement('button')
+        btn.type = 'button'
+        btn.className = 'mpIconOption mpIconOriginal'
+        btn.setAttribute('role', 'radio')
+        btn.setAttribute('data-original', '')
+        btn.title = Lang.queryJS('settings.modpacks.iconOriginal')
+        btn.setAttribute('aria-label', btn.title)
+        btn.onclick = () => {
+            choice = original
+            paint()
+        }
+        const tile = document.createElement('span')
+        tile.className = 'serverListTile'
+        paintServerTile(tile, raw, ConfigManager.getAppearance(), 'serverListTile', true)
+        btn.appendChild(tile)
+        grid.appendChild(btn)
     }
     for(const name of PackIcons.iconNames()){
         const btn = option(() => {
@@ -516,6 +622,11 @@ async function mpPickIcon(raw){
         if(upload != null) paintOption(own, PackIcons.render(upload))
         own.toggleAttribute('selected', choice === upload)
         own.setAttribute('aria-checked', choice === upload)
+        const orig = grid.querySelector('[data-original]')
+        if(orig != null){
+            orig.toggleAttribute('selected', choice === original)
+            orig.setAttribute('aria-checked', choice === original)
+        }
     }
     paint()
 
@@ -531,6 +642,13 @@ async function mpPickIcon(raw){
     )
     document.getElementById('overlayDesc').appendChild(picker)
     setOverlayHandler(async () => {
+        if(choice.original){
+            PackIcons.unpick(raw.id)
+            toggleOverlay(false)
+            mpRenderInstalled()
+            repaintPackTiles(raw)
+            return
+        }
         if(choice.data){
             try {
                 choice = { custom: await PackIcons.saveCustom(raw.id, choice.data, '.png') }
@@ -539,11 +657,11 @@ async function mpPickIcon(raw){
                 return
             }
         }
-        PackIcons.setChoice(raw.id, choice)
+        PackIcons.setChoice(raw.id, choice, true)
         toggleOverlay(false)
         mpRenderInstalled()
         // Every other tile of this pack: the dial, the list, settings.
-        applyPackIcons()
+        repaintPackTiles(raw)
     })
     setDismissHandler(null)
     toggleOverlay(true, true)

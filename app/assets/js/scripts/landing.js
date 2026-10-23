@@ -684,7 +684,13 @@ function getServerMonogram(raw){
  * @param {Object} appearance The appearance settings.
  * @param {string} prefix Class prefix for the monogram and icon children.
  */
-function paintServerTile(tile, raw, appearance, prefix){
+function paintServerTile(tile, raw, appearance, prefix, ownIcon = false){
+    // An icon the player picked replaces the pack's logo and monogram.
+    const picked = !ownIcon && PackIcons.isPicked(raw.id)
+    const logo = picked ? null : raw.icon
+    tile.setAttribute('data-pack-id', raw.id)
+    tile.setAttribute('data-pack-prefix', prefix)
+    tile.toggleAttribute('data-own-icon', ownIcon)
     tile.style.backgroundImage = 'linear-gradient(160deg, var(--meridian-mid) 0%, var(--meridian-navy) 100%)'
     tile.removeAttribute('hasIcon')
     tile.removeAttribute('data-pack-icon')
@@ -694,18 +700,18 @@ function paintServerTile(tile, raw, appearance, prefix){
     mono.className = prefix + 'Mono'
     mono.textContent = getServerMonogram(raw)
     tile.appendChild(mono)
-    if(raw.launcherTheme == null || !raw.launcherTheme.monogram){
+    if(picked || raw.launcherTheme == null || !raw.launcherTheme.monogram){
         // Filled in now, or once the icons are loaded (applyPackIcons).
         tile.setAttribute('data-pack-icon', raw.id)
         tile.setAttribute('data-pack-mc', raw.minecraftVersion || '')
         // A server with its own logo only needs the icon if that fails.
-        applyPackIcon(tile, !raw.icon)
+        applyPackIcon(tile, !logo)
     }
-    tile.setAttribute('data-icon', raw.icon || '')
-    if(raw.icon){
+    tile.setAttribute('data-icon', logo || '')
+    if(logo){
         const show = (url) => {
             // The tile may have been repainted for another server meanwhile.
-            if(url == null || tile.getAttribute('data-icon') !== raw.icon) return
+            if(url == null || tile.getAttribute('data-icon') !== logo) return
             const img = document.createElement('img')
             img.className = prefix + 'Icon'
             img.alt = ''
@@ -717,10 +723,37 @@ function paintServerTile(tile, raw, appearance, prefix){
             img.src = url
             tile.appendChild(img)
         }
-        const cached = IconCache.peek(raw.icon)
+        const cached = IconCache.peek(logo)
         if(cached !== undefined) show(cached)
-        else IconCache.remote(raw.icon).then(show)
+        else IconCache.remote(logo).then(show)
     }
+}
+
+/**
+ * Paint every tile of a pack again, e.g. after its icon was picked.
+ *
+ * @param {Object} raw The pack's raw server.
+ */
+function repaintPackTiles(raw){
+    const appearance = ConfigManager.getAppearance()
+    document.querySelectorAll('[data-pack-id]').forEach(tile => {
+        if(tile.getAttribute('data-pack-id') === raw.id){
+            paintServerTile(tile, raw, appearance, tile.getAttribute('data-pack-prefix'), tile.hasAttribute('data-own-icon'))
+        }
+    })
+}
+
+/**
+ * The packs offered by the dial, the list next to Play and the switch
+ * dialog: all but the hidden ones, though the selected pack always shows.
+ *
+ * @param {Object} distro The distribution.
+ * @returns {Array.<Object>} The servers to offer.
+ */
+function pickerServers(distro){
+    if(distro == null) return []
+    const selected = ConfigManager.getSelectedServer()
+    return distro.servers.filter(s => s.rawServer.id === selected || !ConfigManager.isPackHidden(s.rawServer.id))
 }
 
 /**
@@ -831,7 +864,7 @@ function renderServerMenuStatus(){
  */
 async function renderServerPicker(){
     const distro = await DistroAPI.getDistribution()
-    const servers = distro != null ? distro.servers : []
+    const servers = pickerServers(distro)
     const selId = ConfigManager.getSelectedServer()
     const sel = Math.max(0, servers.findIndex(s => s.rawServer.id === selId))
     const appearance = ConfigManager.getAppearance()
@@ -843,7 +876,7 @@ async function renderServerPicker(){
     // Server list next to Play. Rebuilt when the servers or the theme change.
     const menuList = document.getElementById('serverMenuList')
     const themeKey = appearance.theme
-    const listKey = servers.map(s => s.rawServer.id + ':' + s.rawServer.icon).join('|') + '#' + themeKey
+    const listKey = servers.map(s => s.rawServer.id + ':' + (PackIcons.isPicked(s.rawServer.id) ? '' : s.rawServer.icon)).join('|') + '#' + themeKey
     if(menuList.getAttribute('data-key') !== listKey){
         menuList.innerHTML = ''
         servers.forEach((s, i) => {
@@ -943,7 +976,7 @@ async function selectServerAt(index){
     if(document.getElementById('landingContainer').hasAttribute('launching')){
         return
     }
-    const servers = (await DistroAPI.getDistribution()).servers
+    const servers = pickerServers(await DistroAPI.getDistribution())
     const next = servers[Math.max(0, Math.min(servers.length - 1, index))]
     if(next == null || next.rawServer.id === ConfigManager.getSelectedServer()){
         return
@@ -953,7 +986,7 @@ async function selectServerAt(index){
 }
 
 async function stepServer(delta){
-    const servers = (await DistroAPI.getDistribution()).servers
+    const servers = pickerServers(await DistroAPI.getDistribution())
     const cur = servers.findIndex(s => s.rawServer.id === ConfigManager.getSelectedServer())
     selectServerAt(cur + delta)
 }

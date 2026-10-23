@@ -102,7 +102,8 @@ const DEFAULT_CONFIG = {
                 motion: true,
                 serverPicker: 'dial', // dial | dropdown
                 // Per server id: { hidden: [picture keys left out], added: [picture paths] }.
-                packs: {}
+                packs: {},
+                hiddenPacks: [] // Server ids left out of the pack pickers; still listed in settings.
             },
             language: {
                 system: true, // Follow the operating system; language and country are ignored then.
@@ -111,7 +112,8 @@ const DEFAULT_CONFIG = {
                 minecraft: true // Also set this language in the game's options.txt on launch.
             },
             zoom: 1, // Interface scale, changed with Ctrl + and Ctrl -.
-            curseForgeApiKey: '' // For CurseForge search and installs on the Modpacks tab.
+            curseForgeApiKey: '', // For CurseForge search and installs on the Modpacks tab.
+            distributionUrl: '' // Empty for the built-in distribution.json (DistroManager.REMOTE_DISTRO_URL).
         }
     },
     newsCache: {
@@ -899,6 +901,26 @@ exports.setAppearance = function(appearance){
 }
 
 /**
+ * @param {string} serverId The server id.
+ * @returns {boolean} Whether the pack is left out of the pack pickers.
+ */
+exports.isPackHidden = function(serverId){
+    return config.settings.launcher.appearance.hiddenPacks.includes(serverId)
+}
+
+/**
+ * Leave a pack out of the pack pickers, or show it again.
+ *
+ * @param {string} serverId The server id.
+ * @param {boolean} hidden Whether to hide it.
+ */
+exports.setPackHidden = function(serverId, hidden){
+    const list = config.settings.launcher.appearance.hiddenPacks.filter(id => id !== serverId)
+    if(hidden) list.push(serverId)
+    config.settings.launcher.appearance.hiddenPacks = list
+}
+
+/**
  * The pack version whose files were last prepared for launch, or null if the
  * pack was never launched from this launcher.
  *
@@ -936,6 +958,24 @@ exports.getCurseForgeApiKey = function(){
  */
 exports.setCurseForgeApiKey = function(key){
     config.settings.launcher.curseForgeApiKey = String(key || '').trim()
+}
+
+/**
+ * Retrieve the distribution.json url chosen by the player.
+ *
+ * @returns {string} The url, or an empty string for the built-in one.
+ */
+exports.getDistributionURL = function(){
+    return config.settings.launcher.distributionUrl || ''
+}
+
+/**
+ * Change the distribution.json url. Takes effect on the next distribution load.
+ *
+ * @param {string} url The url; empty for the built-in one.
+ */
+exports.setDistributionURL = function(url){
+    config.settings.launcher.distributionUrl = String(url || '').trim()
 }
 
 /**

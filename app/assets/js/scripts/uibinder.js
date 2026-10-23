@@ -8,7 +8,7 @@ const { Type }      = require('helios-distribution-types')
 
 const AuthManager   = require('./assets/js/authmanager')
 const ConfigManager = require('./assets/js/configmanager')
-const { DistroAPI } = require('./assets/js/distromanager')
+const { DistroAPI, REMOTE_DISTRO_URL } = require('./assets/js/distromanager')
 const ProxyManager  = require('./assets/js/proxymanager')
 const ThemeEngine   = require('./assets/js/themeengine')
 const IconCache     = require('./assets/js/iconcache')

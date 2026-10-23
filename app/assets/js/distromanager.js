@@ -25,6 +25,13 @@ const api = new DistributionAPI(
 exports.DistroAPI = api
 
 /**
+ * @returns {string} The distribution.json url in use: the player's or the built-in one.
+ */
+exports.getRemoteDistroUrl = function(){
+    return ConfigManager.getDistributionURL() || exports.REMOTE_DISTRO_URL
+}
+
+/**
  * Rebuild the loaded distribution after the local modpacks changed, without
  * fetching the remote one again.
  *

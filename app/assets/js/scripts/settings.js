@@ -1303,16 +1303,7 @@ async function loadSelectedServerOnModsTab(){
                 <div class="serverListingInfo">
                     <div class="serverListingVersion"></div>
                     <div class="serverListingRevision"></div>
-                    ${serv.rawServer.mainServer ? `<div class="serverListingStarWrapper">
-                        <svg id="Layer_1" viewBox="0 0 107.45 104.74" width="20px" height="20px">
-                            <defs>
-                                <style>.cls-1{fill:#fff;}.cls-2{fill:none;stroke:#fff;stroke-miterlimit:10;}</style>
-                            </defs>
-                            <path class="cls-1" d="M100.93,65.54C89,62,68.18,55.65,63.54,52.13c2.7-5.23,18.8-19.2,28-27.55C81.36,31.74,63.74,43.87,58.09,45.3c-2.41-5.37-3.61-26.52-4.37-39-.77,12.46-2,33.64-4.36,39-5.7-1.46-23.3-13.57-33.49-20.72,9.26,8.37,25.39,22.36,28,27.55C39.21,55.68,18.47,62,6.52,65.55c12.32-2,33.63-6.06,39.34-4.9-.16,5.87-8.41,26.16-13.11,37.69,6.1-10.89,16.52-30.16,21-33.9,4.5,3.79,14.93,23.09,21,34C70,86.84,61.73,66.48,61.59,60.65,67.36,59.49,88.64,63.52,100.93,65.54Z"/>
-                            <circle class="cls-2" cx="53.73" cy="53.9" r="38"/>
-                        </svg>
-                        <span class="serverListingStarTooltip">${Lang.queryJS('settings.serverListing.mainServer')}</span>
-                    </div>` : ''}
+                    ${serv.rawServer.mainServer ? mainServerBadgeHTML() : ''}
                 </div>
             </div>
         `
@@ -2414,7 +2405,74 @@ async function prepareSettings(first = false) {
     await prepareJavaTab()
     prepareAboutTab()
     prepareLanguageTab()
+    prepareDistroUrlSetting()
     renderAppearanceTab()
+}
+
+/**
+ * Distribution url
+ */
+
+/**
+ * Show the distribution.json url in use and bind its buttons.
+ */
+function prepareDistroUrlSetting(){
+    const input = document.getElementById('settingsDistroUrlInput')
+    input.placeholder = REMOTE_DISTRO_URL
+    input.value = ConfigManager.getDistributionURL()
+    distroUrlStatus(null)
+    if(input.hasAttribute('bound')){
+        return
+    }
+    input.setAttribute('bound', '')
+    input.addEventListener('input', () => distroUrlStatus(null))
+    input.addEventListener('keydown', e => {
+        if(e.key === 'Enter') applyDistroUrl(input.value)
+    })
+    document.getElementById('settingsDistroUrlApply').onclick = () => applyDistroUrl(input.value)
+    document.getElementById('settingsDistroUrlReset').onclick = () => applyDistroUrl('')
+}
+
+function distroUrlStatus(key){
+    const status = document.getElementById('settingsDistroUrlStatus')
+    status.hidden = key == null
+    status.textContent = key != null ? Lang.queryJS(`settings.distroUrl.${key}`) : ''
+}
+
+/**
+ * Save a new distribution.json url and restart the launcher on it, so the
+ * packs, servers and news all come from the new file.
+ *
+ * @param {string} value The url; empty for the built-in one.
+ */
+function applyDistroUrl(value){
+    const url = String(value || '').trim()
+    if(url !== ''){
+        let parsed = null
+        try {
+            parsed = new URL(url)
+        } catch {
+            // Reported below.
+        }
+        if(parsed == null || (parsed.protocol !== 'https:' && parsed.protocol !== 'http:')){
+            distroUrlStatus('invalid')
+            return
+        }
+    }
+    if(url === ConfigManager.getDistributionURL()){
+        distroUrlStatus('unchanged')
+        return
+    }
+    if(launcherBusy()){
+        distroUrlStatus('busy')
+        return
+    }
+    fullSettingsSave()
+    ConfigManager.setDistributionURL(url)
+    ConfigManager.save()
+    // A plain reload: the preloader fetches the distribution from the new url.
+    document.body.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 140, fill: 'forwards' })
+        .finished.then(() => location.reload())
 }
 
 // Prepare the settings UI on startup.

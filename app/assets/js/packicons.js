@@ -196,10 +196,12 @@ function choiceFor(id){
  * @param {string} id The pack's server id.
  * @param {{icon: string} | {custom: string}} choice An icon name, or a picture
  * saved with saveCustom.
+ * @param {boolean} picked Picked by the player: shown instead of the pack's
+ * own logo, which a distribution update then can't replace.
  */
-exports.setChoice = function(id, choice){
+exports.setChoice = function(id, choice, picked = false){
     const packs = ConfigManager.getAppearance().packs
-    packs[id] = Object.assign({}, packs[id], { icon: choice.custom ? { custom: choice.custom } : { icon: choice.icon } })
+    packs[id] = Object.assign({}, packs[id], { icon: choice.custom ? { custom: choice.custom } : { icon: choice.icon }, picked })
     ConfigManager.setAppearance({ packs })
     ConfigManager.save()
     const prefix = customPrefix(id)
@@ -236,6 +238,28 @@ exports.saveCustom = async function(id, data, ext){
  * @returns {{icon: string} | {custom: string}} Its current icon.
  */
 exports.choiceFor = choiceFor
+
+/**
+ * @param {string} id The pack's server id.
+ * @returns {boolean} Whether the player picked its icon (setChoice).
+ */
+exports.isPicked = function(id){
+    const pack = ConfigManager.getAppearance().packs[id]
+    return pack != null && pack.picked === true && pack.icon != null
+}
+
+/**
+ * Show the pack's own logo (or monogram) again instead of the picked icon.
+ *
+ * @param {string} id The pack's server id.
+ */
+exports.unpick = function(id){
+    const packs = ConfigManager.getAppearance().packs
+    if(packs[id] == null) return
+    packs[id] = Object.assign({}, packs[id], { picked: false })
+    ConfigManager.setAppearance({ packs })
+    ConfigManager.save()
+}
 
 /**
  * @returns {string[]} Every icon name, in display order.
