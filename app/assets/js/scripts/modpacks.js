@@ -328,6 +328,218 @@ function mpAskKey(name, job, why){
     if(why === 'invalid') input.select()
 }
 
+/* Virtual folder management. Each edit reads fresh state before saving. */
+const mpFolderUI = { collapsed: new Set(), editing: null }
+const MP_VIRTUAL_FOLDER = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h6l2 2h10v12H3z"/></svg>'
+const MP_RENAME_FOLDER = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 16l12-12 4 4L8 20H4zM14 6l4 4"/></svg>'
+function mpFolderEdit(edit){
+    const error = mpEl('mpFolderError')
+    try {
+        const state = PackFolders.read(ConfigManager.getLauncherDirectory())
+        edit(state)
+        PackFolders.write(ConfigManager.getLauncherDirectory(), state)
+        error.hidden = true
+        renderServerPicker()
+        mpRenderInstalled()
+        return true
+    } catch(err){
+        const key = ['invalidName', 'duplicateName', 'unknownFolder'].includes(err.message) ? err.message : 'saveError'
+        error.textContent = Lang.queryJS('settings.folders.' + key)
+        error.hidden = false
+        return false
+    }
+}
+
+mpEl('mpFolderName').oninput = () => { mpEl('mpFolderCreateButton').disabled = !mpEl('mpFolderName').value.trim() }
+mpEl('mpFolderCreate').onsubmit = e => {
+    e.preventDefault()
+    if(mpFolderEdit(state => PackFolders.create(state, mpEl('mpFolderName').value))){
+        mpEl('mpFolderName').value = ''
+        mpEl('mpFolderCreateButton').disabled = true
+        mpEl('mpFolderName').focus()
+    }
+}
+
+function mpFolderSelect(raw){
+    const label = document.createElement('label')
+    label.className = 'mpFolderSelect'
+    label.innerHTML = MP_VIRTUAL_FOLDER
+    label.appendChild(mpSpan('', Lang.queryJS('settings.folders.moveTo')))
+    const select = document.createElement('select')
+    const state = PackFolders.read(ConfigManager.getLauncherDirectory())
+    const current = PackFolders.groups(state, [raw]).find(f => f.servers.length > 0)
+    select.setAttribute('aria-label', Lang.queryJS('settings.folders.movePack', { name: raw.name }))
+    const placeholder = document.createElement('option')
+    placeholder.value = '__choose__'
+    placeholder.disabled = true
+    placeholder.textContent = Lang.queryJS('settings.folders.chooseFolder')
+    select.appendChild(placeholder)
+    const unassigned = document.createElement('option')
+    unassigned.value = ''
+    unassigned.textContent = Lang.queryJS('settings.folders.unassigned')
+    unassigned.disabled = current.unassigned === true
+    select.appendChild(unassigned)
+    for(const f of state.folders){
+        const option = document.createElement('option')
+        option.value = f.id
+        option.textContent = packFolderName(f)
+        option.disabled = f.id === current.id
+        select.appendChild(option)
+    }
+    select.value = '__choose__'
+    select.onclick = e => e.stopPropagation()
+    select.onkeydown = e => e.stopPropagation()
+    select.onchange = () => {
+        if(!mpFolderEdit(state => PackFolders.assign(state, raw.id, select.value || null))) select.value = '__choose__'
+    }
+    label.appendChild(select)
+    return label
+}
+
+function mpRenderFolders(packs){
+    const list = mpEl('mpFolderList')
+    list.replaceChildren()
+    const state = PackFolders.read(ConfigManager.getLauncherDirectory())
+    const allGroups = PackFolders.groups(state, packs)
+    const groups = allGroups.filter(f => !f.unassigned)
+    mpEl('mpFolderTotal').textContent = Lang.queryJS('settings.folders.total', { count: packs.length })
+    mpEl('mpFolderHeading').textContent = Lang.queryJS('settings.folders.heading', { count: groups.length })
+    groups.forEach((folder, index) => {
+        const section = document.createElement('section')
+        section.className = 'mpFolderSection'
+        section.dataset.kind = 'custom'
+        section.setAttribute('aria-label', packFolderName(folder))
+        const row = document.createElement('form')
+        row.className = 'mpFolderRow'
+        const order = document.createElement('div')
+        order.className = 'mpFolderOrder'
+        for(const delta of [-1, 1]){
+            const button = mpIconButton('', Lang.queryJS('settings.folders.' + (delta < 0 ? 'up' : 'down')), '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + (delta < 0 ? 'M6 15l6-6 6 6' : 'M6 9l6 6 6-6') + '"/></svg>', () => mpFolderEdit(state => {
+                const i = state.folders.findIndex(f => f.id === folder.id)
+                const j = i + delta
+                if(j < 0 || j >= state.folders.length) return
+                ;[state.folders[i], state.folders[j]] = [state.folders[j], state.folders[i]]
+            }))
+            button.disabled = index + delta < 0 || index + delta >= groups.length
+            order.appendChild(button)
+        }
+        const icon = document.createElement('span')
+        icon.className = 'mpFolderIcon'
+        icon.innerHTML = MP_VIRTUAL_FOLDER
+        const heading = document.createElement('div')
+        heading.className = 'mpFolderHeading'
+        const titleRow = document.createElement('div')
+        titleRow.className = 'mpFolderTitleRow'
+        const editing = mpFolderUI.editing === folder.id
+        const name = document.createElement(editing ? 'input' : 'span')
+        name.className = 'mpFolderTitle'
+        if(editing){
+            name.type = 'text'
+            name.maxLength = 60
+            name.required = true
+            name.value = packFolderName(folder)
+            name.setAttribute('aria-label', Lang.queryJS('settings.folders.rename'))
+            name.onkeydown = e => {
+                if(e.key === 'Escape'){
+                    e.stopPropagation()
+                    mpFolderUI.editing = null
+                    mpRenderFolders(packs)
+                }
+            }
+        } else {
+            name.textContent = packFolderName(folder)
+            name.title = packFolderName(folder)
+        }
+        titleRow.appendChild(name)
+        heading.append(titleRow, mpSpan('mpFolderDescription', Lang.queryJS('settings.folders.' + (folder.visible ? 'shown' : 'hidden'))))
+        const visibility = document.createElement('label')
+        visibility.className = 'mpFolderVisibility'
+        const check = document.createElement('input')
+        check.type = 'checkbox'
+        check.setAttribute('role', 'switch')
+        check.checked = folder.visible
+        check.onchange = () => {
+            if(!mpFolderEdit(state => { state.folders.find(f => f.id === folder.id).visible = check.checked })) check.checked = folder.visible
+        }
+        const track = document.createElement('span')
+        track.className = 'mpFolderSwitch'
+        track.setAttribute('aria-hidden', 'true')
+        visibility.append(mpSpan('', Lang.queryJS('settings.folders.onDial')), check, track)
+        const actions = document.createElement('div')
+        actions.className = 'mpFolderActions'
+        actions.appendChild(visibility)
+        const rename = mpIconButton('', Lang.queryJS('settings.folders.' + (editing ? 'save' : 'rename')), editing ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l4 4L19 6"/></svg>' : MP_RENAME_FOLDER, () => {
+            if(editing) row.requestSubmit()
+            else {
+                mpFolderUI.editing = folder.id
+                mpRenderFolders(packs)
+            }
+        })
+        actions.append(rename, mpIconButton('mpRemove', Lang.queryJS('settings.folders.delete'), MP_REMOVE_SVG, () => mpFolderEdit(state => PackFolders.remove(state, folder.id))))
+        const collapsed = mpFolderUI.collapsed.has(folder.id)
+        const collapse = mpIconButton('mpFolderCollapse', Lang.queryJS('settings.folders.' + (collapsed ? 'expand' : 'collapse')), '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg>', () => {
+            if(mpFolderUI.collapsed.has(folder.id)) mpFolderUI.collapsed.delete(folder.id)
+            else mpFolderUI.collapsed.add(folder.id)
+            mpRenderFolders(packs)
+        })
+        collapse.setAttribute('aria-expanded', !collapsed)
+        collapse.setAttribute('aria-controls', 'folder-packs-' + folder.id)
+        actions.appendChild(collapse)
+        row.append(order, icon, heading, actions)
+        row.onsubmit = e => {
+            e.preventDefault()
+            if(editing) mpFolderEdit(state => {
+                PackFolders.rename(state, folder.id, name.value)
+                mpFolderUI.editing = null
+            })
+        }
+        const contents = document.createElement('div')
+        contents.className = 'mpFolderContents'
+        contents.id = 'folder-packs-' + folder.id
+        contents.hidden = collapsed
+        if(folder.servers.length === 0) contents.appendChild(mpSpan('mpFolderEmpty', Lang.queryJS('settings.folders.empty')))
+        for(const raw of folder.servers) contents.appendChild(mpFolderPackRow(raw))
+        section.append(row, contents)
+        list.appendChild(section)
+        if(editing) requestAnimationFrame(() => { name.focus(); name.select() })
+    })
+    if(groups.length === 0){
+        list.appendChild(mpSpan('mpFolderHint', Lang.queryJS('settings.folders.noFolders')))
+    }
+    const unassigned = allGroups.find(f => f.unassigned)
+    if(unassigned){
+        const section = document.createElement('section')
+        section.className = 'mpUnassignedPacks'
+        section.appendChild(mpSpan('mpUnassignedHeading', Lang.queryJS('settings.folders.unassignedPacks')))
+        for(const raw of unassigned.servers) section.appendChild(mpFolderPackRow(raw))
+        list.appendChild(section)
+    }
+}
+
+function mpFolderPackRow(raw){
+    const pack = document.createElement('div')
+    pack.className = 'mpFolderPack'
+    const tile = mpPackTile(raw, ConfigManager.getAppearance())
+    const details = document.createElement('div')
+    details.className = 'mpFolderPackDetails'
+    const title = mpSpan('serverListName', raw.name)
+    title.title = raw.name
+    const meta = document.createElement('div')
+    meta.className = 'mpFolderPackMeta'
+    const server = distroServerForFolder(raw)
+    meta.append(mpSpan('mpFolderVersion', raw.minecraftVersion), mpSpan('', raw.local != null ? mpLoaderLabel(raw) : server != null ? getServerLoaderLabel(server) : ''))
+    meta.appendChild(mpSpan('mpFolderSource', Lang.queryJS('settings.folders.' + (raw.local == null ? 'serverPack' : 'localPack'))))
+    details.append(title, meta)
+    pack.append(tile, details, mpFolderSelect(raw))
+    return pack
+}
+
+// Filled from the same distribution snapshot as the folder list.
+let mpFolderServers = []
+function distroServerForFolder(raw){
+    return mpFolderServers.find(server => server.rawServer.id === raw.id)
+}
+
 /* Installed packs */
 
 async function mpSelect(id){
@@ -543,7 +755,8 @@ async function mpRenderInstalled(){
     const seq = ++mpInstalledSeq.n
     let servers = []
     try {
-        servers = (await DistroAPI.getDistribution()).servers
+        mpFolderServers = (await DistroAPI.getDistribution()).servers
+        servers = mpFolderServers
             .map(serv => serv.rawServer)
             .filter(raw => raw.local == null)
     } catch(err){
@@ -554,6 +767,7 @@ async function mpRenderInstalled(){
         return
     }
     const packs = servers.concat(ModpackManager.installed())
+    mpRenderFolders(packs)
     const box = mpEl('mpInstalled')
     mpEl('mpInstalledSection').hidden = packs.length === 0
     box.innerHTML = ''
@@ -1405,3 +1619,5 @@ mpBindImport()
 mpBindVersion()
 mpBindBrowse()
 document.querySelector('.settingsNavItem[rSc="settingsTabModpacks"]').addEventListener('click', mpOnShow)
+
+document.querySelector('.settingsNavItem[rSc="settingsTabFolders"]').addEventListener('click', mpRenderInstalled)

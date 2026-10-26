@@ -152,6 +152,7 @@
     <div id="serverDial" tabindex="0" role="listbox" aria-label="<%- lang('landing.serverDialLabel') %>">
         <svg id="serverDialRing" viewBox="0 0 520 180" aria-hidden="true">
             <circle cx="260" cy="372" r="300"/>
+            <g id="serverDialBoundaries"></g>
             <g id="serverDialTicks">
                 <path id="serverDialTicksMinor"/>
                 <path id="serverDialTicksMajor"/>
@@ -184,7 +185,7 @@
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg>
             </button>
             <div id="serverMenu" role="listbox" tabindex="-1" aria-label="<%- lang('landing.serverDialLabel') %>">
-                <div class="serverMenuHeading"><%- lang('landing.serverMenuHeading') %></div>
+                <div class="serverMenuHeading"><span><%- lang('landing.serverMenuHeading') %></span><button type="button" id="managePackFolders" class="apLink"><%- lang('settings.foldersTitle') %></button></div>
                 <div id="serverMenuList">
                     <!-- Server rows are populated here. -->
                 </div>

@@ -34,6 +34,7 @@ const DiscordWrapper          = require('./assets/js/discordwrapper')
 const ProcessBuilder          = require('./assets/js/processbuilder')
 const PackIcons               = require('./assets/js/packicons')
 const LocalPacks              = require('./assets/js/localpacks')
+const PackFolders             = require('./assets/js/packfolders')
 const PackCleanup             = require('./assets/js/packcleanup')
 
 // Launch Elements
@@ -246,7 +247,7 @@ function renderRunningState(){
     }
 
     server_select.toggleAttribute('running', running)
-    for(const row of document.getElementById('serverMenuList').children){
+    for(const row of serverMenuRows()){
         row.toggleAttribute('running', isServerRunning(row.getAttribute('data-id')))
         row.toggleAttribute('update', packUpdateFor(row.getAttribute('data-id')) != null)
     }
@@ -610,6 +611,8 @@ serverDialNarrow.addEventListener('change', () => {
  * @param {number} pos The server index at the top, fractional mid-turn.
  */
 function placeServerDial(pos){
+    const bounds = document.getElementById('serverDial').getBoundingClientRect()
+    const controls = ['heroBlock', 'launchArea'].map(id => document.getElementById(id).getBoundingClientRect())
     Array.from(document.getElementById('serverDialTiles').children).forEach((tile, i) => {
         const d = i - pos
         const ad = Math.abs(d)
@@ -623,12 +626,15 @@ function placeServerDial(pos){
         // blocks.
         const opacity = ad <= 1 ? 1 - 0.08 * ad
             : serverDialNarrow.matches ? Math.max(0, 0.92 * (1 - 2 * (ad - 1)))
-            : ad <= 2 ? 0.92 - 0.42 * (ad - 1) : Math.max(0, 0.5 * (3 - ad))
+                : ad <= 2 ? 0.92 - 0.42 * (ad - 1) : Math.max(0, 0.5 * (3 - ad))
         // Tiles are SERVER_DIAL.tile wide; a transform places and sizes them.
         tile.style.transform = `translate(${(x - SERVER_DIAL.tile / 2).toFixed(1)}px, ${(y - SERVER_DIAL.tile / 2).toFixed(1)}px) scale(${(size / SERVER_DIAL.tile).toFixed(4)})`
         tile.style.opacity = opacity.toFixed(3)
-        tile.style.visibility = opacity > 0 ? '' : 'hidden'
+        const rect = { left: bounds.left + x - size / 2, right: bounds.left + x + size / 2, top: bounds.top + y - size / 2, bottom: bounds.top + y + size / 2 }
+        const covered = ad > 0.1 && controls.some(c => rect.left < c.right + 6 && rect.right > c.left - 6 && rect.top < c.bottom + 6 && rect.bottom > c.top - 6)
+        tile.style.visibility = opacity > 0 && !covered ? '' : 'hidden'
     })
+    placeDialFolderBoundaries(pos)
     document.getElementById('serverDialTicks').style.transform = `rotate(${(-pos * SERVER_DIAL.step).toFixed(3)}deg)`
 }
 
@@ -747,16 +753,21 @@ function repaintPackTiles(raw){
 }
 
 /**
- * The packs offered by the dial, the list next to Play and the switch
- * dialog: all but the hidden ones. A hidden pack stays selected (Play still
- * launches it), it just isn't offered.
- *
- * @param {Object} distro The distribution.
- * @returns {Array.<Object>} The servers to offer.
+ * Group every pack without changing its distribution data. Folder visibility
+ * applies only to the dial; per-pack hiding applies to every picker.
  */
-function pickerServers(distro){
-    if(distro == null) return []
-    return distro.servers.filter(s => !ConfigManager.isPackHidden(s.rawServer.id))
+function pickerGroups(distro){
+    const state = PackFolders.read(ConfigManager.getLauncherDirectory())
+    return PackFolders.groups(state, distro?.servers || [])
+}
+
+function packFolderName(folder){
+    return folder.unassigned ? Lang.queryJS('settings.folders.unassigned') : folder.name
+}
+
+function pickerServers(distro, dial = false){
+    const groups = pickerGroups(distro).filter(f => !dial || f.visible)
+    return groups.flatMap(f => f.servers).filter(s => !ConfigManager.isPackHidden(s.rawServer.id))
 }
 
 /**
@@ -824,7 +835,7 @@ async function refreshAllServerPlayers(force = false){
  * Write the cached player counts into the server list rows.
  */
 function renderServerMenuStatus(){
-    for(const row of document.getElementById('serverMenuList').children){
+    for(const row of serverMenuRows()){
         const cell = row.querySelector('.serverListStatus')
         const id = row.getAttribute('data-id')
         const p = serverPlayers.get(id)
@@ -867,7 +878,8 @@ function renderServerMenuStatus(){
  */
 async function renderServerPicker(){
     const distro = await DistroAPI.getDistribution()
-    const servers = pickerServers(distro)
+    const servers = pickerServers(distro, true)
+    const menuServers = pickerServers(distro)
     const selId = ConfigManager.getSelectedServer()
     // -1 when the selected pack is hidden: then no tile or row is marked.
     const selIndex = selId != null ? servers.findIndex(s => s.rawServer.id === selId) : -1
@@ -881,36 +893,57 @@ async function renderServerPicker(){
     // Server list next to Play. Rebuilt when the servers or the theme change.
     const menuList = document.getElementById('serverMenuList')
     const themeKey = appearance.theme
-    const listKey = servers.map(s => s.rawServer.id + ':' + (PackIcons.isPicked(s.rawServer.id) ? '' : s.rawServer.icon)).join('|') + '#' + themeKey
+    const folders = pickerGroups(distro)
+    const folderFor = s => folders.find(f => f.servers.includes(s))
+    const listKey = menuServers.map(s => s.rawServer.id + ':' + (PackIcons.isPicked(s.rawServer.id) ? '' : s.rawServer.icon)).join('|') + '#' + themeKey + JSON.stringify(folders.map(f => [f.id, f.name, f.servers.map(s => s.rawServer.id)]))
     if(menuList.getAttribute('data-key') !== listKey){
         menuList.innerHTML = ''
-        servers.forEach((s, i) => {
-            const row = document.createElement('div')
-            row.className = 'serverListRow'
-            row.setAttribute('role', 'option')
-            row.setAttribute('data-id', s.rawServer.id)
-            row.toggleAttribute('local', LocalPacks.isLocal(s.rawServer))
-            row.innerHTML = '<span class="serverListTile"></span>'
-                + '<span class="serverListText"><span class="serverListName"></span><span class="serverListMeta"></span></span>'
-                + '<span class="serverListRunning"></span>'
-                + '<span class="serverListStatus"></span>'
-            paintServerTile(row.firstChild, s.rawServer, appearance, 'serverListTile')
-            row.querySelector('.serverListName').textContent = s.rawServer.name
-            row.querySelector('.serverListMeta').textContent = getServerMetaLabel(s)
-            row.querySelector('.serverListRunning').textContent = Lang.queryJS('landing.running.badge')
-            row.onclick = () => {
-                closeServerMenu(true)
-                selectServerAt(i)
+        for(const folder of folders){
+            const members = folder.servers.filter(s => !ConfigManager.isPackHidden(s.rawServer.id))
+            if(members.length === 0) continue
+            const group = document.createElement('div')
+            group.className = 'serverMenuFolder'
+            group.setAttribute('role', 'group')
+            group.setAttribute('aria-label', packFolderName(folder))
+            if(!folder.unassigned){
+                const heading = document.createElement('div')
+                heading.className = 'serverMenuFolderHeading'
+                heading.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h6l2 2h10v12H3z"/></svg><span class="serverMenuFolderName"></span>'
+                heading.querySelector('.serverMenuFolderName').textContent = packFolderName(folder)
+                heading.querySelector('.serverMenuFolderName').title = packFolderName(folder)
+                group.appendChild(heading)
             }
-            row.onmousemove = () => setServerMenuActive(i)
-            menuList.appendChild(row)
-        })
+            members.forEach(s => {
+                const i = menuServers.indexOf(s)
+                const row = document.createElement('div')
+                row.className = 'serverListRow'
+                row.setAttribute('role', 'option')
+                row.setAttribute('data-id', s.rawServer.id)
+                row.toggleAttribute('local', LocalPacks.isLocal(s.rawServer))
+                row.innerHTML = '<span class="serverListTile"></span>'
+                    + '<span class="serverListText"><span class="serverListName"></span><span class="serverListMeta"></span></span>'
+                    + '<span class="serverListRunning"></span>'
+                    + '<span class="serverListStatus"></span>'
+                paintServerTile(row.firstChild, s.rawServer, appearance, 'serverListTile')
+                row.querySelector('.serverListName').textContent = s.rawServer.name
+                row.querySelector('.serverListMeta').textContent = getServerMetaLabel(s)
+                row.querySelector('.serverListRunning').textContent = Lang.queryJS('landing.running.badge')
+                row.onclick = () => {
+                    closeServerMenu(true)
+                    selectServerAt(i, false)
+                }
+                row.onmousemove = () => setServerMenuActive(i)
+                group.appendChild(row)
+            })
+            menuList.appendChild(group)
+        }
         menuList.setAttribute('data-key', listKey)
         renderServerMenuStatus()
     }
-    Array.from(menuList.children).forEach((row, i) => {
-        row.toggleAttribute('selected', i === selIndex)
-        row.setAttribute('aria-selected', i === selIndex)
+    Array.from(serverMenuRows()).forEach((row, i) => {
+        const selected = menuServers[i].rawServer.id === selId
+        row.toggleAttribute('selected', selected)
+        row.setAttribute('aria-selected', selected)
     })
 
     const curServ = selId != null && distro != null ? distro.getServerById(selId) : null
@@ -921,7 +954,7 @@ async function renderServerPicker(){
             pickerTile.setAttribute('data-key', curServ.rawServer.id + '#' + themeKey)
         }
         document.getElementById('serverPickerName').textContent = curServ.rawServer.name
-        document.getElementById('serverPickerMeta').textContent = getServerMetaLabel(curServ)
+        document.getElementById('serverPickerMeta').textContent = getServerMetaLabel(curServ) + (folderFor(curServ).unassigned ? '' : ' · ' + packFolderName(folderFor(curServ)))
     } else {
         pickerTile.removeAttribute('data-key')
         pickerTile.innerHTML = ''
@@ -930,7 +963,7 @@ async function renderServerPicker(){
         document.getElementById('serverPickerMeta').textContent = ''
     }
     pickerTile.toggleAttribute('empty', curServ == null)
-    server_select.toggleAttribute('empty', servers.length === 0)
+    server_select.toggleAttribute('empty', menuServers.length === 0)
 
     // Dial tiles. Tiles are reused so their position animates between states.
     // Rebuild when the servers or the theme (tile colours) change.
@@ -953,6 +986,8 @@ async function renderServerPicker(){
         tiles.setAttribute('data-key', tileKey)
     }
 
+    renderDialFolderBoundaries(distro, servers)
+
     // New tiles are placed at once; otherwise the dial turns to the server.
     turnServerDial(sel, rebuilt)
     Array.from(tiles.children).forEach((tile, i) => {
@@ -965,23 +1000,26 @@ async function renderServerPicker(){
     })
 
     const cur = servers[selIndex]
+    const currentFolder = cur != null ? folderFor(cur) : null
+    const folderServers = currentFolder != null ? currentFolder.servers.filter(s => !ConfigManager.isPackHidden(s.rawServer.id)) : []
     document.getElementById('serverDialName').textContent = cur != null ? cur.rawServer.name : ''
     document.getElementById('serverDialPos').textContent = cur != null
-        ? Lang.queryJS('landing.serverHero.position', { current: sel + 1, total: servers.length })
+        ? Lang.queryJS('landing.serverHero.position', { current: folderServers.indexOf(cur) + 1, total: folderServers.length }) + (currentFolder.unassigned ? '' : ' · ' + packFolderName(currentFolder))
         : ''
+    document.getElementById('serverDialPos').title = document.getElementById('serverDialPos').textContent
     document.getElementById('serverDialPrev').disabled = selIndex <= 0
-    document.getElementById('serverDialNext').disabled = selIndex >= servers.length - 1
+    document.getElementById('serverDialNext').disabled = servers.length === 0 || selIndex >= servers.length - 1
     renderRunningState()
 }
 
 /**
  * Select the server at an index in the distribution.
  */
-async function selectServerAt(index){
+async function selectServerAt(index, dial = true){
     if(document.getElementById('landingContainer').hasAttribute('launching')){
         return
     }
-    const servers = pickerServers(await DistroAPI.getDistribution())
+    const servers = pickerServers(await DistroAPI.getDistribution(), dial)
     const next = servers[Math.max(0, Math.min(servers.length - 1, index))]
     if(next == null || next.rawServer.id === ConfigManager.getSelectedServer()){
         return
@@ -990,8 +1028,43 @@ async function selectServerAt(index){
     refreshServerStatus(true)
 }
 
+
+// Folder boundaries follow the arc; folder names stay in the bottom caption.
+function renderDialFolderBoundaries(distro, servers){
+    const lines = document.getElementById('serverDialBoundaries')
+    lines.replaceChildren()
+    for(const folder of pickerGroups(distro).filter(f => f.visible)){
+        const index = servers.findIndex(s => folder.servers.includes(s))
+        if(index <= 0) continue
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+        line.dataset.index = index
+        lines.appendChild(line)
+    }
+}
+
+function placeDialFolderBoundaries(pos){
+    for(const line of document.getElementById('serverDialBoundaries').children){
+        const d = Number(line.dataset.index) - pos - 0.5
+        line.style.display = Math.abs(d) > 2.4 ? 'none' : ''
+        const angle = d * SERVER_DIAL.step * Math.PI / 180
+        for(const [key, value] of Object.entries({ x1: SERVER_DIAL.cx + 278 * Math.sin(angle), y1: SERVER_DIAL.cy - 278 * Math.cos(angle), x2: SERVER_DIAL.cx + 325 * Math.sin(angle), y2: SERVER_DIAL.cy - 325 * Math.cos(angle) })){
+            line.setAttribute(key, value)
+        }
+    }
+}
+
+function openPackFolders(){
+    if(document.getElementById('landingContainer').hasAttribute('launching')) return
+    switchView(getCurrentView(), VIEWS.settings, 500, 500, async () => {
+        await prepareSettings()
+        document.querySelector('.settingsNavItem[rSc="settingsTabFolders"]').click()
+        document.getElementById('mpFolderName').focus()
+    })
+}
+document.getElementById('managePackFolders').onclick = openPackFolders
+
 async function stepServer(delta){
-    const servers = pickerServers(await DistroAPI.getDistribution())
+    const servers = pickerServers(await DistroAPI.getDistribution(), true)
     const cur = servers.findIndex(s => s.rawServer.id === ConfigManager.getSelectedServer())
     selectServerAt(cur + delta)
 }
@@ -1001,8 +1074,13 @@ const serverPicker = document.getElementById('serverPicker')
 const serverMenu = document.getElementById('serverMenu')
 let serverMenuActive = -1
 
+// Only selectable pack rows participate in status updates and keyboard navigation.
+function serverMenuRows(){
+    return document.querySelectorAll('#serverMenuList .serverListRow')
+}
+
 function setServerMenuActive(index){
-    const rows = document.getElementById('serverMenuList').children
+    const rows = serverMenuRows()
     if(rows.length === 0) return
     serverMenuActive = Math.max(0, Math.min(rows.length - 1, index))
     Array.from(rows).forEach((row, i) => row.toggleAttribute('active', i === serverMenuActive))
@@ -1024,7 +1102,7 @@ function openServerMenu(){
     if(server_select.disabled || server_select.hasAttribute('empty')) return
     serverPicker.setAttribute('open', '')
     server_select.setAttribute('aria-expanded', 'true')
-    const rows = Array.from(document.getElementById('serverMenuList').children)
+    const rows = Array.from(serverMenuRows())
     setServerMenuActive(Math.max(0, rows.findIndex(r => r.hasAttribute('selected'))))
     serverMenu.focus()
     refreshAllServerPlayers()
@@ -1059,7 +1137,7 @@ serverMenu.addEventListener('keydown', e => {
         setServerMenuActive(serverMenuActive + (e.key === 'ArrowDown' ? 1 : -1))
     } else if(e.key === 'Enter' || e.key === ' '){
         e.preventDefault()
-        const row = document.getElementById('serverMenuList').children[serverMenuActive]
+        const row = serverMenuRows()[serverMenuActive]
         if(row != null) row.click()
     } else if(e.key === 'Escape' || e.key === 'Tab'){
         closeServerMenu(e.key === 'Escape')
@@ -2099,3 +2177,7 @@ async function loadNews(){
         return null
     }
 }
+
+window.addEventListener('resize', () => { if(serverDialTurn.pos != null) placeServerDial(serverDialTurn.pos) })
+
+new ResizeObserver(() => { if(serverDialTurn.pos != null && serverDial.getBoundingClientRect().width > 0) placeServerDial(serverDialTurn.pos) }).observe(serverDial)

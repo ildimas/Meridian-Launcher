@@ -5022,6 +5022,77 @@ body[settingsOpen] #wallpaper .wpImg {
 #serverDialTicks {
     transform-origin: 260px 372px;
 }
+#serverDialBoundaries line {
+    stroke: var(--accent-hi);
+    stroke-width: 2;
+    stroke-linecap: round;
+}
+.serverMenuHeading:has(#managePackFolders) {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+#mpFolders { width: 96%; box-sizing: border-box; padding: 6px; }
+#mpFolders [hidden] { display: none !important; }
+#settingsTabFolders .settingsTabHeader { padding-right: 24px; }
+#mpFolderCreate { position: relative; padding: 12px; gap: 10px; border: 1px solid var(--line); border-radius: 18px; background: var(--glass); box-sizing: border-box; margin-top: 42px; }
+#mpFolderCreateLabel { position: absolute; top: -28px; left: 0; font-size: 10.5px; font-weight: 650; letter-spacing: .08em; color: var(--text-2); }
+#mpFolderCreateButton { display: inline-flex; align-items: center; justify-content: center; gap: 7px; border-radius: 10px; }
+#mpFolderCreateButton svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; }
+#mpFolderCreateButton:disabled { opacity: .45; cursor: default; }
+#mpFolders #mpFolderName { border-radius: 10px; height: 40px; }
+.mpFolderSummary { display: flex; justify-content: space-between; gap: 12px; margin: 28px 0 12px; color: var(--text-2); font-size: 12px; }
+#mpFolderHeading { font-size: 10.5px; font-weight: 650; letter-spacing: .08em; text-transform: uppercase; }
+.mpFolderHint { color: var(--text-2); font-size: 12.5px; line-height: 1.55; margin: 26px 0 0; }
+#mpFolderName, .mpFolderTitle { box-sizing: border-box; min-width: 0; color: var(--text-1); font: inherit; }
+#mpFolderName { width: 100%; }
+#mpFolderError { color: var(--danger); }
+.mpFolderSection { margin-bottom: 12px; border: 1px solid var(--line); border-radius: 18px; background: var(--glass-strong); }
+.mpFolderRow { display: flex; align-items: center; gap: 12px; padding: 14px 12px; min-width: 0; }
+.mpFolderOrder { display: flex; flex-direction: column; flex: none; gap: 2px; }
+.mpFolderOrder .modFolder { width: 22px; height: 20px; }
+.mpFolderIcon { width: 40px; height: 40px; flex: none; border-radius: 12px; background: rgba(125,180,230,.18); color: var(--accent); display: grid; place-items: center; }
+.mpFolderIcon svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; }
+.mpFolderSection[data-kind="local"] .mpFolderIcon { color: #9bdcb6; background: rgba(155,220,182,.14); }
+.mpFolderSection[data-kind="custom"] .mpFolderIcon { color: #efb17a; background: rgba(239,177,122,.14); }
+.mpFolderHeading { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.mpFolderTitleRow { display: flex; align-items: center; flex-wrap: wrap; min-width: 0; gap: 8px; }
+.mpFolderTitle { font-size: 15px; font-weight: 700; overflow-wrap: anywhere; }
+input.mpFolderTitle { width: min(100%, 300px); height: 34px; }
+.mpFolderSystem { padding: 3px 8px; border-radius: 8px; background: var(--glass-hover); font-size: 10.5px; color: var(--text-2); font-weight: 600; }
+.mpFolderDescription { color: var(--text-2); font-size: 12px; line-height: 1.45; }
+.mpFolderActions { display: flex; align-items: center; flex: none; gap: 8px; }
+.mpFolderVisibility { position: relative; display: flex; align-items: center; gap: 10px; color: var(--text-1); font-size: 12px; font-weight: 600; cursor: pointer; margin-right: 12px; white-space: nowrap; }
+.mpFolderVisibility input { position: absolute; right: 0; width: 36px; height: 22px; margin: 0; opacity: 0; cursor: pointer; }
+.mpFolderSwitch { width: 36px; height: 22px; box-sizing: border-box; border: 1px solid var(--line-strong); background: var(--glass-hover); border-radius: 20px; pointer-events: none; }
+.mpFolderSwitch::after { content: ''; display: block; width: 16px; height: 16px; margin: 2px; border-radius: 50%; background: var(--text-1); transition: transform 180ms var(--ease-out); }
+.mpFolderVisibility input:checked + .mpFolderSwitch { background: #3997df; }
+.mpFolderVisibility input:checked + .mpFolderSwitch::after { transform: translateX(14px); }
+.mpFolderVisibility input:focus-visible + .mpFolderSwitch { outline: 2px solid var(--accent-hi); outline-offset: 3px; }
+.mpFolderCollapse[aria-expanded="false"] svg { transform: rotate(180deg); }
+.mpFolderContents { border-top: 1px solid var(--line); }
+.mpFolderEmpty { display: block; padding: 14px 16px; margin: 14px 16px 14px 48px; border: 1px dashed var(--line-strong); border-radius: 12px; color: var(--text-2); font-size: 12.5px; line-height: 1.5; }
+.mpFolderPack { display: flex; align-items: center; gap: 12px; padding: 12px 14px 12px 48px; }
+.mpFolderPack + .mpFolderPack { border-top: 1px solid var(--line); }
+.mpFolderPack .serverListTile { width: 38px; height: 38px; }
+.mpFolderPackDetails { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.mpFolderPackMeta { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; color: var(--text-2); font-size: 12px; }
+.mpFolderVersion { padding: 2px 6px; border-radius: 5px; background: var(--glass-hover); color: var(--text-1); font-weight: 650; }
+.mpFolderSource { padding: 2px 7px; border: 1px solid var(--line-strong); border-radius: 5px; }
+.mpFolderSelect { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 8px; flex: none; min-width: 140px; height: 38px; padding: 0 28px 0 12px; box-sizing: border-box; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--glass-hover); color: var(--text-1); font-size: 12px; font-weight: 600; }
+.mpFolderSelect::after { content: ''; position: absolute; right: 12px; top: 14px; width: 5px; height: 5px; border: solid currentColor; border-width: 0 1.5px 1.5px 0; transform: rotate(45deg); }
+.mpFolderSelect > svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.8; }
+.mpFolderSelect select { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
+.mpFolderSelect:focus-within { outline: 2px solid var(--accent-hi); outline-offset: 3px; }
+.mpFolderSelect select option { color: var(--text-1); background: var(--basalt-1); }
+@media (max-width: 1100px) {
+    .mpFolderRow { flex-wrap: wrap; }
+    .mpFolderHeading { flex-basis: calc(100% - 100px); }
+    .mpFolderActions { width: 100%; justify-content: flex-end; }
+    .mpFolderPack { padding-left: 16px; }
+    .mpFolderEmpty { margin-left: 16px; }
+}
+@media (prefers-reduced-motion: reduce) { .mpFolderSwitch::after { transition: none; } }
 #serverDialTicksMinor {
     fill: none;
     stroke: rgba(255, 255, 255, 0.3);
@@ -5189,6 +5260,10 @@ body[settingsOpen] #wallpaper .wpImg {
     white-space: nowrap;
 }
 #serverDialPos {
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     font-family: var(--font-mono);
     font-size: 10.5px;
     color: rgba(255, 255, 255, 0.72);
@@ -5393,6 +5468,36 @@ body[settingsOpen] #wallpaper .wpImg {
 #serverMenuList::-webkit-scrollbar-thumb:hover,
 #serverMenuList::-webkit-scrollbar-thumb:active {
     background: var(--accent) padding-box;
+}
+.serverMenuFolder + .serverMenuFolder {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--line);
+}
+.serverMenuFolderHeading {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 8px 8px;
+    color: var(--text-2);
+    font-size: 12px;
+    font-weight: 600;
+}
+.serverMenuFolderHeading svg {
+    width: 14px;
+    height: 14px;
+    flex: none;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.6;
+    stroke-linejoin: round;
+}
+.serverMenuFolderName {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 .serverListRow {
     display: flex;
@@ -6864,3 +6969,7 @@ body[settingsOpen] #wallpaper .wpImg {
     opacity: 1;
     transform: translate(-50%, -50%) scale(1);
 }
+
+.mpUnassignedPacks { margin-top: 24px; }
+.mpUnassignedHeading { display: block; padding: 0 0 12px; font-size: 14px; font-weight: 650; color: var(--text-1); }
+.mpUnassignedPacks .mpFolderPack { padding-left: 0; }
