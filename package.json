@@ -29,7 +29,7 @@
     "dompurify": "^3.4.17",
     "ejs": "^7.0.2",
     "ejs-electron": "^3.0.0",
-    "electron-updater": "^6.8.9",
+    "electron-updater": "^6.8.11",
     "fs-extra": "^11.4.1",
     "github-syntax-dark": "^0.5.0",
     "got": "^11.8.5",
@@ -47,7 +47,7 @@
   "devDependencies": {
     "@stylistic/eslint-plugin": "^5.10.0",
     "electron": "^45.0.0",
-    "electron-builder": "^26.15.3",
+    "electron-builder": "^26.18.0",
     "eslint": "^10.13.0"
   },
   "repository": {
