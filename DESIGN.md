@@ -187,3 +187,11 @@ and under “Packs without a folder” in settings. This is a presentation secti
 not a persisted folder. The move menu can assign a pack to a user folder or
 return it to “No folder”. When no folders exist, settings explains how to create
 the first one. Per-folder pack counters are omitted in the settings cards too.
+
+
+Studio may supply a versioned `meridian.folders` layout as distribution defaults.
+Clients without a local folder file follow those defaults on each distribution
+refresh. The first folder edit saves a complete local override; subsequent Studio
+updates cannot merge into or replace it. Preexisting files, including empty ones,
+are already user-owned. The folder settings explain the current source. See
+`docs/studio-folders.md` for the contract and compatibility rules.

@@ -27,18 +27,35 @@ function normalize(data){
     return { folders, assignments }
 }
 
-exports.read = function(dir){
+/** Local files from before Studio integration are user-owned, even if empty. */
+exports.read = function(dir, distribution = null){
+    let local
+    let exists = false
     try {
-        return normalize(JSON.parse(fs.readFileSync(path.join(dir, 'packfolders.json'), 'utf8')))
-    } catch {
-        return normalize(null)
+        const contents = fs.readFileSync(path.join(dir, 'packfolders.json'), 'utf8')
+        exists = true
+        local = JSON.parse(contents)
+    } catch(err) {
+        if(err.code !== 'ENOENT') return { ...normalize(null), overridden: true }
     }
+    if(exists && local?.overridden !== false){
+        return { ...normalize(local), overridden: true }
+    }
+    const remote = distribution?.meridian?.folders
+    if(remote?.version !== 1) return { ...normalize(null), overridden: false }
+    const state = normalize(remote)
+    // Distribution metadata cannot assign player-imported packs to a folder.
+    const ids = new Set((distribution.servers || []).filter(s => s.local == null).map(s => s.id))
+    for(const id of Object.keys(state.assignments)){
+        if(!ids.has(id)) delete state.assignments[id]
+    }
+    return { ...state, overridden: false }
 }
 
 exports.write = function(dir, state){
     fs.mkdirSync(dir, { recursive: true })
     const file = path.join(dir, 'packfolders.json')
-    fs.writeFileSync(file + '.tmp', JSON.stringify(normalize(state), null, 4), 'utf8')
+    fs.writeFileSync(file + '.tmp', JSON.stringify({ ...normalize(state), overridden: true }, null, 4), 'utf8')
     fs.renameSync(file + '.tmp', file)
 }
 

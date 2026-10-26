@@ -335,7 +335,7 @@ const MP_RENAME_FOLDER = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M
 function mpFolderEdit(edit){
     const error = mpEl('mpFolderError')
     try {
-        const state = PackFolders.read(ConfigManager.getLauncherDirectory())
+        const state = readPackFolders()
         edit(state)
         PackFolders.write(ConfigManager.getLauncherDirectory(), state)
         error.hidden = true
@@ -366,7 +366,7 @@ function mpFolderSelect(raw){
     label.innerHTML = MP_VIRTUAL_FOLDER
     label.appendChild(mpSpan('', Lang.queryJS('settings.folders.moveTo')))
     const select = document.createElement('select')
-    const state = PackFolders.read(ConfigManager.getLauncherDirectory())
+    const state = readPackFolders()
     const current = PackFolders.groups(state, [raw]).find(f => f.servers.length > 0)
     select.setAttribute('aria-label', Lang.queryJS('settings.folders.movePack', { name: raw.name }))
     const placeholder = document.createElement('option')
@@ -399,9 +399,11 @@ function mpFolderSelect(raw){
 function mpRenderFolders(packs){
     const list = mpEl('mpFolderList')
     list.replaceChildren()
-    const state = PackFolders.read(ConfigManager.getLauncherDirectory())
+    const state = readPackFolders()
     const allGroups = PackFolders.groups(state, packs)
     const groups = allGroups.filter(f => !f.unassigned)
+    const source = state.overridden ? 'localLayout' : DistroAPI.rawDistribution?.meridian?.folders?.version === 1 ? 'studioLayout' : 'noStudioLayout'
+    mpEl('mpFolderSource').textContent = Lang.queryJS('settings.folders.' + source)
     mpEl('mpFolderTotal').textContent = Lang.queryJS('settings.folders.total', { count: packs.length })
     mpEl('mpFolderHeading').textContent = Lang.queryJS('settings.folders.heading', { count: groups.length })
     groups.forEach((folder, index) => {

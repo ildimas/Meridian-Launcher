@@ -756,8 +756,12 @@ function repaintPackTiles(raw){
  * Group every pack without changing its distribution data. Folder visibility
  * applies only to the dial; per-pack hiding applies to every picker.
  */
+function readPackFolders(distribution = DistroAPI.rawDistribution){
+    return PackFolders.read(ConfigManager.getLauncherDirectory(), distribution)
+}
+
 function pickerGroups(distro){
-    const state = PackFolders.read(ConfigManager.getLauncherDirectory())
+    const state = readPackFolders(distro?.rawDistribution)
     return PackFolders.groups(state, distro?.servers || [])
 }
 
