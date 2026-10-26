@@ -48,7 +48,7 @@
     "@stylistic/eslint-plugin": "^5.10.0",
     "electron": "^45.0.0",
     "electron-builder": "^26.15.3",
-    "eslint": "^9.39.2"
+    "eslint": "^10.13.0"
   },
   "repository": {
     "type": "git",
