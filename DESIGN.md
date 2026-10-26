@@ -149,3 +149,49 @@ Shadows always have an offset and a soft blur. There are no glows and no text-sh
 - **Don't** add a second accent hue, gradient text, glow halos, or coloured side borders on cards.
 - **Don't** use unicode bullets or emoji as icons. Draw them with CSS or SVG.
 - **Don't** animate layout properties. Motion is 150–250ms (`--ease-out`), conveys state only, and respects `prefers-reduced-motion`.
+
+
+## Pack folders
+
+Folders are created entirely by the user; a new installation has no folders.
+The legacy “Servers” and “My packs” system folders are removed when loading old
+settings. Custom folders, their order and their assignments are preserved.
+Packs from removed folders become unassigned; their files and IDs stay in place.
+All user folders can be renamed, reordered and deleted.
+
+Folder names and the position within the folder appear only in the bottom
+caption below the selected pack. Group boundary strokes follow the dial arc.
+There are no floating folder labels above the tiles. “Show” controls
+only the arc. The Play dropdown and switch dialog retain every folder, respecting
+existing per-pack hiding. The Play dropdown groups its existing pack rows under
+folder headings with icons and no pack counters, in the configured folder order. Empty
+groups are omitted. Keyboard navigation and status updates operate on pack rows
+only. The dropdown includes a shortcut to folder management.
+Folder management has its own settings tab, with packs listed under each folder
+and a “Move” menu beside each pack. Headers contain order arrows, a folder icon,
+the visibility switch and a collapse action.
+Names are edited through the pencil action; pack rows include their icon,
+Minecraft version, loader and source. Empty folders show a dashed explanation.
+Inputs reserve space for focus outlines inside the scroll area.
+
+Names may contain up to 60 characters. The bottom folder caption stays on one
+line, truncates long names and exposes its full text in a tooltip. Covered
+neighbouring tiles are hidden. Resizing and showing the dial recalculate tile
+positions. Empty folders take no space on the dial.
+
+Names, order, assignments and visibility persist in `packfolders.json` in the
+launcher user-data directory, separately from distribution and pack files.
+
+Unassigned packs appear as plain rows after the custom folders in the Play menu,
+and under “Packs without a folder” in settings. This is a presentation section,
+not a persisted folder. The move menu can assign a pack to a user folder or
+return it to “No folder”. When no folders exist, settings explains how to create
+the first one. Per-folder pack counters are omitted in the settings cards too.
+
+
+Studio may supply a versioned `meridian.folders` layout as distribution defaults.
+Clients without a local folder file follow those defaults on each distribution
+refresh. The first folder edit saves a complete local override; subsequent Studio
+updates cannot merge into or replace it. Preexisting files, including empty ones,
+are already user-owned. The folder settings explain the current source. See
+`docs/studio-folders.md` for the contract and compatibility rules.

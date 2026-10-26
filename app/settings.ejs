@@ -11,6 +11,7 @@
                     <button class="settingsNavItem" rSc="settingsTabMinecraft"><%- lang('settings.navMinecraft') %></button>
                     <button class="settingsNavItem" rSc="settingsTabMods"><%- lang('settings.navMods') %></button>
                     <button class="settingsNavItem" rSc="settingsTabModpacks"><%- lang('settings.navModpacks') %></button>
+                    <button class="settingsNavItem" rSc="settingsTabFolders"><%- lang('settings.foldersTitle') %></button>
                     <button class="settingsNavItem" rSc="settingsTabJava"><%- lang('settings.navJava') %></button>
                     <button class="settingsNavItem" rSc="settingsTabLauncher"><%- lang('settings.navLauncher') %></button>
                     <button class="settingsNavItem" rSc="settingsTabLanguage" id="settingsNavLanguage"><%- lang('settings.navLanguage') %></button>
@@ -236,6 +237,26 @@
                     </div>
                 </div>
             </div>
+        </div>
+        <div id="settingsTabFolders" class="settingsTab" style="display: none;">
+            <div class="settingsTabHeader">
+                <span class="settingsTabHeaderText" id="mpFoldersTitle"><%- lang('settings.foldersTitle') %></span>
+                <span class="settingsTabHeaderDesc"><%- lang('settings.foldersSubtitle') %></span>
+            </div>
+            <section id="mpFolders" aria-labelledby="mpFoldersTitle">
+                <form id="mpFolderCreate" class="mpFormRow">
+                    <label class="mpField mpFieldGrow" for="mpFolderName">
+                        <span id="mpFolderCreateLabel"><%- lang('settings.folderNew') %></span>
+                        <input id="mpFolderName" type="text" maxlength="60" required aria-label="<%- lang('settings.folderName') %>" placeholder="<%- lang('settings.folderPlaceholder') %>">
+                    </label>
+                    <button class="mpButton" id="mpFolderCreateButton" type="submit" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><%- lang('settings.folderCreate') %></button>
+                </form>
+                <p id="mpFolderSource" class="mpFolderHint"></p>
+                <p id="mpFolderError" role="alert" hidden></p>
+                <div class="mpFolderSummary"><span id="mpFolderHeading"></span><span id="mpFolderTotal"></span></div>
+                <div id="mpFolderList"></div>
+                <p class="mpFolderHint"><%- lang('settings.foldersHint') %></p>
+            </section>
         </div>
         <div id="settingsTabModpacks" class="settingsTab" style="display: none;">
             <div class="settingsTabHeader">
