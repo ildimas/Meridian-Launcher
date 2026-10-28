@@ -71,6 +71,12 @@ if(!isDev){
                 settingsUpdateButtonStatus(Lang.queryJS('uicore.autoUpdate.installing'), true)
                 ipcRenderer.send('autoUpdateAction', 'installUpdateNow')
                 break
+            case 'install-failed':
+                // deb and pacman: the password dialog was closed, or the
+                // package manager refused (linuxupdater.js).
+                loggerAutoUpdater.error('Error while installing the update..', info)
+                updateInstallFailed(info.cancelled)
+                break
             case 'update-not-available':
                 loggerAutoUpdater.info('No new update found.')
                 settingsUpdateButtonStatus(Lang.queryJS('uicore.autoUpdate.checkForUpdatesButton'))
@@ -248,6 +254,30 @@ function updateDownloadFailed(){
     setOverlayHandler(null)
     toggleOverlay(true)
     populateSettingsUpdateInformation(info)
+}
+
+/**
+ * Installing the downloaded update failed. Closing the password dialog just
+ * closes ours; the update stays in settings to try again.
+ *
+ * @param {boolean} cancelled Whether the player closed the password dialog.
+ */
+function updateInstallFailed(cancelled){
+    const info = updateDownloading
+    updateDownloading = null
+    document.getElementById('overlayAcknowledge').disabled = false
+    populateSettingsUpdateInformation(info)
+    if(cancelled){
+        toggleOverlay(false)
+        return
+    }
+    setOverlayContent(
+        Lang.queryJS('uicore.autoUpdate.installFailedTitle'),
+        Lang.queryJS('uicore.autoUpdate.installFailedDesc'),
+        Lang.queryJS('uicore.autoUpdate.failedOk')
+    )
+    setOverlayHandler(null)
+    toggleOverlay(true)
 }
 
 /* jQuery Example

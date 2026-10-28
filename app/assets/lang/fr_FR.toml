@@ -584,6 +584,8 @@ installing = "Installation…"
 failedTitle = "Impossible de télécharger la mise à jour"
 failedDesc = "Vérifiez la connexion et réessayez."
 failedOk = "OK"
+installFailedTitle = "Impossible d'installer la mise à jour"
+installFailedDesc = "Le gestionnaire de paquets l'a refusée. Réessayez plus tard ou installez la nouvelle version depuis GitHub."
 
 [js.auth.offline]
 invalidNameTitle = "Nom de joueur invalide"

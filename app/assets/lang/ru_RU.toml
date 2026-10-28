@@ -592,6 +592,8 @@ installing = "Установка…"
 failedTitle = "Не удалось скачать обновление"
 failedDesc = "Проверьте интернет и попробуйте снова."
 failedOk = "OK"
+installFailedTitle = "Не удалось установить обновление"
+installFailedDesc = "Пакетный менеджер не принял его. Попробуйте позже или установите новую версию с GitHub."
 
 [js.auth.offline]
 invalidNameTitle = "Недопустимое имя игрока"

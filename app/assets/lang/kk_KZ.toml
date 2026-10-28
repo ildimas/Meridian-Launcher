@@ -584,6 +584,8 @@ installing = "Орнатылуда…"
 failedTitle = "Жаңартуды жүктеу мүмкін болмады"
 failedDesc = "Интернетті тексеріп, қайталап көріңіз."
 failedOk = "OK"
+installFailedTitle = "Жаңартуды орнату мүмкін болмады"
+installFailedDesc = "Пакет менеджері оны қабылдамады. Кейінірек қайталаңыз немесе жаңа нұсқаны GitHub-тан орнатыңыз."
 
 [js.auth.offline]
 invalidNameTitle = "Ойыншы аты жарамсыз"

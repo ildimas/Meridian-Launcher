@@ -584,6 +584,8 @@ installing = "Усталёўка…"
 failedTitle = "Не ўдалося спампаваць абнаўленне"
 failedDesc = "Праверце інтэрнэт і паспрабуйце зноў."
 failedOk = "OK"
+installFailedTitle = "Не ўдалося ўсталяваць абнаўленне"
+installFailedDesc = "Пакетны менеджар яго не прыняў. Паспрабуйце пазней або ўсталюйце новую версію з GitHub."
 
 [js.auth.offline]
 invalidNameTitle = "Недапушчальнае імя гульца"

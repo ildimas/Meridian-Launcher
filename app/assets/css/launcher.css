@@ -4671,10 +4671,20 @@ body[settingsOpen] #wallpaper .wpImg {
     align-items: center;
     border: none;
     cursor: pointer;
-    font-size: 10px;
-    font-weight: 600;
+    padding: 0px;
+    color: var(--text-1);
     background-color: rgba(2, 26, 48, 0.65);
     transition: opacity 160ms ease;
+}
+/* An icon, not the label: the label doesn't fit in the 34px circle. */
+#avatarOverlay svg {
+    width: 16px;
+    height: 16px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
 }
 #avatarOverlay:hover,
 #avatarOverlay:focus {
@@ -5109,7 +5119,9 @@ input.mpFolderTitle { width: min(100%, 300px); height: 34px; }
     padding: 0px;
     border: 0px;
     border-radius: 50%;
-    overflow: hidden;
+    /* Not clipped: the icon and glyph are round themselves, and the update
+       rings grow out past the edge. */
+    overflow: visible;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -5144,17 +5156,21 @@ input.mpFolderTitle { width: min(100%, 300px); height: 34px; }
 .serverTile[running][selected] {
     box-shadow: 0 0 0 3px rgba(2, 26, 48, 0.7), 0 0 0 5px var(--ok), 0 12px 30px rgba(0, 0, 0, 0.35);
 }
-/* A new version of the pack is out (landing.js, Pack updates). */
+/* A new version of the pack is out (landing.js, Pack updates): a green
+   badge with refresh arrows, the launcher update's colour, sitting on the
+   tile's edge at the top right. */
 .serverTile[update]::after {
     content: '';
     position: absolute;
-    top: 10%;
-    right: 10%;
-    width: 12px;
-    height: 12px;
+    /* Centred on the circle's edge at 45 degrees (14.6% in from the corner). */
+    top: calc(14.6% - 10px);
+    right: calc(14.6% - 10px);
+    width: 20px;
+    height: 20px;
     border-radius: 50%;
-    background: var(--accent);
-    box-shadow: 0 0 0 2px rgba(2, 26, 48, 0.85), 0 0 10px var(--accent);
+    pointer-events: none;
+    background: var(--ok) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23021a30' stroke-width='2.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M19.5 10A8 8 0 0 0 5.5 7.5M5 3.5V8h4.5M4.5 14a8 8 0 0 0 14 2.5M19 20.5V16h-4.5'/%3E%3C/svg%3E") center / 13px no-repeat;
+    box-shadow: 0 0 0 2px rgba(2, 26, 48, 0.85), 0 2px 6px rgba(0, 0, 0, 0.35);
 }
 .serverTile[hasIcon] .serverTileMono {
     visibility: hidden;
