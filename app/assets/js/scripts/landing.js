@@ -259,9 +259,17 @@ function renderRunningState(){
 
 /* Pack updates */
 
-// distribution.json is fetched again this often, and when the window comes
-// back after at least focusGap; the notice hides itself after toastMs.
-const PACK_UPDATE = { every: 10 * 60 * 1000, focusGap: 2 * 60 * 1000, toastMs: 15000 }
+// The stamp next to distribution.json (published by Meridian Studio, a few
+// bytes) is checked this often, and when the window comes back after at least
+// focusGap; distribution.json itself is fetched only when the stamp changed.
+// Without a stamp, distribution.json is fetched every fullEvery, and with one
+// at least every stampFullEvery, in case it was uploaded without a new stamp
+// (by hand, or by an older studio). The notice hides itself after toastMs.
+const PACK_UPDATE = { every: 60 * 1000, focusGap: 15 * 1000, fullEvery: 10 * 60 * 1000, stampFullEvery: 30 * 60 * 1000, toastMs: 15000, timeout: 10000 }
+// The stamp's MD5 for the distribution loaded now, or null before the first
+// stamp was seen.
+let packStampMd5 = null
+let packDistroFetchedAt = Date.now()
 // "<server id>@<version>" the player was already told about this session.
 const packUpdatesTold = new Set()
 let packUpdateCheckedAt = 0
@@ -358,9 +366,53 @@ function hidePackUpdateToast(){
 document.querySelector('#packUpdateToast .packUpdateClose').onclick = hidePackUpdateToast
 
 /**
- * Fetch distribution.json again and show what changed. Skipped while a game
- * is launching or running, and away from the landing view, so nothing is
- * swapped under the player's feet.
+ * The stamp published next to distribution.json: { md5, servers: { id: version } },
+ * or null when there is none (an older publish, or another host).
+ */
+async function fetchPackStamp(){
+    const url = DistroAPI.remoteUrl
+    if(typeof url !== 'string' || !url.endsWith('distribution.json')) return null
+    const stampUrl = url.replace(/[^/]*$/, name => 'stamp.' + name)
+    try {
+        const res = await fetch(stampUrl, { cache: 'no-store', signal: AbortSignal.timeout(PACK_UPDATE.timeout) })
+        if(!res.ok) return null
+        const stamp = await res.json()
+        return stamp != null && typeof stamp.md5 === 'string' && stamp.servers != null ? stamp : null
+    } catch {
+        return null
+    }
+}
+
+/**
+ * Whether the stamp's servers and versions are the ones loaded now.
+ */
+function packStampMatches(stamp){
+    const loaded = (DistroAPI.rawDistribution.servers || []).filter(raw => !LocalPacks.isLocal(raw))
+    const ids = Object.keys(stamp.servers)
+    return loaded.length === ids.length
+        && loaded.every(raw => raw.id in stamp.servers && stamp.servers[raw.id] === (raw.version == null ? null : String(raw.version)))
+}
+
+/**
+ * Whether distribution.json has to be fetched again. The first stamp is
+ * compared with what is loaded, so starting the launcher doesn't download it
+ * twice; after that any new stamp means a new publish.
+ */
+async function packDistroChanged(){
+    const stamp = await fetchPackStamp()
+    if(stamp == null){
+        return Date.now() - packDistroFetchedAt >= PACK_UPDATE.fullEvery ? {} : null
+    }
+    if(packStampMd5 == null && packStampMatches(stamp)){
+        packStampMd5 = stamp.md5
+    }
+    return stamp.md5 !== packStampMd5 || Date.now() - packDistroFetchedAt >= PACK_UPDATE.stampFullEvery ? stamp : null
+}
+
+/**
+ * Fetch distribution.json again when it changed and show what changed.
+ * Skipped while a game is launching or running, and away from the landing
+ * view, so nothing is swapped under the player's feet.
  */
 async function checkPackUpdates(){
     if(packUpdateChecking || DistroAPI.distribution == null) return
@@ -368,8 +420,14 @@ async function checkPackUpdates(){
     packUpdateChecking = true
     packUpdateCheckedAt = Date.now()
     try {
+        const stamp = await packDistroChanged()
+        if(stamp == null) return
+        packDistroFetchedAt = Date.now()
         const before = JSON.stringify(DistroAPI.rawDistribution)
         const distro = await DistroAPI.refreshDistributionOrFallback()
+        // A failed fetch keeps the old distribution: the stamp won't match it,
+        // and the next check tries again.
+        if(stamp.md5 != null) packStampMd5 = packStampMatches(stamp) ? stamp.md5 : null
         if(JSON.stringify(DistroAPI.rawDistribution) !== before){
             onDistroRefresh(distro)
         }
@@ -1154,8 +1212,33 @@ document.getElementById('serverDialPrev').onclick = () => stepServer(-1)
 document.getElementById('serverDialNext').onclick = () => stepServer(1)
 
 const serverDial = document.getElementById('serverDial')
-// One step per 280ms, however fast the wheel or trackpad reports.
-serverDial.addEventListener('wheel', e => {
+
+/**
+ * Whether something between the element and the landing page scrolls by
+ * itself in that direction, such as the pack menu or the news.
+ *
+ * @param {Element} el Where the wheel turned.
+ * @param {number} dy The wheel's vertical delta.
+ */
+function wheelScrollsInside(el, dy){
+    const landing = document.getElementById('landingContainer')
+    for(; el != null && el !== landing; el = el.parentElement){
+        const overflow = getComputedStyle(el).overflowY
+        if((overflow === 'auto' || overflow === 'scroll') && el.scrollHeight > el.clientHeight){
+            const atEnd = dy > 0 ? el.scrollTop + el.clientHeight >= el.scrollHeight - 1 : el.scrollTop <= 0
+            if(!atEnd) return true
+        }
+    }
+    return false
+}
+
+// The wheel turns the dial wherever the mouse is on the landing page, one
+// step per 280ms however fast the wheel or trackpad reports.
+document.getElementById('landingContainer').addEventListener('wheel', e => {
+    const landing = document.getElementById('landingContainer')
+    if(landing.hasAttribute('dialHidden') || landing.hasAttribute('launching') || wheelScrollsInside(e.target, e.deltaY)){
+        return
+    }
     const dv = Math.abs(e.deltaY) >= Math.abs(e.deltaX) ? e.deltaY : e.deltaX
     const now = Date.now()
     if(Math.abs(dv) < 4 || now - serverDialWheelAt < 280){

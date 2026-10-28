@@ -13,6 +13,7 @@ const { pathToFileURL }                 = require('url')
 const { AZURE_CLIENT_ID, MSFT_OPCODE, MSFT_REPLY_TYPE, MSFT_ERROR, PROXY_OPCODE, SHELL_OPCODE } = require('./app/assets/js/ipcconstants')
 const LangLoader                        = require('./app/assets/js/langloader')
 const MacUpdater                        = require('./app/assets/js/macupdater')
+const LinuxUpdater                      = require('./app/assets/js/linuxupdater')
 
 /**
  * A launcher setting saved by the renderer, or undefined before the first save.
@@ -46,6 +47,8 @@ ipcMain.on('languageChanged', (event, selection) => {
 
 // The update the last check found, for the macOS updater.
 let availableUpdate = null
+// The downloaded deb or pacman package, for the Linux updater.
+let downloadedPackage = null
 
 // Setup auto updater.
 function initAutoUpdater(event, data) {
@@ -64,6 +67,11 @@ function initAutoUpdater(event, data) {
     // The player is asked first; nothing is downloaded until they agree.
     // On macOS electron-updater only checks; macupdater.js installs.
     autoUpdater.autoDownload = false
+    // deb and pacman: installing on quit would freeze the launcher behind the
+    // password dialog (linuxupdater.js); they install only when asked.
+    if(LinuxUpdater.handles()){
+        autoUpdater.autoInstallOnAppQuit = false
+    }
     // The page reloads on a language change and initializes again.
     autoUpdater.removeAllListeners()
     autoUpdater.on('update-available', (info) => {
@@ -74,6 +82,7 @@ function initAutoUpdater(event, data) {
         event.sender.send('autoUpdateNotification', 'download-progress', progress)
     })
     autoUpdater.on('update-downloaded', (info) => {
+        downloadedPackage = info.downloadedFile
         event.sender.send('autoUpdateNotification', 'update-downloaded', info)
     })
     autoUpdater.on('update-not-available', (info) => {
@@ -138,6 +147,12 @@ ipcMain.on('autoUpdateAction', (event, arg, data) => {
             // outside the install folder, so settings and accounts stay.
             if(process.platform === 'darwin'){
                 MacUpdater.install()
+            } else if(downloadedPackage != null && LinuxUpdater.handles()){
+                LinuxUpdater.install(downloadedPackage)
+                    .catch(err => {
+                        console.error('Linux update install failed', err)
+                        event.sender.send('autoUpdateNotification', 'install-failed', { cancelled: err.cancelled === true, message: err.message })
+                    })
             } else {
                 autoUpdater.quitAndInstall(true, true)
             }

@@ -584,6 +584,8 @@ installing = "Wird installiert…"
 failedTitle = "Update konnte nicht heruntergeladen werden"
 failedDesc = "Prüfe die Verbindung und versuche es erneut."
 failedOk = "OK"
+installFailedTitle = "Update konnte nicht installiert werden"
+installFailedDesc = "Der Paketmanager hat es abgelehnt. Versuche es später erneut oder installiere die neue Version von GitHub."
 
 [js.auth.offline]
 invalidNameTitle = "Ungültiger Spielername"
