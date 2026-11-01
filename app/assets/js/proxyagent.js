@@ -23,6 +23,9 @@ const REQUEST_TIMEOUT = {
     socket: 30000
 }
 
+// How long the proxy may take to open a tunnel.
+const PROXY_CONNECT_MS = 15000
+
 exports.REQUEST_TIMEOUT = REQUEST_TIMEOUT
 
 /**
@@ -49,7 +52,27 @@ function toUrl(proxy){
  */
 exports.createAgent = function(proxy, options){
     const url = toUrl(proxy)
-    return proxy.type === 'socks5' ? new SocksProxyAgent(url, options) : new HttpsProxyAgent(url, options)
+    const agent = proxy.type === 'socks5' ? new SocksProxyAgent(url, options) : new HttpsProxyAgent(url, options)
+    // got's timeouts start once a request has its socket, and the agent hands
+    // it over only when the proxy has opened the tunnel. A proxy that never
+    // answers would hold the request forever: fail it instead.
+    const connect = agent.connect.bind(agent)
+    agent.connect = (req, opts) => new Promise((resolve, reject) => {
+        let late = false
+        const timer = setTimeout(() => {
+            late = true
+            reject(Object.assign(new Error(`The proxy didn't open a connection in ${PROXY_CONNECT_MS}ms`), { code: 'ETIMEDOUT' }))
+        }, PROXY_CONNECT_MS)
+        connect(req, opts).then(socket => {
+            clearTimeout(timer)
+            if(late) socket.destroy()
+            else resolve(socket)
+        }, err => {
+            clearTimeout(timer)
+            reject(err)
+        })
+    })
+    return agent
 }
 
 /**
@@ -71,17 +94,49 @@ exports.applyGlobalAgent = function(proxy){
 }
 
 /**
- * Give got's streaming downloads a timeout. helios-core streams every file
- * with no timeout, so a connection that stalls (e.g. a throttled host)
- * would otherwise hang the launch forever.
+ * The proxy Chromium picked, from session.resolveProxy(): "PROXY host:port",
+ * "SOCKS5 host:port" or "DIRECT", maybe followed by fallbacks after ";".
+ *
+ * @param {string} rules Chromium's answer.
+ * @returns {Object | null} A proxy configuration, or null for a direct
+ * connection or a proxy Node can't use (HTTPS, SOCKS4).
+ */
+exports.parseChromiumProxy = function(rules){
+    const [kind, address] = String(rules || '').split(';')[0].trim().split(/\s+/)
+    const type = kind === 'PROXY' ? 'http' : kind === 'SOCKS5' ? 'socks5' : null
+    const match = /^\[?([^\]]+?)\]?:(\d+)$/.exec(address || '')
+    if(type == null || match == null){
+        return null
+    }
+    return { enabled: true, type, host: match[1], port: match[2], username: '', password: '' }
+}
+
+/**
+ * Give every got request a timeout. helios-core makes its requests (sign-in,
+ * Mojang, Java, streamed downloads) with none, so a connection that stalls
+ * (a throttled host, a network that drops packets, a proxy that hangs) would
+ * otherwise hang sign-in or the launch for minutes. A timeout the caller
+ * sets wins.
+ *
+ * Instances made with got.extend() take it from then on: run this before
+ * helios-core's sign-in modules load (proxymanager.js does).
  */
 exports.installRequestTimeouts = function(){
-    if(got.stream.__timeouts){
+    if(got.__timeouts){
         return
     }
-    const stream = got.stream
-    got.stream = function(url, options = {}){
-        return stream.call(got, url, Object.assign({ timeout: REQUEST_TIMEOUT }, options))
+    const withTimeout = options => options != null && options.timeout != null ? options : Object.assign({ timeout: REQUEST_TIMEOUT }, options)
+    for(const method of ['stream', 'get', 'post', 'put', 'patch', 'head', 'delete']){
+        const original = got[method]
+        got[method] = function(url, options){
+            // got(options) with the url inside them.
+            if(options == null && url != null && typeof url === 'object' && !(url instanceof URL)){
+                return original.call(got, withTimeout(url))
+            }
+            return original.call(got, url, withTimeout(options))
+        }
     }
-    got.stream.__timeouts = true
+    const extend = got.extend
+    got.extend = (...instancesOrOptions) => extend.call(got, { timeout: REQUEST_TIMEOUT }, ...instancesOrOptions)
+    got.__timeouts = true
 }
