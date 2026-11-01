@@ -103,6 +103,8 @@ appearanceInterval60 = "1 min"
 appearanceInterval300 = "5 min"
 appearanceMotionTitle = "Motion"
 appearanceMotionDesc = "Slow drift on each image"
+appearanceSplashTitle = "Startup animation"
+appearanceSplashDesc = "Play the intro while the launcher opens; off opens it right away"
 appearancePacksTitle = "Modpacks"
 appearanceShowAll = "Show all"
 appearanceEdit = "Edit"
@@ -554,6 +556,8 @@ downloadButton = 'Download from GitHub<span style="font-size: 10px;color: gray;t
 latestVersionTitle = "You’re on the latest version"
 checkForUpdatesButton = "Check for updates"
 checkingForUpdatesButton = "Checking for updates…"
+managedExternallyTitle = "Updates come through your package manager"
+managedExternallyNewTitle = "Version {version} is out: update it through your package manager"
 
 [js.settings.msftLogin]
 errorTitle = "Microsoft sign-in failed"
@@ -591,6 +595,9 @@ failedDesc = "Check your connection and try again."
 failedOk = "OK"
 installFailedTitle = "Couldn't install the update"
 installFailedDesc = "The package manager refused it. Try again later, or install the new version from GitHub."
+externalTitle = "Meridian {version} is out"
+externalDesc = "Update it through your package manager."
+externalNotes = "What’s new"
 
 [js.auth.offline]
 invalidNameTitle = "Invalid player name"

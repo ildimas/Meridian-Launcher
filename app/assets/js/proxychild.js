@@ -21,7 +21,7 @@ fs.fsyncSync = function(fd){
     }
 }
 
-ProxyAgent.installRequestTimeouts()
+ProxyAgent.installRequestDefaults()
 
 const raw = process.env.CUSTOM_LAUNCHER_PROXY
 if(raw){

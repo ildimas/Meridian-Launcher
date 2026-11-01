@@ -16,9 +16,9 @@
 <p align="center"><b>Лаўнчар для Minecraft з модамі.</b> Абярыце сервер і націсніце «Гуляць»: Java, загрузчык модаў, моды і налады ўсталююцца і будуць абнаўляцца самі.</p>
 
 <p align="center">
-  <a href="https://github.com/ildimas/Helios-Custom-Worlds/releases/latest"><img src="https://img.shields.io/github/v/release/ildimas/Helios-Custom-Worlds?style=for-the-badge&color=004477&label=release" alt="release"></a>
-  <a href="https://github.com/ildimas/Helios-Custom-Worlds/actions/workflows/build.yml"><img src="https://img.shields.io/github/actions/workflow/status/ildimas/Helios-Custom-Worlds/build.yml?branch=master&style=for-the-badge" alt="build"></a>
-  <a href="https://github.com/ildimas/Helios-Custom-Worlds/releases"><img src="https://img.shields.io/github/downloads/ildimas/Helios-Custom-Worlds/total?style=for-the-badge&color=0a508a" alt="downloads"></a>
+  <a href="https://github.com/ildimas/Meridian-Launcher/releases/latest"><img src="https://img.shields.io/github/v/release/ildimas/Meridian-Launcher?style=for-the-badge&color=004477&label=release" alt="release"></a>
+  <a href="https://github.com/ildimas/Meridian-Launcher/actions/workflows/build.yml"><img src="https://img.shields.io/github/actions/workflow/status/ildimas/Meridian-Launcher/build.yml?branch=master&style=for-the-badge" alt="build"></a>
+  <a href="https://github.com/ildimas/Meridian-Launcher/releases"><img src="https://img.shields.io/github/downloads/ildimas/Meridian-Launcher/total?style=for-the-badge&color=0a508a" alt="downloads"></a>
 </p>
 
 <p align="center"><img src="../../docs/images/demo.gif" width="800" alt="Meridian: запуск і пераключэнне сервераў"></p>
@@ -59,7 +59,7 @@ Meridian — форк [Helios Launcher](https://github.com/dscalzi/HeliosLaunche
 
 ## Спампаваць
 
-Усталёўшчык для сваёй сістэмы бярыце ў [Releases](https://github.com/ildimas/Helios-Custom-Worlds/releases/latest).
+Усталёўшчык для сваёй сістэмы бярыце ў [Releases](https://github.com/ildimas/Meridian-Launcher/releases/latest).
 
 | Платформа | Файл |
 | --- | --- |
@@ -84,8 +84,8 @@ Meridian — форк [Helios Launcher](https://github.com/dscalzi/HeliosLaunche
 Патрэбны [Node.js](https://nodejs.org/) 22.
 
 ```console
-git clone https://github.com/ildimas/Helios-Custom-Worlds.git
-cd Helios-Custom-Worlds
+git clone https://github.com/ildimas/Meridian-Launcher.git
+cd Meridian-Launcher
 npm install
 npm start
 ```

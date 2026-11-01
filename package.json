@@ -4,10 +4,10 @@
   "productName": "Meridian",
   "description": "Modded Minecraft Launcher",
   "author": "Dmitry Ilyushenia (https://github.com/ildimas)",
-  "license": "UNLICENSED",
-  "homepage": "https://github.com/ildimas/Helios-Custom-Worlds",
+  "license": "MIT",
+  "homepage": "https://github.com/ildimas/Meridian-Launcher",
   "bugs": {
-    "url": "https://github.com/ildimas/Helios-Custom-Worlds/issues"
+    "url": "https://github.com/ildimas/Meridian-Launcher/issues"
   },
   "private": true,
   "main": "index.js",
@@ -46,13 +46,20 @@
     "toml": "^5.0.1"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@stylistic/eslint-plugin": "^5.10.0",
     "electron": "^45.0.0",
     "electron-builder": "^26.15.3",
-    "eslint": "^10.13.0"
+    "eslint": "^10.13.0",
+    "globals": "^17.14.0"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ildimas/Helios-Custom-Worlds.git"
+    "url": "git+https://github.com/ildimas/Meridian-Launcher.git"
+  },
+  "overrides": {
+    "filelist": {
+      "minimatch": "^11.0.3"
+    }
   }
 }

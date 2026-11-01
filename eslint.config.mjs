@@ -33,7 +33,9 @@ export default defineConfig(
           requireLast: false
         }
       }],
-      '@stylistic/linebreak-style': ['error', 'windows'],
+      // Line endings are git's business (core.autocrlf): the files are LF in
+      // the repository and CRLF in a Windows checkout.
+      '@stylistic/linebreak-style': 'off',
       'no-var': ['error'],
       'no-control-regex': 'off',
       'no-unused-vars': ['error', {
@@ -46,10 +48,20 @@ export default defineConfig(
     }
   },
   {
+    // The preload script runs in the page, with Node and the DOM.
+    files: ['app/assets/js/preloader.js'],
+    languageOptions: {
+      globals: { ...globals.node, ...globals.browser }
+    }
+  },
+  {
+    // Page scripts share one global scope: they use and assign each other's
+    // top-level bindings.
     files: ['app/assets/js/scripts/*.js'],
     rules: {
       'no-unused-vars': 'off',
-      'no-undef': 'off'
+      'no-undef': 'off',
+      'no-unassigned-vars': 'off'
     }
   }
 );
