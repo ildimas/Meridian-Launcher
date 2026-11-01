@@ -40,11 +40,15 @@ exports.validate = function(proxy){
 
 const createAgent = ProxyAgent.createAgent
 
+// The system's proxy, from the last apply(): used when the launcher has none.
+let systemProxy = null
+
 /**
- * The proxy to use, or null for a direct connection.
+ * The proxy to use, or null for a direct connection: the launcher's own, or
+ * else the system's.
  */
 function activeProxy(proxy){
-    return proxy.enabled && exports.validate(proxy) == null ? proxy : null
+    return proxy.enabled && exports.validate(proxy) == null ? proxy : systemProxy
 }
 
 /**
@@ -54,20 +58,26 @@ function activeProxy(proxy){
  * agents; Chromium requests (Microsoft login window, auto updater) use the
  * session proxy configured by the main process.
  *
+ * Without a proxy in the launcher, both follow the system's: Chromium reads
+ * it (desktop settings, or http(s)_proxy and all_proxy), and Node requests
+ * go through the one it picks. Node ignores those settings by itself.
+ *
  * @param {Object} proxy The proxy configuration.
  */
 exports.apply = async function(proxy){
+    let chromium = null
+    try {
+        chromium = await ipcRenderer.invoke(PROXY_OPCODE.SET, proxy)
+    } catch(err) {
+        logger.error('Failed to apply proxy to the browser session.', err)
+    }
+    systemProxy = ProxyAgent.parseChromiumProxy(chromium)
     const active = activeProxy(proxy)
     ProxyAgent.applyGlobalAgent(active)
     if(active != null){
-        logger.info(`Routing traffic through ${proxy.type} proxy ${proxy.host}:${proxy.port}.`)
+        logger.info(`Routing traffic through ${active === systemProxy ? 'the system ' : ''}${active.type} proxy ${active.host}:${active.port}.`)
     } else {
         logger.info('Using direct connection.')
-    }
-    try {
-        await ipcRenderer.invoke(PROXY_OPCODE.SET, proxy)
-    } catch(err) {
-        logger.error('Failed to apply proxy to the browser session.', err)
     }
 }
 

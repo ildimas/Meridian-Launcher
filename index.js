@@ -195,6 +195,8 @@ ipcMain.handle(SHELL_OPCODE.TRASH_ITEM, async (event, ...args) => {
 // Proxy for Chromium traffic (Microsoft login window, auto updater).
 // Node traffic in the renderer is proxied separately, see proxymanager.js.
 let proxyCredentials = null
+// Answers with the system proxy Chromium uses when the launcher has none
+// (see ProxyManager.apply), as session.resolveProxy() puts it.
 ipcMain.handle(PROXY_OPCODE.SET, async (event, proxy) => {
     if(proxy?.enabled && proxy.host && proxy.port){
         await session.defaultSession.setProxy({
@@ -202,11 +204,13 @@ ipcMain.handle(PROXY_OPCODE.SET, async (event, proxy) => {
             proxyBypassRules: '<local>'
         })
         proxyCredentials = proxy.username ? { username: proxy.username, password: proxy.password || '' } : null
-    } else {
-        await session.defaultSession.setProxy({ mode: 'direct' })
-        proxyCredentials = null
+        await session.defaultSession.closeAllConnections()
+        return null
     }
+    await session.defaultSession.setProxy({ mode: 'system' })
+    proxyCredentials = null
     await session.defaultSession.closeAllConnections()
+    return await session.defaultSession.resolveProxy('https://api.minecraftservices.com/')
 })
 
 // Answer proxy authentication challenges (HTTP proxies only, Chromium has no SOCKS5 auth).

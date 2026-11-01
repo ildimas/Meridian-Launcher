@@ -18,8 +18,9 @@ logger.info('Loading..')
 // Load ConfigManager
 ConfigManager.load()
 
-// Route traffic through the configured proxy before any network request.
-ProxyManager.apply(ConfigManager.getProxy())
+// Route traffic through the configured proxy, or the system's, before any
+// network request: the requests below wait for it.
+const proxyReady = ProxyManager.apply(ConfigManager.getProxy())
 
 // Yuck!
 // TODO Fix this
@@ -71,6 +72,7 @@ function onDistroLoad(data, then = () => {}){
  */
 async function refreshDistribution(){
     const before = JSON.stringify(DistroAPI.rawDistribution)
+    await proxyReady
     const data = await DistroAPI.refreshDistributionOrFallback()
     if(JSON.stringify(DistroAPI.rawDistribution) === before){
         logger.info('No newer distribution index.')
@@ -95,8 +97,9 @@ try {
 // network, as there is nothing saved yet.
 let fromDisk = true
 DistroAPI.getDistributionLocalLoadOnly()
-    .catch(() => {
+    .catch(async () => {
         fromDisk = false
+        await proxyReady
         return DistroAPI.getDistribution()
     })
     .then(heliosDistro => {
