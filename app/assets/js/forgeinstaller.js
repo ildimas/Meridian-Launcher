@@ -614,7 +614,11 @@ exports.install = async function(opts, tools){
         // Processor outputs the game reads at launch, like the patched client.
         const onClasspath = new Set(libs.map(l => l.rel))
         const extra = []
-        for(const o of outputs){
+        // NeoForge's universal jar can be profile-only, but FML still reads it
+        // at launch from the library directory (outside the Java classpath).
+        const launchLibraries = tools_.filter(l => /^net\.neoforged:(neoforge|forge):[^:]+:universal$/.test(l.name))
+        const candidates = new Map([...outputs, ...launchLibraries].map(l => [l.rel, l]))
+        for(const o of candidates.values()){
             if(!onClasspath.has(o.rel) && await fs.pathExists(o.file)){
                 extra.push(o)
             }
