@@ -185,7 +185,7 @@ function getCurrentView(){
 }
 
 // The launcher fades in over the splash this fast once it's ready.
-const STARTUP_FADE_MS = 300
+const STARTUP_FADE_MS = 200
 
 async function showMainUI(data){
 
@@ -209,8 +209,15 @@ async function showMainUI(data){
         return
     }
 
-    // Straight to the launcher once it's ready: the splash only covers the
-    // loading, it doesn't hold the launcher back.
+    // Disable tabbing to the news container.
+    initNews().then(() => {
+        $('#newsContainer *').attr('tabindex', '-1')
+    })
+
+    // The launcher as soon as it's ready, once the splash's entrance has
+    // played (MIN_SHOW_MS in splash.js).
+    await new Promise(resolve => setTimeout(resolve, MeridianSplash.remaining()))
+
     document.getElementById('frameBar').style.backgroundColor = 'rgba(0, 0, 0, 0.5)'
     $('#main').show()
 
@@ -240,11 +247,6 @@ async function showMainUI(data){
 
     $('#loadingContainer').fadeOut(STARTUP_FADE_MS, () => {
         MeridianSplash.stop()
-    })
-
-    // Disable tabbing to the news container.
-    initNews().then(() => {
-        $('#newsContainer *').attr('tabindex', '-1')
     })
 }
 
