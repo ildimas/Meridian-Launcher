@@ -392,7 +392,7 @@ function local(file, kind, extract, missing = () => Promise.resolve(null)){
         }
         const run = modQueue.then(async () => {
             await new Promise(r => setTimeout(r, 0))
-            let buf = null
+            let buf
             try {
                 buf = await extract(file, stat)
             } catch {

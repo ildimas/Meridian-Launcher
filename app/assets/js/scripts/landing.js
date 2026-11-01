@@ -1621,7 +1621,7 @@ async function dlAsync(login = true) {
 
     loggerLaunchSuite.info('Validating files.')
     setLaunchDetails(Lang.queryJS('landing.dlAsync.validatingFileIntegrity'))
-    let invalidFileCount = 0
+    let invalidFileCount
     try {
         invalidFileCount = await fullRepairModule.verifyFiles(percent => {
             setLaunchPercentage(percent)

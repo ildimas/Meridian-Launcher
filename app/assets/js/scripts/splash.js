@@ -721,7 +721,7 @@
     window.MeridianSplash = { play, stop, remaining, scenes: Object.keys(SCENES) }
 
     // Reloaded to change the language: go straight back to the launcher.
-    let reopening = false
+    let reopening
     try {
         reopening = sessionStorage.getItem('meridian.reopen') != null
     } catch {

@@ -55,7 +55,7 @@ function onDistroLoad(data){
 
 // The page was reloaded to change the language: the distribution was just
 // fetched, so don't wait on the network again.
-let reopening = false
+let reopening
 try {
     reopening = sessionStorage.getItem('meridian.reopen') != null
 } catch {
