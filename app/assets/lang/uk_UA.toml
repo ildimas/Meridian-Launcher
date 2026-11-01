@@ -549,6 +549,7 @@ downloadButton = "Завантажити з GitHub<span style=\"font-size: 10px;
 latestVersionTitle = "У вас остання версія"
 checkForUpdatesButton = "Перевірити оновлення"
 checkingForUpdatesButton = "Перевіряємо оновлення…"
+managedExternallyTitle = "Оновлення надходять через пакетний менеджер"
 
 [js.settings.msftLogin]
 errorTitle = "Не вдалося увійти через Microsoft"

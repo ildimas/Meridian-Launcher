@@ -186,7 +186,7 @@ function getCurrentView(){
 
 async function showMainUI(data){
 
-    if(!isDev){
+    if(!isDev && !UpdatePolicy.isManagedExternally()){
         loggerAutoUpdater.info('Initializing..')
         ipcRenderer.send('autoUpdateAction', 'initAutoUpdater', ConfigManager.getAllowPrerelease())
     }

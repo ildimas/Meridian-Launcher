@@ -551,6 +551,7 @@ downloadButton = 'Descargar de GitHub<span style="font-size: 10px;color: gray;te
 latestVersionTitle = "Tienes la última versión"
 checkForUpdatesButton = "Buscar actualizaciones"
 checkingForUpdatesButton = "Buscando actualizaciones.."
+managedExternallyTitle = "Las actualizaciones llegan a través de tu gestor de paquetes"
 
 [js.settings.msftLogin]
 errorTitle = "Falló el inicio de sesión de Microsoft"
