@@ -467,7 +467,7 @@ class ProcessBuilder {
         const argDiscovery = /\${*(.*)}/
 
         // JVM Arguments First
-        let args = this.vanillaManifest.arguments.jvm
+        let args = [...this.vanillaManifest.arguments.jvm]
 
         // Debug securejarhandler
         // args.push('-Dbsl.debug=true')
@@ -752,9 +752,11 @@ class ProcessBuilder {
     classpathArg(mods, tempNativePath){
         let cpArgs = []
 
-        if((!mcVersionAtLeast('1.17', this.server.rawServer.minecraftVersion) || this.usingFabricLoader || this.usingVanilla) && !this.modManifest.jarMod) {
+        const usingNeoForgeClient = this.modManifest.mainClass === 'net.neoforged.fml.startup.Client'
+        if((!mcVersionAtLeast('1.17', this.server.rawServer.minecraftVersion) || this.usingFabricLoader || this.usingVanilla || usingNeoForgeClient) && !this.modManifest.jarMod) {
             // Add the version.jar to the classpath.
-            // Must not be added to the classpath for Forge 1.17+, nor for
+            // NeoForge's direct Client entrypoint needs the vanilla jar too.
+            // Must not be added to the classpath for Forge/NeoForge with BootstrapLauncher, nor for
             // Forge before 1.5.2, whose jar contains Minecraft.
             const version = this.vanillaManifest.id
             cpArgs.push(path.join(this.commonDir, 'versions', version, version + '.jar'))

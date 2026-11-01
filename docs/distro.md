@@ -443,6 +443,27 @@ All of forge's required libraries are declared in the `version.json` file found 
 
 There were plans to add a `Forge` type, in which the required libraries would be resolved by the launcher and downloaded from forge's servers. The forge servers are down at times, however, so this plan was stopped half-implemented.
 
+#### NeoForge (Meridian Studio)
+
+Studio publishes NeoForge using `ForgeHosted`, with a `VersionManifest` submodule
+and hosted runtime libraries. The main artifact can be FancyModLoader rather
+than NeoForge itself; the launcher uses the `neoforge-<version>` manifest ID for
+the displayed NeoForge version. Libraries marked `classpath: false` are
+downloaded without being added to the runtime classpath.
+
+Include the NeoForge `universal` JAR even when it appears only in the
+installer's `install_profile.json` libraries. Publish it as a `Library` with
+`classpath: false` at its Maven path: FML locates it there to register the
+`neoforge` mod. Omitting it causes every mod requiring NeoForge to report
+that dependency as missing.
+
+NeoForge mods from Studio are `File` modules targeting `mods/*.jar` (or
+`mods/*.jar.disabled`), so they are discovered from the instance directory.
+They do not require Forge's Maven mod-list arguments. Studio's `javaOptions`
+provide the required Java version. The launcher supports both BootstrapLauncher
+and the direct `net.neoforged.fml.startup.Client` entrypoint; the latter also
+receives the vanilla Minecraft client JAR on its classpath.
+
 ---
 
 ### Fabric

@@ -36,6 +36,7 @@ const PackIcons               = require('./assets/js/packicons')
 const LocalPacks              = require('./assets/js/localpacks')
 const PackFolders             = require('./assets/js/packfolders')
 const PackCleanup             = require('./assets/js/packcleanup')
+const ServerLoader            = require('./assets/js/serverloader')
 
 // Launch Elements
 const launch_content          = document.getElementById('launch_content')
@@ -547,38 +548,7 @@ function updateSelectedServer(serv){
  * @returns {string} The label, or Vanilla when the pack has no loader.
  */
 function getServerLoaderLabel(serv){
-    // Keyed by maven group: Forge ships under several artifact names.
-    const names = {
-        'net.minecraftforge': 'Forge',
-        'net.neoforged': 'NeoForge',
-        'net.fabricmc': 'Fabric',
-        'org.quiltmc': 'Quilt'
-    }
-    // Local packs record their loader; their first module can be a library of
-    // it (NeoForge's is fancymodloader) with an unrelated version.
-    const local = serv.rawServer.local
-    if(local != null && local.loader){
-        if(local.loader === 'vanilla'){
-            return Lang.queryJS('landing.serverHero.vanilla')
-        }
-        const name = { forge: 'Forge', neoforge: 'NeoForge', fabric: 'Fabric', quilt: 'Quilt' }[local.loader] || local.loader
-        return local.loaderVersion ? `${name} ${local.loaderVersion}` : name
-    }
-    for(const mdl of serv.modules){
-        const type = mdl.rawModule.type
-        if(type !== Type.ForgeHosted && type !== Type.Fabric){
-            continue
-        }
-        try {
-            const { group, version } = mdl.getMavenComponents()
-            const name = names[group] || (type === Type.Fabric ? 'Fabric' : 'Forge')
-            // Forge versions are "<mc>-<forge>"; only the loader part is useful.
-            return `${name} ${String(version).split('-').pop()}`
-        } catch(err) {
-            return type === Type.Fabric ? 'Fabric' : 'Forge'
-        }
-    }
-    return Lang.queryJS('landing.serverHero.vanilla')
+    return ServerLoader.getLabel(serv, Lang.queryJS('landing.serverHero.vanilla'))
 }
 
 /**
