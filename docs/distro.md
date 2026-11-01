@@ -457,6 +457,19 @@ installer's `install_profile.json` libraries. Publish it as a `Library` with
 `neoforge` mod. Omitting it causes every mod requiring NeoForge to report
 that dependency as missing.
 
+Meridian also completes a missing NeoForge universal dependency when loading
+remote, cached, or locally imported distributions. The version comes from the
+loader's Maven coordinates or its `neoforge-<version>` manifest, rather than
+from a fixed launcher version. For this fallback, Maven checksums and sizes
+are cached locally and checked before launch. This does not replace including
+all runtime files in Studio's published distribution: libraries declared only
+in the installer profile must not be discarded just because they are absent
+from `version.json`. Local Forge and NeoForge imports retain those universal
+jars separately from classpath libraries.
+
+After downloading, Meridian verifies distribution files again and stops
+before starting Java if files are missing or their declared hashes differ.
+
 NeoForge mods from Studio are `File` modules targeting `mods/*.jar` (or
 `mods/*.jar.disabled`), so they are discovered from the instance directory.
 They do not require Forge's Maven mod-list arguments. Studio's `javaOptions`
