@@ -426,6 +426,11 @@ select:focus-visible,
     background: #a3202e !important;
 }
 
+/* Tiling compositors (Hyprland) move, size and close windows themselves. */
+:root[tilingwm] #frameButtonDockWin {
+    display: none;
+}
+
 /* Darwin Frame Button Styles. */
 .frameButtonDarwin {
     height: 12px;

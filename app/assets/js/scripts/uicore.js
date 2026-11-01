@@ -9,6 +9,7 @@ const $                              = require('jquery')
 const {ipcRenderer, shell, webFrame} = require('electron')
 const remote                         = require('@electron/remote')
 const isDev                          = require('./assets/js/isdev')
+const isTilingWM                     = require('./assets/js/tilingwm')
 const UpdatePolicy                   = require('./assets/js/updatepolicy')
 const { LoggerUtil }                 = require('helios-core')
 const Lang                           = require('./assets/js/langloader')
@@ -35,6 +36,9 @@ remote.getCurrentWebContents().on('devtools-opened', () => {
 // Disable zoom, needed for darwin.
 webFrame.setZoomLevel(0)
 webFrame.setVisualZoomLevelLimits(1, 1)
+
+// No window buttons where the compositor handles windows (launcher.css).
+document.documentElement.toggleAttribute('tilingwm', isTilingWM)
 
 // Initialize auto updates in production environments, unless a package
 // manager brings new versions.
