@@ -52,7 +52,7 @@ function fileFor(w){
 }
 
 async function fetchOne(w){
-    const res = await got(w.url, { responseType: 'buffer', timeout: REQUEST_TIMEOUT, retry: { limit: 2 } })
+    const res = await got.get(w.url, { responseType: 'buffer', timeout: REQUEST_TIMEOUT, retry: { limit: 2 } })
     const md5 = crypto.createHash('md5').update(res.body).digest('hex')
     if(md5 !== w.MD5.toLowerCase()){
         throw new Error(`MD5 mismatch: expected ${w.MD5}, got ${md5}`)

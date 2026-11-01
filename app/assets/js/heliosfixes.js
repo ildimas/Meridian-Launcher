@@ -207,9 +207,9 @@ async function latestZulu8(JavaGuard, dataDir){
     })
     let pkg = ZULU8_ARM64
     try {
-        const [found] = await got(`${ZULU_API}?${query}`, { timeout: { request: 15000 } }).json()
+        const [found] = await got.get(`${ZULU_API}?${query}`, { timeout: { request: 15000 } }).json()
         if(found != null){
-            pkg = await got(ZULU_API + found.package_uuid, { timeout: { request: 15000 } }).json()
+            pkg = await got.get(ZULU_API + found.package_uuid, { timeout: { request: 15000 } }).json()
         }
     } catch(err) {
         LoggerUtil.getLogger('HeliosFixes').warn(`Azul API unavailable, using ${pkg.name}.`, err)

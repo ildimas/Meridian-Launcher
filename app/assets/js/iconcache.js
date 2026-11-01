@@ -68,7 +68,7 @@ async function writeIcon(dir, key, buf){
 }
 
 async function download(url){
-    const res = await got(url, { responseType: 'buffer', timeout: REQUEST_TIMEOUT, retry: 1 })
+    const res = await got.get(url, { responseType: 'buffer', timeout: REQUEST_TIMEOUT, retry: 1 })
     return res.body
 }
 
@@ -204,7 +204,7 @@ const ZIP_TAIL = 64 * 1024 + 22
 const MAX_ENTRY = 2 * 1024 * 1024
 
 async function fetchRange(url, start, end){
-    const res = await got(url, {
+    const res = await got.get(url, {
         headers: { Range: `bytes=${start}-${end}` },
         responseType: 'buffer',
         timeout: REQUEST_TIMEOUT,

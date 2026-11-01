@@ -138,9 +138,10 @@ exports.installRequestDefaults = function(){
         if(options.timeout == null){
             options.timeout = REQUEST_TIMEOUT
         }
-        if(options.retry == null || typeof options.retry === 'object'){
-            options.retry = Object.assign({ errorCodes: RETRY_ERROR_CODES }, options.retry)
+        if(typeof options.retry === 'number'){
+            options.retry = { limit: options.retry }
         }
+        options.retry = Object.assign({ errorCodes: RETRY_ERROR_CODES }, options.retry)
         return options
     }
     for(const method of ['stream', 'get', 'post', 'put', 'patch', 'head', 'delete']){
