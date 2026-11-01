@@ -16,7 +16,8 @@ test('direct connections and proxies Node cannot use give null', () => {
 })
 
 test('every got request gets a timeout, unless it sets its own', () => {
-    ProxyAgent.installRequestTimeouts()
+    ProxyAgent.installRequestDefaults()
     assert.deepEqual(got.extend({ retry: 0 }).defaults.options.timeout, ProxyAgent.REQUEST_TIMEOUT)
+    assert.deepEqual(got.extend({ retry: { limit: 1 } }).defaults.options.retry.errorCodes, [])
     assert.deepEqual(got.extend({ timeout: { request: 1234 } }).defaults.options.timeout.request, 1234)
 })

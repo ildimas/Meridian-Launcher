@@ -13,7 +13,7 @@ const logger = LoggerUtil.getLogger('ProxyManager')
 const PROXY_TYPES = ['http', 'socks5']
 
 // Downloads in this process (Java, distribution) fail instead of hanging.
-ProxyAgent.installRequestTimeouts()
+ProxyAgent.installRequestDefaults()
 
 /**
  * Validate a proxy configuration.

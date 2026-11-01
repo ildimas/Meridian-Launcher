@@ -111,32 +111,49 @@ exports.parseChromiumProxy = function(rules){
     return { enabled: true, type, host: match[1], port: match[2], username: '', password: '' }
 }
 
+// got retries a request that failed without an answer: on Node 20+ (Happy
+// Eyeballs) it then rejects with a bare Error and throws an uncaught one from
+// the retry, which took the download process down. Only HTTP answers (5xx,
+// 429) are retried; helios-core retries downloads itself.
+const RETRY_ERROR_CODES = []
+
 /**
- * Give every got request a timeout. helios-core makes its requests (sign-in,
- * Mojang, Java, streamed downloads) with none, so a connection that stalls
- * (a throttled host, a network that drops packets, a proxy that hangs) would
- * otherwise hang sign-in or the launch for minutes. A timeout the caller
- * sets wins.
+ * Defaults for every got request, unless the caller sets its own:
  *
- * Instances made with got.extend() take it from then on: run this before
+ * - a timeout. helios-core makes its requests (sign-in, Mojang, Java,
+ *   streamed downloads) with none, so a connection that stalls (a throttled
+ *   host, a network that drops packets, a proxy that hangs) would hang
+ *   sign-in or the launch for minutes;
+ * - no retry of requests that got no answer (RETRY_ERROR_CODES).
+ *
+ * Instances made with got.extend() take them from then on: run this before
  * helios-core's sign-in modules load (proxymanager.js does).
  */
-exports.installRequestTimeouts = function(){
-    if(got.__timeouts){
+exports.installRequestDefaults = function(){
+    if(got.__defaults){
         return
     }
-    const withTimeout = options => options != null && options.timeout != null ? options : Object.assign({ timeout: REQUEST_TIMEOUT }, options)
+    const withDefaults = options => {
+        options = Object.assign({}, options)
+        if(options.timeout == null){
+            options.timeout = REQUEST_TIMEOUT
+        }
+        if(options.retry == null || typeof options.retry === 'object'){
+            options.retry = Object.assign({ errorCodes: RETRY_ERROR_CODES }, options.retry)
+        }
+        return options
+    }
     for(const method of ['stream', 'get', 'post', 'put', 'patch', 'head', 'delete']){
         const original = got[method]
         got[method] = function(url, options){
             // got(options) with the url inside them.
             if(options == null && url != null && typeof url === 'object' && !(url instanceof URL)){
-                return original.call(got, withTimeout(url))
+                return original.call(got, withDefaults(url))
             }
-            return original.call(got, url, withTimeout(options))
+            return original.call(got, url, withDefaults(options))
         }
     }
     const extend = got.extend
-    got.extend = (...instancesOrOptions) => extend.call(got, { timeout: REQUEST_TIMEOUT }, ...instancesOrOptions)
-    got.__timeouts = true
+    got.extend = (...instancesOrOptions) => extend.call(got, { timeout: REQUEST_TIMEOUT, retry: { errorCodes: RETRY_ERROR_CODES } }, ...instancesOrOptions)
+    got.__defaults = true
 }
