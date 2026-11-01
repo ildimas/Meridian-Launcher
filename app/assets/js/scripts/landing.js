@@ -1251,7 +1251,8 @@ document.getElementById('landingContainer').addEventListener('wheel', e => {
         w.acc -= steps * SERVER_DIAL_WHEEL.stepPx
     }
     if(steps !== 0){
-        stepServer(steps)
+        // Inverted: the wheel down brings the previous pack to the top.
+        stepServer(-steps)
     }
 }, { passive: true })
 serverDial.addEventListener('keydown', e => {
