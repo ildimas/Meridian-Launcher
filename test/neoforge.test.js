@@ -260,6 +260,63 @@ test('NeoForge launch expands manifest JVM paths and repeated launches do not ac
     assert.ok(!first.includes('--fml.modLists'))
 })
 
+test('Nebula NeoForge conditional arguments resolve on Windows, macOS and Linux without mutating manifests', t => {
+    const platform = Object.getOwnPropertyDescriptor(process, 'platform')
+    t.after(() => Object.defineProperty(process, 'platform', platform))
+    for(const [host, mojang, separator] of [['win32', 'windows', ';'], ['darwin', 'osx', ':'], ['linux', 'linux', ':']]){
+        Object.defineProperty(process, 'platform', { ...platform, value: host })
+        const pb = builder()
+        pb.modManifest.arguments.jvm.push(
+            { rules: [{ action: 'allow', os: { name: mojang } }], value: ['-p', '${library_directory}/a.jar${classpath_separator}${library_directory}/b.jar'] },
+            { rules: [{ action: 'allow', os: { name: 'other' } }], value: '-DwrongOS=true' },
+            { rules: [{ action: 'allow' }, { action: 'disallow', os: { name: mojang } }], value: '-Dexcluded=true' },
+            { rules: [{ action: 'disallow', os: { name: mojang } }, { action: 'allow' }], value: '-DlastRule=true' }
+        )
+        pb.modManifest.arguments.game.push(
+            { rules: [{ action: 'allow', os: { name: mojang } }], value: ['--loader-version', '${version_name}'] },
+            '--libraries', '${library_directory}'
+        )
+        pb.vanillaManifest.arguments.jvm.push('-Dpaths=${natives_directory}/one${classpath_separator}${natives_directory}/two')
+        pb.vanillaManifest.arguments.game.push('--version', '${version_name}')
+        pb.vanillaManifest.arguments.game.push({ rules: [{ action: 'allow', features: { has_custom_resolution: true } }], value: ['--width', '${resolution_width}'] })
+        const original = structuredClone({ vanilla: pb.vanillaManifest, loader: pb.modManifest })
+        const fullscreen = t.mock.method(config, 'getFullscreen', () => true)
+        const nativeDir = path.join(os.tmpdir(), 'neo natives')
+        const args = pb.constructJVMArguments([], nativeDir)
+        assert.ok(args.includes(`${pb.libPath}/a.jar${separator}${pb.libPath}/b.jar`))
+        assert.ok(args.includes(`-Dpaths=${nativeDir}/one${separator}${nativeDir}/two`))
+        assert.ok(args.includes('-DlastRule=true'))
+        assert.ok(!args.includes('-DwrongOS=true'))
+        assert.ok(!args.includes('-Dexcluded=true'))
+        assert.equal(args[args.indexOf('--loader-version') + 1], pb.modManifest.id)
+        assert.equal(args[args.indexOf('--version') + 1], pb.server.rawServer.id)
+        assert.equal(args[args.indexOf('--libraries') + 1], pb.libPath)
+        assert.ok(args.includes('--fullscreen'))
+        assert.ok(args.every(arg => typeof arg === 'string' && !arg.includes('${')))
+        assert.ok(args[args.indexOf('-cp') + 1].includes(separator))
+        assert.deepEqual({ vanilla: pb.vanillaManifest, loader: pb.modManifest }, original)
+        assert.deepEqual(pb.constructJVMArguments([], nativeDir), args)
+        fullscreen.mock.restore()
+    }
+})
+
+test('NeoForge argument rules match OS version, architecture and disabled features', t => {
+    const release = os.release()
+    const pb = builder()
+    pb.modManifest.arguments.jvm.push(
+        { rules: [{ action: 'allow', os: { version: `^${release.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, arch: `^${process.arch}$` } }], value: '-DmatchingHost=true' },
+        { rules: [{ action: 'allow', os: { version: '^not-this-release$' } }], value: '-DwrongVersion=true' },
+        { rules: [{ action: 'allow', os: { arch: '^not-this-arch$' } }], value: '-DwrongArch=true' },
+        { rules: [{ action: 'allow', features: { is_demo_user: false } }], value: '-DfullGame=true' },
+        { rules: [{ action: 'allow', features: { is_demo_user: true } }], value: '-Ddemo=true' }
+    )
+    t.mock.method(config, 'getFullscreen', () => false)
+    const args = pb.constructJVMArguments([], os.tmpdir())
+    assert.ok(args.includes('-DmatchingHost=true'))
+    assert.ok(args.includes('-DfullGame=true'))
+    for(const excluded of ['-DwrongVersion=true', '-DwrongArch=true', '-Ddemo=true']) assert.ok(!args.includes(excluded))
+})
+
 test('Forge and NeoForge imports retain profile-only runtime jars and replace corrupt cached libraries', async t => {
     for(const [loader, mc, version, group] of [
         ['neoforge', '1.21.1', '21.1.250', 'net.neoforged'],

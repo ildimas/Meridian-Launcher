@@ -2,6 +2,8 @@
 
 You can use [Nebula](https://github.com/dscalzi/Nebula) to automate the generation of a distribution index.
 
+See [NeoForge packs from Nebula](neoforge.md) for runtime handling and Windows VM graphics troubleshooting.
+
 The most up to date and accurate descriptions of the distribution spec can be viewed in [helios-distribution-types](https://github.com/dscalzi/helios-distribution-types).
 
 The distribution index is written in JSON. The general format of the index is as posted below.
