@@ -84,3 +84,56 @@ function describeError(err, assets){
     }
     return lines
 }
+
+// helios-core downloads over a file in place, truncating it before the first
+// byte arrives: a download that failed (no network) left that pack file
+// empty. The old files are moved aside first, and put back when the download
+// doesn't complete.
+//
+// Without network, files that are all on disk but differ from the
+// distribution (a config the game rewrites on every run) can't be fetched
+// again; they stay as they are and the game starts on them. A missing file
+// still fails the launch.
+const fs = require('fs')
+const { LoggerUtil } = require('helios-core')
+const ASIDE = '.meridian-old'
+const download = FullRepairReceiver.prototype.download
+FullRepairReceiver.prototype.download = async function(message){
+    const kept = this.assets.filter(asset => moveAside(asset.path))
+    try {
+        await download.call(this, message)
+    } catch(err) {
+        for(const asset of kept){
+            fs.renameSync(asset.path + ASIDE, asset.path)
+        }
+        const offline = err?.name === 'RequestError' || err?.name === 'TimeoutError'
+        if(!offline || kept.length < this.assets.length){
+            throw err
+        }
+        const log = LoggerUtil.getLogger('DownloadChild')
+        log.warn(`Unable to download (${err.code || err.message}); every file is on disk, keeping them:`)
+        for(const asset of this.assets){
+            log.warn(`  ${asset.path}`)
+        }
+        process.send({ response: 'downloadComplete' })
+        return
+    }
+    for(const asset of kept){
+        fs.rmSync(asset.path + ASIDE, { force: true })
+    }
+}
+
+/**
+ * Move a file out of the way of its download.
+ *
+ * @param {string} file The file's path.
+ * @returns {boolean} Whether there was a file.
+ */
+function moveAside(file){
+    try {
+        fs.renameSync(file, file + ASIDE)
+        return true
+    } catch {
+        return false
+    }
+}
