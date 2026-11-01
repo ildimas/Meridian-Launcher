@@ -184,11 +184,16 @@ function getCurrentView(){
     return currentView
 }
 
+// The launcher fades in over the splash this fast once it's ready.
+const STARTUP_FADE_MS = 300
+
 async function showMainUI(data){
 
     if(!isDev && !UpdatePolicy.isManagedExternally()){
         loggerAutoUpdater.info('Initializing..')
         ipcRenderer.send('autoUpdateAction', 'initAutoUpdater', ConfigManager.getAllowPrerelease())
+    } else if(!isDev){
+        watchLauncherReleases()
     }
 
     await prepareSettings(true)
@@ -204,41 +209,39 @@ async function showMainUI(data){
         return
     }
 
-    setTimeout(() => {
-        document.getElementById('frameBar').style.backgroundColor = 'rgba(0, 0, 0, 0.5)'
-        $('#main').show()
+    // Straight to the launcher once it's ready: the splash only covers the
+    // loading, it doesn't hold the launcher back.
+    document.getElementById('frameBar').style.backgroundColor = 'rgba(0, 0, 0, 0.5)'
+    $('#main').show()
 
-        const isLoggedIn = Object.keys(ConfigManager.getAuthAccounts()).length > 0
+    const isLoggedIn = Object.keys(ConfigManager.getAuthAccounts()).length > 0
 
-        // If this is enabled in a development environment we'll get ratelimited.
-        // The relaunch frequency is usually far too high.
-        if(!isDev && isLoggedIn){
-            validateSelectedAccount()
-        }
+    // If this is enabled in a development environment we'll get ratelimited.
+    // The relaunch frequency is usually far too high.
+    if(!isDev && isLoggedIn){
+        validateSelectedAccount()
+    }
 
-        if(ConfigManager.isFirstLaunch()){
-            currentView = VIEWS.welcome
-            $(VIEWS.welcome).fadeIn(1000)
+    if(ConfigManager.isFirstLaunch()){
+        currentView = VIEWS.welcome
+        $(VIEWS.welcome).fadeIn(STARTUP_FADE_MS)
+    } else {
+        if(isLoggedIn){
+            currentView = VIEWS.landing
+            $(VIEWS.landing).fadeIn(STARTUP_FADE_MS)
         } else {
-            if(isLoggedIn){
-                currentView = VIEWS.landing
-                $(VIEWS.landing).fadeIn(1000)
-            } else {
-                loginOptionsCancelEnabled(false)
-                loginOptionsViewOnLoginSuccess = VIEWS.landing
-                loginOptionsViewOnLoginCancel = VIEWS.loginOptions
-                currentView = VIEWS.loginOptions
-                $(VIEWS.loginOptions).fadeIn(1000)
-            }
+            loginOptionsCancelEnabled(false)
+            loginOptionsViewOnLoginSuccess = VIEWS.landing
+            loginOptionsViewOnLoginCancel = VIEWS.loginOptions
+            currentView = VIEWS.loginOptions
+            $(VIEWS.loginOptions).fadeIn(STARTUP_FADE_MS)
         }
+    }
 
-        setTimeout(() => {
-            $('#loadingContainer').fadeOut(500, () => {
-                MeridianSplash.stop()
-            })
-        }, 250)
-        
-    }, Math.max(750, MeridianSplash.remaining()))
+    $('#loadingContainer').fadeOut(STARTUP_FADE_MS, () => {
+        MeridianSplash.stop()
+    })
+
     // Disable tabbing to the news container.
     initNews().then(() => {
         $('#newsContainer *').attr('tabindex', '-1')

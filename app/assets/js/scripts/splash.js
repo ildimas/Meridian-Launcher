@@ -21,7 +21,6 @@
     // Scenes still to play this round, in order.
     const STORE_DECK = 'meridian.splash.deck'
     const STORE_FORCE = 'meridian.splash.force'
-    const MIN_SHOW_MS = 2600
 
     // Brand palette, same values as logo.svg.
     const P = {
@@ -713,12 +712,7 @@
         raf = requestAnimationFrame(tick)
     }
 
-    // How long until the entrance has played out, so the UI does not cut it short.
-    function remaining(){
-        return raf ? Math.max(0, MIN_SHOW_MS - (performance.now() - t0)) : 0
-    }
-
-    window.MeridianSplash = { play, stop, remaining, scenes: Object.keys(SCENES) }
+    window.MeridianSplash = { play, stop, scenes: Object.keys(SCENES) }
 
     // Reloaded to change the language: go straight back to the launcher.
     let reopening
