@@ -31,26 +31,54 @@ DistroAPI['remoteUrl'] = getRemoteDistroUrl()
 LangLoader.setupLanguage(ConfigManager.getLanguage())
 
 /**
+ * Resolve the selected server if its value has yet to be set, or if the
+ * distribution no longer has it.
+ *
+ * @param {HeliosDistribution} data
+ */
+function ensureSelectedServer(data){
+    if(ConfigManager.getSelectedServer() == null || data.getServerById(ConfigManager.getSelectedServer()) == null){
+        logger.info('Determining default selected server..')
+        ConfigManager.setSelectedServer(data.getMainServer().rawServer.id)
+        ConfigManager.save()
+    }
+}
+
+/**
  * 
  * @param {HeliosDistribution} data 
+ * @param {Function} [then] Runs once the page has the answer.
  */
-function onDistroLoad(data){
+function onDistroLoad(data, then = () => {}){
     if(data != null){
-        
-        // Resolve the selected server if its value has yet to be set.
-        if(ConfigManager.getSelectedServer() == null || data.getServerById(ConfigManager.getSelectedServer()) == null){
-            logger.info('Determining default selected server..')
-            ConfigManager.setSelectedServer(data.getMainServer().rawServer.id)
-            ConfigManager.save()
-        }
+        ensureSelectedServer(data)
     }
     // A local load can finish before the page scripts listen for the answer.
-    const send = () => ipcRenderer.send('distributionIndexDone', data != null)
+    const send = () => {
+        ipcRenderer.send('distributionIndexDone', data != null)
+        then()
+    }
     if(document.readyState === 'loading'){
         document.addEventListener('DOMContentLoaded', send, { once: true })
     } else {
         send()
     }
+}
+
+/**
+ * Fetch the remote distribution index while the launcher is already up, and
+ * hand it to the page when it changed.
+ */
+async function refreshDistribution(){
+    const before = JSON.stringify(DistroAPI.rawDistribution)
+    const data = await DistroAPI.refreshDistributionOrFallback()
+    if(JSON.stringify(DistroAPI.rawDistribution) === before){
+        logger.info('No newer distribution index.')
+        return
+    }
+    logger.info('Loaded a newer distribution index.')
+    ensureSelectedServer(data)
+    ipcRenderer.send('distributionIndexRefreshed')
 }
 
 // The page was reloaded to change the language: the distribution was just
@@ -62,12 +90,23 @@ try {
     reopening = false
 }
 
-// Ensure Distribution is downloaded and cached.
-(reopening ? DistroAPI.getDistributionLocalLoadOnly().catch(() => DistroAPI.getDistribution()) : DistroAPI.getDistribution())
+// Offline first: start on the distribution index saved last time, then fetch
+// the remote one in the background. Only the very first start waits on the
+// network, as there is nothing saved yet.
+let fromDisk = true
+DistroAPI.getDistributionLocalLoadOnly()
+    .catch(() => {
+        fromDisk = false
+        return DistroAPI.getDistribution()
+    })
     .then(heliosDistro => {
-        logger.info('Loaded distribution index.')
+        logger.info(`Loaded distribution index${fromDisk ? ' from disk' : ''}.`)
 
-        onDistroLoad(heliosDistro)
+        onDistroLoad(heliosDistro, () => {
+            if(fromDisk && !reopening){
+                refreshDistribution().catch(err => logger.warn('Unable to refresh distribution index.', err))
+            }
+        })
     })
     .catch(err => {
         logger.info('Failed to load an older version of the distribution index.')

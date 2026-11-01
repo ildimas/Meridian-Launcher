@@ -637,6 +637,11 @@ ipcRenderer.on('distributionIndexDone', async (event, res) => {
     }
 })
 
+// The launcher started on the saved distribution index, and a newer one came in.
+ipcRenderer.on('distributionIndexRefreshed', async () => {
+    onDistroRefresh(await DistroAPI.getDistribution())
+})
+
 // Util for development
 async function devModeToggle() {
     DistroAPI.toggleDevMode(true)

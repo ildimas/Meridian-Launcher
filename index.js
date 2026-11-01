@@ -167,6 +167,11 @@ ipcMain.on('distributionIndexDone', (event, res) => {
     event.sender.send('distributionIndexDone', res)
 })
 
+// Redirect a newer distribution index, fetched after startup, to renderer.
+ipcMain.on('distributionIndexRefreshed', (event) => {
+    event.sender.send('distributionIndexRefreshed')
+})
+
 // Handle trash item.
 ipcMain.handle(SHELL_OPCODE.TRASH_ITEM, async (event, ...args) => {
     try {
