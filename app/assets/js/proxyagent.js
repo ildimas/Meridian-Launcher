@@ -23,6 +23,8 @@ const REQUEST_TIMEOUT = {
     socket: 30000
 }
 
+exports.REQUEST_TIMEOUT = REQUEST_TIMEOUT
+
 /**
  * Build the proxy URL (with credentials) for a configuration.
  *
