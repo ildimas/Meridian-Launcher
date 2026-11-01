@@ -549,6 +549,7 @@ downloadButton = "GitHub-тан жүктеу<span style=\"font-size: 10px;color:
 latestVersionTitle = "Сізде соңғы нұсқа"
 checkForUpdatesButton = "Жаңартуларды тексеру"
 checkingForUpdatesButton = "Жаңартуларды тексеріп жатырмыз…"
+managedExternallyTitle = "Жаңартулар пакеттер менеджері арқылы келеді"
 
 [js.settings.msftLogin]
 errorTitle = "Microsoft арқылы кіру мүмкін болмады"

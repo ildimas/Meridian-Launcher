@@ -14,6 +14,7 @@ const { AZURE_CLIENT_ID, MSFT_OPCODE, MSFT_REPLY_TYPE, MSFT_ERROR, PROXY_OPCODE,
 const LangLoader                        = require('./app/assets/js/langloader')
 const MacUpdater                        = require('./app/assets/js/macupdater')
 const LinuxUpdater                      = require('./app/assets/js/linuxupdater')
+const UpdatePolicy                      = require('./app/assets/js/updatepolicy')
 
 /**
  * A launcher setting saved by the renderer, or undefined before the first save.
@@ -98,6 +99,10 @@ function initAutoUpdater(event, data) {
 
 // Open channel to listen for update actions.
 ipcMain.on('autoUpdateAction', (event, arg, data) => {
+    // A package manager installs new versions (updatepolicy.js).
+    if(UpdatePolicy.isManagedExternally()){
+        return
+    }
     switch(arg){
         case 'initAutoUpdater':
             console.log('Initializing auto updater.')
@@ -165,6 +170,11 @@ ipcMain.on('autoUpdateAction', (event, arg, data) => {
 // Redirect distribution index event from preloader to renderer.
 ipcMain.on('distributionIndexDone', (event, res) => {
     event.sender.send('distributionIndexDone', res)
+})
+
+// Redirect a newer distribution index, fetched after startup, to renderer.
+ipcMain.on('distributionIndexRefreshed', (event) => {
+    event.sender.send('distributionIndexRefreshed')
 })
 
 // Handle trash item.

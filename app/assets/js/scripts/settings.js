@@ -2035,6 +2035,10 @@ function populateSettingsUpdateInformation(data){
         settingsUpdateButtonStatus(Lang.queryJS('uicore.autoUpdate.promptInstall'), false, () => {
             startUpdateDownload(data)
         })
+    } else if(UpdatePolicy.isManagedExternally()){
+        settingsUpdateTitle.innerHTML = Lang.queryJS('settings.updates.managedExternallyTitle')
+        settingsUpdateTitle.removeAttribute('available')
+        settingsUpdateActionButton.style.display = 'none'
     } else {
         settingsUpdateTitle.innerHTML = Lang.queryJS('settings.updates.latestVersionTitle')
         settingsUpdateTitle.removeAttribute('available')

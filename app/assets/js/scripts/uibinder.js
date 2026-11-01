@@ -186,7 +186,7 @@ function getCurrentView(){
 
 async function showMainUI(data){
 
-    if(!isDev){
+    if(!isDev && !UpdatePolicy.isManagedExternally()){
         loggerAutoUpdater.info('Initializing..')
         ipcRenderer.send('autoUpdateAction', 'initAutoUpdater', ConfigManager.getAllowPrerelease())
     }
@@ -635,6 +635,11 @@ ipcRenderer.on('distributionIndexDone', async (event, res) => {
             rscShouldLoad = true
         }
     }
+})
+
+// The launcher started on the saved distribution index, and a newer one came in.
+ipcRenderer.on('distributionIndexRefreshed', async () => {
+    onDistroRefresh(await DistroAPI.getDistribution())
 })
 
 // Util for development

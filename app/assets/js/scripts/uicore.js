@@ -9,6 +9,7 @@ const $                              = require('jquery')
 const {ipcRenderer, shell, webFrame} = require('electron')
 const remote                         = require('@electron/remote')
 const isDev                          = require('./assets/js/isdev')
+const UpdatePolicy                   = require('./assets/js/updatepolicy')
 const { LoggerUtil }                 = require('helios-core')
 const Lang                           = require('./assets/js/langloader')
 
@@ -35,9 +36,10 @@ remote.getCurrentWebContents().on('devtools-opened', () => {
 webFrame.setZoomLevel(0)
 webFrame.setVisualZoomLevelLimits(1, 1)
 
-// Initialize auto updates in production environments.
+// Initialize auto updates in production environments, unless a package
+// manager brings new versions.
 let updateCheckListener
-if(!isDev){
+if(!isDev && !UpdatePolicy.isManagedExternally()){
     ipcRenderer.on('autoUpdateNotification', (event, arg, info) => {
         switch(arg){
             case 'checking-for-update':

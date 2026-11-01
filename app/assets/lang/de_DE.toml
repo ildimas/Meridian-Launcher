@@ -549,6 +549,7 @@ downloadButton = "Von GitHub herunterladen<span style=\"font-size: 10px;color: g
 latestVersionTitle = "Du nutzt die neueste Version"
 checkForUpdatesButton = "Nach Updates suchen"
 checkingForUpdatesButton = "Suche nach Updates…"
+managedExternallyTitle = "Updates kommen über deinen Paketmanager"
 
 [js.settings.msftLogin]
 errorTitle = "Microsoft-Anmeldung fehlgeschlagen"

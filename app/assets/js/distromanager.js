@@ -1,8 +1,11 @@
-const { DistributionAPI, HeliosDistribution, HeliosModule } = require('helios-core/common')
+const got  = require('got')
+const { DistributionAPI, HeliosDistribution, HeliosModule, RestResponseStatus, handleGotError } = require('helios-core/common')
 const { DistributionIndexProcessor, MojangIndexProcessor } = require('helios-core/dl')
+const { LoggerUtil } = require('helios-core')
 const path = require('path')
 
 const ConfigManager = require('./configmanager')
+const { REQUEST_TIMEOUT } = require('./proxyagent')
 const HeliosFixes   = require('./heliosfixes')
 const LocalPacks    = require('./localpacks')
 
@@ -25,6 +28,23 @@ const api = new DistributionAPI(
     exports.REMOTE_DISTRO_URL,
     false
 )
+
+// helios-core fetches distribution.json with no timeout: on a network that
+// drops the connection without an answer, the request hangs for minutes.
+// Give up like a stalled download does; the saved copy is used meanwhile.
+const logger = LoggerUtil.getLogger('DistroManager')
+api.pullRemote = async function(){
+    try {
+        const res = await got.get(this.remoteUrl, {
+            responseType: 'json',
+            timeout: REQUEST_TIMEOUT,
+            retry: { limit: 1 }
+        })
+        return { data: res.body, responseStatus: RestResponseStatus.SUCCESS }
+    } catch(error) {
+        return handleGotError('Pull Remote', error, logger, () => null)
+    }
+}
 
 exports.DistroAPI = api
 

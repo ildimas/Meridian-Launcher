@@ -554,6 +554,7 @@ downloadButton = 'Download from GitHub<span style="font-size: 10px;color: gray;t
 latestVersionTitle = "You’re on the latest version"
 checkForUpdatesButton = "Check for updates"
 checkingForUpdatesButton = "Checking for updates…"
+managedExternallyTitle = "Updates come through your package manager"
 
 [js.settings.msftLogin]
 errorTitle = "Microsoft sign-in failed"

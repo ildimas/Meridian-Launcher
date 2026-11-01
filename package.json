@@ -4,7 +4,7 @@
   "productName": "Meridian",
   "description": "Modded Minecraft Launcher",
   "author": "Dmitry Ilyushenia (https://github.com/ildimas)",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "homepage": "https://github.com/ildimas/Helios-Custom-Worlds",
   "bugs": {
     "url": "https://github.com/ildimas/Helios-Custom-Worlds/issues"
