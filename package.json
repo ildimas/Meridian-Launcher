@@ -56,5 +56,10 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ildimas/Meridian-Launcher.git"
+  },
+  "overrides": {
+    "filelist": {
+      "minimatch": "^11.0.3"
+    }
   }
 }
