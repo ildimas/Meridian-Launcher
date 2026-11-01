@@ -2,9 +2,6 @@
 <head>
     <meta charset="utf-8" http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-In6B8teKZQll5heMl9bS7CESTbGvuAt3VVV86BUQBDk='"/>
     <title><%= lang('app.title') %></title>
-    <script src="./assets/js/scripts/uicore.js"></script>
-    <script src="./assets/js/scripts/uibinder.js"></script>
-    <script src="./assets/js/scripts/zoom.js"></script>
     <link type="text/css" rel="stylesheet" href="./assets/css/launcher.css">
     <style>
         body {
@@ -13,7 +10,7 @@
         }
         #main {
             display: none;
-            height: calc(100% - 22px);
+            height: calc(100% - var(--frame-height));
             width: 100%;
             position: absolute;
             z-index: 10;
@@ -24,6 +21,17 @@
     </style>
 </head>
 <body bkid="<%=bkid%>">
+    <%# The splash first, so it plays while the rest of the page loads. %>
+    <div id="loadingContainer">
+        <canvas id="splashBack" aria-hidden="true"></canvas>
+        <svg id="splashLogo" aria-hidden="true"></svg>
+        <canvas id="splashFront" aria-hidden="true"></canvas>
+        <div id="splashWordmark"><%= lang('app.title') %></div>
+    </div>
+    <script src="./assets/js/scripts/splash.js"></script>
+    <script src="./assets/js/scripts/uicore.js"></script>
+    <script src="./assets/js/scripts/uibinder.js"></script>
+    <script src="./assets/js/scripts/zoom.js"></script>
     <div id="wallpaper" aria-hidden="true"></div>
     <div id="wallpaperScrim" aria-hidden="true"></div>
     <%- include('frame') %>
@@ -36,12 +44,5 @@
         <%- include('landing') %>
     </div>
     <%- include('overlay') %>
-    <div id="loadingContainer">
-        <canvas id="splashBack" aria-hidden="true"></canvas>
-        <svg id="splashLogo" aria-hidden="true"></svg>
-        <canvas id="splashFront" aria-hidden="true"></canvas>
-        <div id="splashWordmark"><%= lang('app.title') %></div>
-    </div>
-    <script src="./assets/js/scripts/splash.js"></script>
 </body>
 </html>

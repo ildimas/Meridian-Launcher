@@ -84,3 +84,107 @@ function describeError(err, assets){
     }
     return lines
 }
+
+// helios-core downloads over a file in place, truncating it before the first
+// byte arrives: a download that failed (no network) left that pack file
+// empty. The old files are moved aside first, and put back when the download
+// doesn't complete.
+//
+// Without network, files that are all on disk but differ from the
+// distribution (a config the game rewrites on every run) can't be fetched
+// again; they stay as they are and the game starts on them. A missing file
+// still fails the launch.
+//
+// helios-core retries a file that got no answer ten times, a second apart (or
+// a timeout apart): offline that was ten seconds or more of nothing. One quick
+// request first tells whether the network is there at all.
+const fs = require('fs')
+const got = require('got')
+const { LoggerUtil } = require('helios-core')
+const ASIDE = '.meridian-old'
+// The quick request: a few seconds to connect, no retry.
+const PROBE_TIMEOUT = { lookup: 5000, connect: 5000, secureConnect: 5000, socket: 5000 }
+const download = FullRepairReceiver.prototype.download
+FullRepairReceiver.prototype.download = async function(message){
+    const unreachable = await probe(this.assets[0]?.url)
+    if(unreachable != null){
+        keepOnDisk(this.assets, unreachable)
+        return
+    }
+    const kept = this.assets.filter(asset => moveAside(asset.path))
+    try {
+        await download.call(this, message)
+    } catch(err) {
+        for(const asset of kept){
+            fs.renameSync(asset.path + ASIDE, asset.path)
+        }
+        if(!isUnanswered(err)){
+            throw err
+        }
+        keepOnDisk(this.assets, err)
+        return
+    }
+    for(const asset of kept){
+        fs.rmSync(asset.path + ASIDE, { force: true })
+    }
+}
+
+/**
+ * Whether a request got no answer at all (no network, DNS, timeout).
+ */
+function isUnanswered(err){
+    return err?.name === 'RequestError' || err?.name === 'TimeoutError'
+}
+
+/**
+ * Ask the server for a file once.
+ *
+ * @param {string} url A file to download.
+ * @returns {Promise.<Error | null>} The error when nothing answered, else null
+ * (any HTTP answer, even an error, means the network is there).
+ */
+async function probe(url){
+    if(url == null){
+        return null
+    }
+    try {
+        await got.head(url, { timeout: PROBE_TIMEOUT, retry: { limit: 0 }, throwHttpErrors: false })
+        return null
+    } catch(err) {
+        return isUnanswered(err) ? err : null
+    }
+}
+
+/**
+ * Offline: start on the files on disk when every one is there, else fail
+ * with the network error.
+ *
+ * @param {Array.<Object>} assets The files that would be downloaded.
+ * @param {Error} err Why they can't be.
+ */
+function keepOnDisk(assets, err){
+    if(!assets.every(asset => fs.existsSync(asset.path))){
+        throw err
+    }
+    const log = LoggerUtil.getLogger('DownloadChild')
+    log.warn(`Unable to download (${err.code || err.message}); every file is on disk, keeping them:`)
+    for(const asset of assets){
+        log.warn(`  ${asset.path}`)
+    }
+    process.send({ response: 'downloadComplete' })
+}
+
+/**
+ * Move a file out of the way of its download.
+ *
+ * @param {string} file The file's path.
+ * @returns {boolean} Whether there was a file.
+ */
+function moveAside(file){
+    try {
+        fs.renameSync(file, file + ASIDE)
+        return true
+    } catch {
+        return false
+    }
+}

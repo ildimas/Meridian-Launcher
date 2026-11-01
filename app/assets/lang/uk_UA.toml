@@ -97,6 +97,8 @@ appearanceInterval60 = "1 хв"
 appearanceInterval300 = "5 хв"
 appearanceMotionTitle = "Рух"
 appearanceMotionDesc = "Повільний дрейф кожного зображення"
+appearanceSplashTitle = "Анімація під час запуску"
+appearanceSplashDesc = "Заставка під час відкриття лаунчера; без неї він відкривається одразу"
 appearancePacksTitle = "Збірки"
 appearanceShowAll = "Показати всі"
 appearanceEdit = "Змінити"
@@ -549,6 +551,8 @@ downloadButton = "Завантажити з GitHub<span style=\"font-size: 10px;
 latestVersionTitle = "У вас остання версія"
 checkForUpdatesButton = "Перевірити оновлення"
 checkingForUpdatesButton = "Перевіряємо оновлення…"
+managedExternallyTitle = "Оновлення надходять через пакетний менеджер"
+managedExternallyNewTitle = "Вийшла версія {version}: оновіть її через пакетний менеджер"
 
 [js.settings.msftLogin]
 errorTitle = "Не вдалося увійти через Microsoft"
@@ -586,6 +590,9 @@ failedDesc = "Перевірте інтернет і спробуйте ще р�
 failedOk = "OK"
 installFailedTitle = "Не вдалося встановити оновлення"
 installFailedDesc = "Пакетний менеджер його не прийняв. Спробуйте пізніше або встановіть нову версію з GitHub."
+externalTitle = "Вийшов Meridian {version}"
+externalDesc = "Оновіть його через пакетний менеджер."
+externalNotes = "Що нового"
 
 [js.auth.offline]
 invalidNameTitle = "Неприпустиме ім'я гравця"

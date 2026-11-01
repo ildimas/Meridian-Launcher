@@ -12,6 +12,9 @@
  ******************************************************************************/
 
 :root {
+    /* The frame bar on top (frame.ejs); views fill the rest of the window. */
+    --frame-height: 22px;
+
     /* Meridian brand palette. Source of truth for the default look. */
     --meridian-navy: #004477;
     --meridian-face: #0a508a;
@@ -424,6 +427,15 @@ select:focus-visible,
 }
 #frameButton_close:active {
     background: #a3202e !important;
+}
+
+/* Tiling compositors (Hyprland, sway, niri…) move, size and close windows themselves:
+   no frame bar, the views take the whole window. */
+:root[tilingwm] {
+    --frame-height: 0px;
+}
+:root[tilingwm] #frameBar {
+    display: none;
 }
 
 /* Darwin Frame Button Styles. */
@@ -1024,7 +1036,7 @@ select:focus-visible,
 
 /*
 #login_filter {
-    height: calc(100% - 22px);
+    height: calc(100% - var(--frame-height));
     width: 100%;
     z-index: 9000;
     position: absolute;
@@ -2942,7 +2954,7 @@ input:checked + .toggleSwitchSlider:before {
 /* Framing a picture of the user's own (mpCropIcon), over the icon picker. */
 .mpCropLayer {
     position: fixed;
-    top: 22px;
+    top: var(--frame-height);
     left: 0px;
     right: 0px;
     bottom: 0px;
@@ -4831,7 +4843,8 @@ body[settingsOpen] #wallpaper .wpImg {
     border-color: rgba(125, 180, 230, 0.45);
 }
 /* Tells the player a pack they have got a new version. */
-#packUpdateToast {
+#packUpdateToast,
+#launcherUpdateToast {
     position: absolute;
     top: calc(var(--edge) + 60px);
     right: var(--edge);
@@ -4851,11 +4864,13 @@ body[settingsOpen] #wallpaper .wpImg {
     transform: translateY(-8px);
     transition: opacity 300ms var(--ease-out), transform 300ms var(--ease-out);
 }
-#packUpdateToast.packUpdateShown {
+#packUpdateToast.packUpdateShown,
+#launcherUpdateToast.packUpdateShown {
     opacity: 1;
     transform: none;
 }
-#packUpdateToast[hidden] {
+#packUpdateToast[hidden],
+#launcherUpdateToast[hidden] {
     display: none;
 }
 .packUpdateIcon {
@@ -6234,12 +6249,12 @@ input.mpFolderTitle { width: min(100%, 300px); height: 34px; }
 #overlayContainer {
     position: absolute;
     z-index: 500;
-    top: 22px;
+    top: var(--frame-height);
     display: flex;
     align-items: center;
     justify-content: center;
     width: 100%;
-    height: calc(100% - 22px);
+    height: calc(100% - var(--frame-height));
     background: rgba(2, 26, 48, 0.5);
 }
 
@@ -6599,8 +6614,9 @@ input.mpFolderTitle { width: min(100%, 300px); height: 34px; }
 #loadingContainer {
     position: absolute;
     z-index: 400;
+    top: var(--frame-height);
     width: 100%;
-    height: calc(100% - 22px);
+    height: calc(100% - var(--frame-height));
     overflow: hidden;
     background: radial-gradient(ellipse at 50% 48%, #0b3358 0%, #04192e 48%, #010a14 100%);
 }

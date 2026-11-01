@@ -14,6 +14,7 @@ const { AZURE_CLIENT_ID, MSFT_OPCODE, MSFT_REPLY_TYPE, MSFT_ERROR, PROXY_OPCODE,
 const LangLoader                        = require('./app/assets/js/langloader')
 const MacUpdater                        = require('./app/assets/js/macupdater')
 const LinuxUpdater                      = require('./app/assets/js/linuxupdater')
+const UpdatePolicy                      = require('./app/assets/js/updatepolicy')
 
 /**
  * A launcher setting saved by the renderer, or undefined before the first save.
@@ -98,6 +99,10 @@ function initAutoUpdater(event, data) {
 
 // Open channel to listen for update actions.
 ipcMain.on('autoUpdateAction', (event, arg, data) => {
+    // A package manager installs new versions (updatepolicy.js).
+    if(UpdatePolicy.isManagedExternally()){
+        return
+    }
     switch(arg){
         case 'initAutoUpdater':
             console.log('Initializing auto updater.')
@@ -167,6 +172,11 @@ ipcMain.on('distributionIndexDone', (event, res) => {
     event.sender.send('distributionIndexDone', res)
 })
 
+// Redirect a newer distribution index, fetched after startup, to renderer.
+ipcMain.on('distributionIndexRefreshed', (event) => {
+    event.sender.send('distributionIndexRefreshed')
+})
+
 // Handle trash item.
 ipcMain.handle(SHELL_OPCODE.TRASH_ITEM, async (event, ...args) => {
     try {
@@ -185,6 +195,8 @@ ipcMain.handle(SHELL_OPCODE.TRASH_ITEM, async (event, ...args) => {
 // Proxy for Chromium traffic (Microsoft login window, auto updater).
 // Node traffic in the renderer is proxied separately, see proxymanager.js.
 let proxyCredentials = null
+// Answers with the system proxy Chromium uses when the launcher has none
+// (see ProxyManager.apply), as session.resolveProxy() puts it.
 ipcMain.handle(PROXY_OPCODE.SET, async (event, proxy) => {
     if(proxy?.enabled && proxy.host && proxy.port){
         await session.defaultSession.setProxy({
@@ -192,11 +204,13 @@ ipcMain.handle(PROXY_OPCODE.SET, async (event, proxy) => {
             proxyBypassRules: '<local>'
         })
         proxyCredentials = proxy.username ? { username: proxy.username, password: proxy.password || '' } : null
-    } else {
-        await session.defaultSession.setProxy({ mode: 'direct' })
-        proxyCredentials = null
+        await session.defaultSession.closeAllConnections()
+        return null
     }
+    await session.defaultSession.setProxy({ mode: 'system' })
+    proxyCredentials = null
     await session.defaultSession.closeAllConnections()
+    return await session.defaultSession.resolveProxy('https://api.minecraftservices.com/')
 })
 
 // Answer proxy authentication challenges (HTTP proxies only, Chromium has no SOCKS5 auth).
@@ -254,8 +268,8 @@ ipcMain.on(MSFT_OPCODE.OPEN_LOGIN, (ipcEvent, ...arguments_) => {
             let queryMap = {}
             
             new URL(uri).searchParams.forEach((v, k) => {
-                queryMap[k] = v;
-            });
+                queryMap[k] = v
+            })
 
             ipcEvent.reply(MSFT_OPCODE.REPLY_LOGIN, MSFT_REPLY_TYPE.SUCCESS, queryMap, msftAuthViewSuccess)
 

@@ -100,6 +100,7 @@ const DEFAULT_CONFIG = {
             appearance: {
                 interval: 30, // Seconds each picture stays.
                 motion: true,
+                splash: true, // The startup animation; off opens the launcher as soon as it's ready.
                 serverPicker: 'dial', // dial | dropdown
                 // Per server id: { hidden: [picture keys left out], added: [picture paths] }.
                 packs: {},
@@ -126,7 +127,9 @@ const DEFAULT_CONFIG = {
     modConfigurations: [],
     javaConfig: {},
     // Per server id: the pack version whose files were last prepared for launch.
-    packVersions: {}
+    packVersions: {},
+    // The new launcher version whose notice the player closed (launcherupdates.js).
+    dismissedLauncherUpdate: null
 }
 
 let config = null
@@ -929,6 +932,24 @@ exports.getPackVersion = function(serverId){
  */
 exports.setPackVersion = function(serverId, version){
     config.packVersions[serverId] = String(version)
+}
+
+/**
+ * The new launcher version whose notice the player closed, or null.
+ *
+ * @returns {string | null}
+ */
+exports.getDismissedLauncherUpdate = function(){
+    return config.dismissedLauncherUpdate
+}
+
+/**
+ * Remember that the player closed the notice for a launcher version.
+ *
+ * @param {string} version The launcher version.
+ */
+exports.setDismissedLauncherUpdate = function(version){
+    config.dismissedLauncherUpdate = version
 }
 
 /**

@@ -110,6 +110,45 @@ exports.patchMojangIndexProcessor = function(MojangIndexProcessor){
         }
         return original.call(this, versionJson, ...args)
     }
+    proto.loadContentWithRemoteFallback = loadContentWithRemoteFallback
+}
+
+/**
+ * Load a version or asset index: the copy on disk when its hash matches,
+ * else a fresh download, else (offline) the copy on disk whatever its hash.
+ *
+ * helios-core saved downloads re-serialized (JSON.stringify), so a saved
+ * index never matched Mojang's hash: it was downloaded again on every launch,
+ * and without network the game couldn't start at all. Downloads are now saved
+ * as they come.
+ *
+ * @param {string} url Where to download it.
+ * @param {string} file Its path on disk.
+ * @param {{algo: string, value: string}} [hash] The expected hash.
+ * @returns {Promise.<Object | null>} The index, or null.
+ */
+async function loadContentWithRemoteFallback(url, file, hash){
+    const fs = require('fs-extra')
+    const got = require('got')
+    const { dirname } = require('path')
+    const { calculateHashByBuffer } = require('helios-core/common')
+    const { LoggerUtil } = require('helios-core')
+    const local = await fs.pathExists(file) ? await fs.readFile(file) : null
+    if(local != null && (!hash || calculateHashByBuffer(local, hash.algo) === hash.value)){
+        return JSON.parse(local.toString())
+    }
+    try {
+        const res = await got.get(url, { responseType: 'buffer' })
+        await fs.ensureDir(dirname(file))
+        await fs.writeFile(file, res.body)
+        return JSON.parse(res.body.toString())
+    } catch(err) {
+        if(local != null){
+            LoggerUtil.getLogger('HeliosFixes').warn(`Unable to download ${url}, using the copy on disk (${err.code || err.message}).`)
+            return JSON.parse(local.toString())
+        }
+        return null
+    }
 }
 
 exports.useArm64Lwjgl2 = useArm64Lwjgl2
@@ -168,9 +207,9 @@ async function latestZulu8(JavaGuard, dataDir){
     })
     let pkg = ZULU8_ARM64
     try {
-        const [found] = await got(`${ZULU_API}?${query}`, { timeout: { request: 15000 } }).json()
+        const [found] = await got.get(`${ZULU_API}?${query}`, { timeout: { request: 15000 } }).json()
         if(found != null){
-            pkg = await got(ZULU_API + found.package_uuid, { timeout: { request: 15000 } }).json()
+            pkg = await got.get(ZULU_API + found.package_uuid, { timeout: { request: 15000 } }).json()
         }
     } catch(err) {
         LoggerUtil.getLogger('HeliosFixes').warn(`Azul API unavailable, using ${pkg.name}.`, err)

@@ -51,6 +51,26 @@ function microsoftErrorDisplayable(errorCode) {
     }
 }
 
+/**
+ * Whether a request got no answer at all (no network, DNS failure, timeout),
+ * as opposed to an answer that refused it.
+ *
+ * @param {Error} error The got error of a failed request.
+ */
+function isNetworkError(error) {
+    return error != null && (error.name === 'RequestError' || error.name === 'TimeoutError')
+}
+
+/**
+ * The error a failed Microsoft auth step rejects with. `offline` is set when
+ * the request got no answer: the session is unchecked, not known to be bad.
+ *
+ * @param {Object} response The failed MicrosoftResponse.
+ */
+function microsoftFailure(response) {
+    return { ...microsoftErrorDisplayable(response.microsoftErrorCode), offline: isNetworkError(response.error) }
+}
+
 function mojangErrorDisplayable(errorCode) {
     switch(errorCode) {
         case MojangErrorCode.ERROR_METHOD_NOT_ALLOWED:
@@ -246,7 +266,7 @@ async function fullMicrosoftAuthFlow(entryCode, authMode) {
         if(authMode !== AUTH_MODE.MC_REFRESH) {
             const accessTokenResponse = await MicrosoftAuth.getAccessToken(entryCode, authMode === AUTH_MODE.MS_REFRESH, AZURE_CLIENT_ID)
             if(accessTokenResponse.responseStatus === RestResponseStatus.ERROR) {
-                return Promise.reject(microsoftErrorDisplayable(accessTokenResponse.microsoftErrorCode))
+                return Promise.reject(microsoftFailure(accessTokenResponse))
             }
             accessToken = accessTokenResponse.data
             accessTokenRaw = accessToken.access_token
@@ -256,19 +276,19 @@ async function fullMicrosoftAuthFlow(entryCode, authMode) {
         
         const xblResponse = await MicrosoftAuth.getXBLToken(accessTokenRaw)
         if(xblResponse.responseStatus === RestResponseStatus.ERROR) {
-            return Promise.reject(microsoftErrorDisplayable(xblResponse.microsoftErrorCode))
+            return Promise.reject(microsoftFailure(xblResponse))
         }
         const xstsResonse = await MicrosoftAuth.getXSTSToken(xblResponse.data)
         if(xstsResonse.responseStatus === RestResponseStatus.ERROR) {
-            return Promise.reject(microsoftErrorDisplayable(xstsResonse.microsoftErrorCode))
+            return Promise.reject(microsoftFailure(xstsResonse))
         }
         const mcTokenResponse = await MicrosoftAuth.getMCAccessToken(xstsResonse.data)
         if(mcTokenResponse.responseStatus === RestResponseStatus.ERROR) {
-            return Promise.reject(microsoftErrorDisplayable(mcTokenResponse.microsoftErrorCode))
+            return Promise.reject(microsoftFailure(mcTokenResponse))
         }
         const mcProfileResponse = await MicrosoftAuth.getMCProfile(mcTokenResponse.data.access_token)
         if(mcProfileResponse.responseStatus === RestResponseStatus.ERROR) {
-            return Promise.reject(microsoftErrorDisplayable(mcProfileResponse.microsoftErrorCode))
+            return Promise.reject(microsoftFailure(mcProfileResponse))
         }
         return {
             accessToken,
@@ -368,6 +388,21 @@ exports.removeMicrosoftAccount = async function(uuid){
 }
 
 /**
+ * The answer to a session check that failed. Without network the session is
+ * kept: the game still starts (singleplayer works), and the next check, at
+ * startup or before a launch, refreshes it.
+ *
+ * @param {boolean} offline Whether the check got no answer.
+ * @returns {boolean} Whether to keep the session.
+ */
+function keepSessionOffline(offline) {
+    if(offline) {
+        log.warn('Unable to reach the auth server, keeping the session until the next check.')
+    }
+    return offline
+}
+
+/**
  * Validate the selected account with Mojang's authserver. If the account is not valid,
  * we will attempt to refresh the access token and update that value. If that fails, a
  * new login will be required.
@@ -390,7 +425,7 @@ async function validateSelectedMojangAccount(){
             } else {
                 log.error('Error while validating selected profile:', refreshResponse.error)
                 log.info('Account access token is invalid.')
-                return false
+                return keepSessionOffline(isNetworkError(refreshResponse.error))
             }
             log.info('Account access token validated.')
             return true
@@ -399,7 +434,7 @@ async function validateSelectedMojangAccount(){
             return true
         }
     }
-    
+    return keepSessionOffline(isNetworkError(response.error))
 }
 
 /**
@@ -440,8 +475,8 @@ async function validateSelectedMicrosoftAccount(){
             )
             ConfigManager.save()
             return true
-        } catch(_err) {
-            return false
+        } catch(err) {
+            return keepSessionOffline(err.offline)
         }
     } else {
         // Only MC expired, use existing MS token.
@@ -459,8 +494,8 @@ async function validateSelectedMicrosoftAccount(){
             ConfigManager.save()
             return true
         }
-        catch(_err) {
-            return false
+        catch(err) {
+            return keepSessionOffline(err.offline)
         }
     }
 }
@@ -469,7 +504,7 @@ async function validateSelectedMicrosoftAccount(){
  * Validate the selected auth account.
  * 
  * @returns {Promise.<boolean>} Promise which resolves to true if the access token is valid,
- * otherwise false.
+ * or can't be checked without network, otherwise false.
  */
 exports.validateSelected = async function(){
     const current = ConfigManager.getSelectedAccount()

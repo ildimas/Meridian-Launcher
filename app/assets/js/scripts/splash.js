@@ -21,6 +21,7 @@
     // Scenes still to play this round, in order.
     const STORE_DECK = 'meridian.splash.deck'
     const STORE_FORCE = 'meridian.splash.force'
+    // Every scene has played out by then, its last details included.
     const MIN_SHOW_MS = 2600
 
     // Brand palette, same values as logo.svg.
@@ -720,14 +721,17 @@
 
     window.MeridianSplash = { play, stop, remaining, scenes: Object.keys(SCENES) }
 
-    // Reloaded to change the language: go straight back to the launcher.
-    let reopening = false
+    // Reloaded to change the language: go straight back to the launcher. The
+    // animation can also be turned off (Settings, Appearance): the launcher
+    // then opens as soon as it's ready.
+    let reopening
     try {
         reopening = sessionStorage.getItem('meridian.reopen') != null
     } catch {
         reopening = false
     }
-    if(reopening){
+    // Runs before the other page scripts: ConfigManager isn't a global yet.
+    if(reopening || require('./assets/js/configmanager').getAppearance().splash === false){
         container.style.display = 'none'
     } else {
         play(pickScene())

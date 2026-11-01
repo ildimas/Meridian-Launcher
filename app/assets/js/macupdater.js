@@ -19,7 +19,7 @@ const os            = require('os')
 const path          = require('path')
 
 // Where releases are published, as in electron-builder's publish settings.
-const RELEASES = 'https://github.com/ildimas/Helios-Custom-Worlds/releases/download'
+const RELEASES = 'https://github.com/ildimas/Meridian-Launcher/releases/download'
 
 /**
  * Meridian.app, from the running executable (Contents/MacOS/Meridian).

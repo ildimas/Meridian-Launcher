@@ -619,7 +619,19 @@ function updateServerHero(serv){
 
 // Dial geometry, in the dial's own 520x180 box (see the handoff spec).
 const SERVER_DIAL = { cx: 260, cy: 372, r: 300, step: 20, tile: 72 }
-let serverDialWheelAt = 0
+// Wheel input: trackpad travel per step, the delta of one mouse wheel notch
+// (at 100% scale), and how long a pause ends a spin.
+const SERVER_DIAL_WHEEL = { stepPx: 50, notchPx: 120, spinMs: 250 }
+// Trackpad travel not yet turned into a step, and when the wheel last turned.
+const serverDialWheel = { acc: 0, at: 0 }
+
+/**
+ * Whether the wheel is spinning the dial right now: turns are then short, and
+ * the packs it passes aren't pinged.
+ */
+function serverDialSpinning(){
+    return Date.now() - serverDialWheel.at < SERVER_DIAL_WHEEL.spinMs
+}
 
 // Where the dial is turned to: a fractional server index while it turns.
 const serverDialTurn = { pos: null, from: 0, to: 0, start: 0, ms: 0, frame: null }
@@ -687,8 +699,9 @@ function turnServerDial(sel, jump = false){
     t.from = t.pos
     t.to = sel
     t.start = performance.now()
-    // Longer turns take a little longer, so they stay readable.
-    t.ms = Math.min(900, 420 + 100 * Math.abs(sel - t.from))
+    // Longer turns take a little longer, so they stay readable. A wheel turn
+    // is short: the next notch carries on from wherever the dial is.
+    t.ms = serverDialSpinning() ? 220 : Math.min(900, 420 + 100 * Math.abs(sel - t.from))
     const step = (now) => {
         const k = Math.min(1, (now - t.start) / t.ms)
         // Ease out, close to --dial-ease.
@@ -1057,8 +1070,15 @@ async function selectServerAt(index, dial = true){
         return
     }
     updateSelectedServer(next)
-    refreshServerStatus(true)
+    clearTimeout(serverStatusTimer)
+    if(serverDialSpinning()){
+        // Ping only the pack the spin stops on.
+        serverStatusTimer = setTimeout(() => refreshServerStatus(true), SERVER_DIAL_WHEEL.spinMs)
+    } else {
+        refreshServerStatus(true)
+    }
 }
+let serverStatusTimer = null
 
 
 // Folder boundaries follow the arc; folder names stay in the bottom caption.
@@ -1202,20 +1222,38 @@ function wheelScrollsInside(el, dy){
     return false
 }
 
-// The wheel turns the dial wherever the mouse is on the landing page, one
-// step per 280ms however fast the wheel or trackpad reports.
+// The wheel turns the dial wherever the mouse is on the landing page: one
+// step per notch of a mouse wheel, however fast it spins, or per
+// SERVER_DIAL_WHEEL.stepPx of trackpad travel.
 document.getElementById('landingContainer').addEventListener('wheel', e => {
     const landing = document.getElementById('landingContainer')
     if(landing.hasAttribute('dialHidden') || landing.hasAttribute('launching') || wheelScrollsInside(e.target, e.deltaY)){
         return
     }
-    const dv = Math.abs(e.deltaY) >= Math.abs(e.deltaX) ? e.deltaY : e.deltaX
+    const vertical = Math.abs(e.deltaY) >= Math.abs(e.deltaX)
+    const dv = vertical ? e.deltaY : e.deltaX
+    const w = serverDialWheel
     const now = Date.now()
-    if(Math.abs(dv) < 4 || now - serverDialWheelAt < 280){
-        return
+    if(now - w.at > SERVER_DIAL_WHEEL.spinMs || Math.sign(dv) !== Math.sign(w.acc)){
+        w.acc = 0
     }
-    serverDialWheelAt = now
-    stepServer(dv > 0 ? 1 : -1)
+    w.at = now
+    let steps
+    if(Math.abs(dv) >= SERVER_DIAL_WHEEL.stepPx){
+        // A mouse wheel notch: 100-180px depending on the display scale, or
+        // a multiple when Chromium merges a fast spin's notches.
+        steps = Math.sign(dv) * Math.max(1, Math.floor(Math.abs(dv) / SERVER_DIAL_WHEEL.notchPx))
+        w.acc = 0
+    } else {
+        // Trackpads report small deltas: add them up.
+        w.acc += dv
+        steps = Math.trunc(w.acc / SERVER_DIAL_WHEEL.stepPx)
+        w.acc -= steps * SERVER_DIAL_WHEEL.stepPx
+    }
+    if(steps !== 0){
+        // Inverted: the wheel down brings the previous pack to the top.
+        stepServer(-steps)
+    }
 }, { passive: true })
 serverDial.addEventListener('keydown', e => {
     if(e.key === 'ArrowLeft' || e.key === 'ArrowRight'){
@@ -1621,7 +1659,7 @@ async function dlAsync(login = true) {
 
     loggerLaunchSuite.info('Validating files.')
     setLaunchDetails(Lang.queryJS('landing.dlAsync.validatingFileIntegrity'))
-    let invalidFileCount = 0
+    let invalidFileCount
     try {
         invalidFileCount = await fullRepairModule.verifyFiles(percent => {
             setLaunchPercentage(percent)

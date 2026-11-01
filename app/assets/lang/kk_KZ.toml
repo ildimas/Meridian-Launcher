@@ -97,6 +97,8 @@ appearanceInterval60 = "1 мин"
 appearanceInterval300 = "5 мин"
 appearanceMotionTitle = "Қозғалыс"
 appearanceMotionDesc = "Әр суреттің баяу жылжуы"
+appearanceSplashTitle = "Іске қосу анимациясы"
+appearanceSplashDesc = "Лаунчер ашылғанда заставка; онсыз ол бірден ашылады"
 appearancePacksTitle = "Жинақтар"
 appearanceShowAll = "Барлығын көрсету"
 appearanceEdit = "Өзгерту"
@@ -549,6 +551,8 @@ downloadButton = "GitHub-тан жүктеу<span style=\"font-size: 10px;color:
 latestVersionTitle = "Сізде соңғы нұсқа"
 checkForUpdatesButton = "Жаңартуларды тексеру"
 checkingForUpdatesButton = "Жаңартуларды тексеріп жатырмыз…"
+managedExternallyTitle = "Жаңартулар пакеттер менеджері арқылы келеді"
+managedExternallyNewTitle = "{version} нұсқасы шықты: оны пакеттер менеджері арқылы жаңартыңыз"
 
 [js.settings.msftLogin]
 errorTitle = "Microsoft арқылы кіру мүмкін болмады"
@@ -586,6 +590,9 @@ failedDesc = "Интернетті тексеріп, қайталап көрің
 failedOk = "OK"
 installFailedTitle = "Жаңартуды орнату мүмкін болмады"
 installFailedDesc = "Пакет менеджері оны қабылдамады. Кейінірек қайталаңыз немесе жаңа нұсқаны GitHub-тан орнатыңыз."
+externalTitle = "Meridian {version} шықты"
+externalDesc = "Оны пакеттер менеджері арқылы жаңартыңыз."
+externalNotes = "Не жаңа"
 
 [js.auth.offline]
 invalidNameTitle = "Ойыншы аты жарамсыз"
