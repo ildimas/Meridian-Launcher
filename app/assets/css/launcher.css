@@ -6614,6 +6614,7 @@ input.mpFolderTitle { width: min(100%, 300px); height: 34px; }
 #loadingContainer {
     position: absolute;
     z-index: 400;
+    top: var(--frame-height);
     width: 100%;
     height: calc(100% - var(--frame-height));
     overflow: hidden;

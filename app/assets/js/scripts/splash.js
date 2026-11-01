@@ -730,7 +730,8 @@
     } catch {
         reopening = false
     }
-    if(reopening || ConfigManager.getAppearance().splash === false){
+    // Runs before the other page scripts: ConfigManager isn't a global yet.
+    if(reopening || require('./assets/js/configmanager').getAppearance().splash === false){
         container.style.display = 'none'
     } else {
         play(pickScene())
