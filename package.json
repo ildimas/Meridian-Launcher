@@ -5,9 +5,9 @@
   "description": "Modded Minecraft Launcher",
   "author": "Dmitry Ilyushenia (https://github.com/ildimas)",
   "license": "MIT",
-  "homepage": "https://github.com/ildimas/Helios-Custom-Worlds",
+  "homepage": "https://github.com/ildimas/Meridian-Launcher",
   "bugs": {
-    "url": "https://github.com/ildimas/Helios-Custom-Worlds/issues"
+    "url": "https://github.com/ildimas/Meridian-Launcher/issues"
   },
   "private": true,
   "main": "index.js",
@@ -55,6 +55,6 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ildimas/Helios-Custom-Worlds.git"
+    "url": "git+https://github.com/ildimas/Meridian-Launcher.git"
   }
 }

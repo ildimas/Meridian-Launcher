@@ -1969,7 +1969,7 @@ function renderChangelog(){
  */
 function populateReleaseNotes(){
     $.ajax({
-        url: 'https://github.com/ildimas/Helios-Custom-Worlds/releases.atom',
+        url: 'https://github.com/ildimas/Meridian-Launcher/releases.atom',
         success: (data) => {
             const version = 'v' + remote.app.getVersion()
             const entries = $(data).find('entry')

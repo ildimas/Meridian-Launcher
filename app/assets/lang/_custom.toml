@@ -14,8 +14,8 @@ mediaYouTubeURL = "#"
 mediaDiscordURL = "#"
 
 [ejs.settings]
-sourceGithubLink = "https://github.com/ildimas/Helios-Custom-Worlds"
-supportLink = "https://github.com/ildimas/Helios-Custom-Worlds/issues"
+sourceGithubLink = "https://github.com/ildimas/Meridian-Launcher"
+supportLink = "https://github.com/ildimas/Meridian-Launcher/issues"
 
 [ejs.welcome]
 welcomeHeader = "Welcome aboard"
