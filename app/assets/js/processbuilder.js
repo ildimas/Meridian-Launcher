@@ -464,22 +464,24 @@ class ProcessBuilder {
      */
     _constructJVMArguments113(mods, tempNativePath){
 
-        const argDiscovery = /\${*(.*)}/
+        const argDiscovery = /\$\{([^}]+)\}/g
+        // Loader version_name refers to its profile, vanilla's to the server.
+        // Preserve rule objects until the shared argument-resolution pass.
+        const loaderArguments = list => structuredClone(list || []).map(arg => {
+            const expandVersion = value => value.replaceAll('${version_name}', this.modManifest.id)
+            if(typeof arg === 'string') return expandVersion(arg)
+            arg.value = Array.isArray(arg.value) ? arg.value.map(expandVersion) : expandVersion(arg.value)
+            return arg
+        })
 
         // JVM Arguments First
-        let args = [...this.vanillaManifest.arguments.jvm]
+        let args = structuredClone(this.vanillaManifest.arguments.jvm)
 
         // Debug securejarhandler
         // args.push('-Dbsl.debug=true')
 
         if(this.modManifest.arguments.jvm != null) {
-            for(const argStr of this.modManifest.arguments.jvm) {
-                args.push(argStr
-                    .replaceAll('${library_directory}', this.libPath)
-                    .replaceAll('${classpath_separator}', ProcessBuilder.getClasspathSeparator())
-                    .replaceAll('${version_name}', this.modManifest.id)
-                )
-            }
+            args.push(...loaderArguments(this.modManifest.arguments.jvm))
         }
 
         //args.push('-Dlog4j.configurationFile=D:\\WesterosCraft\\game\\common\\assets\\log_configs\\client-1.12.xml')
@@ -497,41 +499,30 @@ class ProcessBuilder {
         args.push(this.modManifest.mainClass)
 
         // Vanilla Arguments
-        args = args.concat(this.vanillaManifest.arguments.game)
+        args = args.concat(structuredClone(this.vanillaManifest.arguments.game))
+        args = args.concat(loaderArguments(this.modManifest.arguments.game))
 
         for(let i=0; i<args.length; i++){
             if(typeof args[i] === 'object' && args[i].rules != null){
                 
-                let checksum = 0
+                // Rules are ordered: the last matching rule decides. No match
+                // means disallowed, including on a different OS/architecture.
+                let allowed = false
                 for(let rule of args[i].rules){
-                    if(rule.os != null){
-                        if(rule.os.name === getMojangOS()
-                            && (rule.os.version == null || new RegExp(rule.os.version).test(os.release))){
-                            if(rule.action === 'allow'){
-                                checksum++
-                            }
-                        } else {
-                            if(rule.action === 'disallow'){
-                                checksum++
-                            }
-                        }
-                    } else if(rule.features != null){
-                        // We don't have many 'features' in the index at the moment.
-                        // This should be fine for a while.
-                        if(rule.features.has_custom_resolution != null && rule.features.has_custom_resolution === true){
-                            if(ConfigManager.getFullscreen()){
-                                args[i].value = [
-                                    '--fullscreen',
-                                    'true'
-                                ]
-                            }
-                            checksum++
-                        }
-                    }
+                    const matchesOS = rule.os == null || (
+                        (rule.os.name == null || rule.os.name === getMojangOS()) &&
+                        (rule.os.version == null || new RegExp(rule.os.version).test(os.release())) &&
+                        (rule.os.arch == null || new RegExp(rule.os.arch).test(process.arch))
+                    )
+                    const features = { has_custom_resolution: true }
+                    const matchesFeatures = Object.entries(rule.features || {}).every(([name, value]) => (features[name] ?? false) === value)
+                    if(matchesOS && matchesFeatures) allowed = rule.action === 'allow'
                 }
 
-                // TODO splice not push
-                if(checksum === args[i].rules.length){
+                if(allowed){
+                    if(args[i].rules.some(rule => rule.features?.has_custom_resolution === true) && ConfigManager.getFullscreen()){
+                        args[i].value = ['--fullscreen', 'true']
+                    }
                     if(typeof args[i].value === 'string'){
                         args[i] = args[i].value
                     } else if(typeof args[i].value === 'object'){
@@ -546,8 +537,7 @@ class ProcessBuilder {
                 }
 
             } else if(typeof args[i] === 'string'){
-                if(argDiscovery.test(args[i])){
-                    const identifier = args[i].match(argDiscovery)[1]
+                args[i] = args[i].replace(argDiscovery, (placeholder, identifier) => {
                     let val = null
                     switch(identifier){
                         case 'auth_player_name':
@@ -585,22 +575,26 @@ class ProcessBuilder {
                             val = ConfigManager.getGameHeight()
                             break
                         case 'natives_directory':
-                            val = args[i].replace(argDiscovery, tempNativePath)
+                            val = tempNativePath
+                            break
+                        case 'library_directory':
+                            val = this.libPath
+                            break
+                        case 'classpath_separator':
+                            val = ProcessBuilder.getClasspathSeparator()
                             break
                         case 'launcher_name':
-                            val = args[i].replace(argDiscovery, 'Meridian')
+                            val = 'Meridian'
                             break
                         case 'launcher_version':
-                            val = args[i].replace(argDiscovery, this.launcherVersion)
+                            val = this.launcherVersion
                             break
                         case 'classpath':
                             val = this.classpathArg(mods, tempNativePath).join(ProcessBuilder.getClasspathSeparator())
                             break
                     }
-                    if(val != null){
-                        args[i] = val
-                    }
-                }
+                    return val ?? placeholder
+                })
             }
         }
 
@@ -610,9 +604,6 @@ class ProcessBuilder {
         // Proxy
         args = args.concat(ProxyManager.getGameArgs(ConfigManager.getProxy()))
         
-
-        // Forge Specific Arguments
-        args = args.concat(this.modManifest.arguments.game)
 
         // Filter null values
         args = args.filter(arg => {
