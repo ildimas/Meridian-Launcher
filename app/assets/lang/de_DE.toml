@@ -550,6 +550,7 @@ latestVersionTitle = "Du nutzt die neueste Version"
 checkForUpdatesButton = "Nach Updates suchen"
 checkingForUpdatesButton = "Suche nach Updates…"
 managedExternallyTitle = "Updates kommen über deinen Paketmanager"
+managedExternallyNewTitle = "Version {version} ist da: aktualisiere über deinen Paketmanager"
 
 [js.settings.msftLogin]
 errorTitle = "Microsoft-Anmeldung fehlgeschlagen"
@@ -587,6 +588,9 @@ failedDesc = "Prüfe die Verbindung und versuche es erneut."
 failedOk = "OK"
 installFailedTitle = "Update konnte nicht installiert werden"
 installFailedDesc = "Der Paketmanager hat es abgelehnt. Versuche es später erneut oder installiere die neue Version von GitHub."
+externalTitle = "Meridian {version} ist da"
+externalDesc = "Aktualisiere ihn über deinen Paketmanager."
+externalNotes = "Was ist neu"
 
 [js.auth.offline]
 invalidNameTitle = "Ungültiger Spielername"

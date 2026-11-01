@@ -4843,7 +4843,8 @@ body[settingsOpen] #wallpaper .wpImg {
     border-color: rgba(125, 180, 230, 0.45);
 }
 /* Tells the player a pack they have got a new version. */
-#packUpdateToast {
+#packUpdateToast,
+#launcherUpdateToast {
     position: absolute;
     top: calc(var(--edge) + 60px);
     right: var(--edge);
@@ -4863,11 +4864,13 @@ body[settingsOpen] #wallpaper .wpImg {
     transform: translateY(-8px);
     transition: opacity 300ms var(--ease-out), transform 300ms var(--ease-out);
 }
-#packUpdateToast.packUpdateShown {
+#packUpdateToast.packUpdateShown,
+#launcherUpdateToast.packUpdateShown {
     opacity: 1;
     transform: none;
 }
-#packUpdateToast[hidden] {
+#packUpdateToast[hidden],
+#launcherUpdateToast[hidden] {
     display: none;
 }
 .packUpdateIcon {

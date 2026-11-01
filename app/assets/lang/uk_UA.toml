@@ -550,6 +550,7 @@ latestVersionTitle = "У вас остання версія"
 checkForUpdatesButton = "Перевірити оновлення"
 checkingForUpdatesButton = "Перевіряємо оновлення…"
 managedExternallyTitle = "Оновлення надходять через пакетний менеджер"
+managedExternallyNewTitle = "Вийшла версія {version}: оновіть її через пакетний менеджер"
 
 [js.settings.msftLogin]
 errorTitle = "Не вдалося увійти через Microsoft"
@@ -587,6 +588,9 @@ failedDesc = "Перевірте інтернет і спробуйте ще р�
 failedOk = "OK"
 installFailedTitle = "Не вдалося встановити оновлення"
 installFailedDesc = "Пакетний менеджер його не прийняв. Спробуйте пізніше або встановіть нову версію з GitHub."
+externalTitle = "Вийшов Meridian {version}"
+externalDesc = "Оновіть його через пакетний менеджер."
+externalNotes = "Що нового"
 
 [js.auth.offline]
 invalidNameTitle = "Неприпустиме ім'я гравця"

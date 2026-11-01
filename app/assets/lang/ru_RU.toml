@@ -558,6 +558,7 @@ latestVersionTitle = "У вас последняя версия"
 checkForUpdatesButton = "Проверить обновления"
 checkingForUpdatesButton = "Проверяем обновления…"
 managedExternallyTitle = "Обновления приходят через пакетный менеджер"
+managedExternallyNewTitle = "Вышла версия {version}: обновите её через пакетный менеджер"
 
 [js.settings.msftLogin]
 errorTitle = "Не удалось войти через Microsoft"
@@ -595,6 +596,9 @@ failedDesc = "Проверьте интернет и попробуйте сно
 failedOk = "OK"
 installFailedTitle = "Не удалось установить обновление"
 installFailedDesc = "Пакетный менеджер не принял его. Попробуйте позже или установите новую версию с GitHub."
+externalTitle = "Вышел Meridian {version}"
+externalDesc = "Обновите его через пакетный менеджер."
+externalNotes = "Что нового"
 
 [js.auth.offline]
 invalidNameTitle = "Недопустимое имя игрока"

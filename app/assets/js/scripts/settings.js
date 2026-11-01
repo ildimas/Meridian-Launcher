@@ -2036,8 +2036,10 @@ function populateSettingsUpdateInformation(data){
             startUpdateDownload(data)
         })
     } else if(UpdatePolicy.isManagedExternally()){
-        settingsUpdateTitle.innerHTML = Lang.queryJS('settings.updates.managedExternallyTitle')
-        settingsUpdateTitle.removeAttribute('available')
+        settingsUpdateTitle.innerHTML = launcherRelease != null
+            ? Lang.queryJS('settings.updates.managedExternallyNewTitle', { version: launcherRelease.version })
+            : Lang.queryJS('settings.updates.managedExternallyTitle')
+        settingsUpdateTitle.toggleAttribute('available', launcherRelease != null)
         settingsUpdateActionButton.style.display = 'none'
     } else {
         settingsUpdateTitle.innerHTML = Lang.queryJS('settings.updates.latestVersionTitle')

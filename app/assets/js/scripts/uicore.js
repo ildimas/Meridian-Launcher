@@ -11,6 +11,7 @@ const remote                         = require('@electron/remote')
 const isDev                          = require('./assets/js/isdev')
 const isTilingWM                     = require('./assets/js/tilingwm')
 const UpdatePolicy                   = require('./assets/js/updatepolicy')
+const LauncherUpdates                = require('./assets/js/launcherupdates')
 const { LoggerUtil }                 = require('helios-core')
 const Lang                           = require('./assets/js/langloader')
 
@@ -139,6 +140,62 @@ function showUpdateUI(info){
             settingsNavItemListener(document.getElementById('settingsNavAbout'), false)
         })
     }
+}
+
+// A package manager updates this install (updatepolicy.js): a new version is
+// only announced. The check runs once the launcher is up, then every 6 hours,
+// and stays quiet offline.
+const LAUNCHER_RELEASES = { firstMs: 5000, everyMs: 6 * 60 * 60 * 1000 }
+// The newer release found, for the About tab.
+let launcherRelease = null
+
+function watchLauncherReleases(){
+    const check = () => LauncherUpdates.findNewer(remote.app.getVersion(), ConfigManager.getAllowPrerelease())
+        .then(release => {
+            if(release == null){
+                return
+            }
+            loggerAutoUpdater.info('New version available', release.version)
+            launcherRelease = release
+            showUpdateUI(release)
+            if(settingsUpdateInfo == null){
+                populateSettingsUpdateInformation(null)
+            }
+            if(ConfigManager.getDismissedLauncherUpdate() !== release.version){
+                showLauncherUpdateToast(release)
+            }
+        })
+        .catch(err => loggerAutoUpdater.info('Unable to check for a new version.', err.code || err.message))
+    setTimeout(check, LAUNCHER_RELEASES.firstMs)
+    setInterval(check, LAUNCHER_RELEASES.everyMs)
+}
+
+/**
+ * Say a new launcher version is out. Waits while the pack notice takes the
+ * same corner; closing it hides this version for good.
+ *
+ * @param {{version: string, url: string}} release The newer release.
+ */
+function showLauncherUpdateToast(release){
+    if(!document.getElementById('packUpdateToast').hidden){
+        setTimeout(() => showLauncherUpdateToast(release), 5000)
+        return
+    }
+    const toast = document.getElementById('launcherUpdateToast')
+    toast.querySelector('.packUpdateTitle').textContent = Lang.queryJS('uicore.autoUpdate.externalTitle', { version: release.version })
+    toast.querySelector('.packUpdateText').textContent = Lang.queryJS('uicore.autoUpdate.externalDesc')
+    const notes = toast.querySelector('.packUpdateOpen')
+    notes.textContent = Lang.queryJS('uicore.autoUpdate.externalNotes')
+    notes.onclick = () => shell.openExternal(release.url)
+    toast.querySelector('.packUpdateClose').onclick = () => {
+        ConfigManager.setDismissedLauncherUpdate(release.version)
+        ConfigManager.save()
+        toast.classList.remove('packUpdateShown')
+        setTimeout(() => { toast.hidden = true }, 320)
+    }
+    toast.hidden = false
+    void toast.offsetWidth
+    toast.classList.add('packUpdateShown')
 }
 
 // The version the player was already asked about; "Later" holds until the

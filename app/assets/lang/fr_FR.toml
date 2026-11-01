@@ -550,6 +550,7 @@ latestVersionTitle = "Vous utilisez la dernière version"
 checkForUpdatesButton = "Rechercher des mises à jour"
 checkingForUpdatesButton = "Recherche de mises à jour…"
 managedExternallyTitle = "Les mises à jour passent par votre gestionnaire de paquets"
+managedExternallyNewTitle = "La version {version} est disponible : mettez à jour avec votre gestionnaire de paquets"
 
 [js.settings.msftLogin]
 errorTitle = "Échec de la connexion Microsoft"
@@ -587,6 +588,9 @@ failedDesc = "Vérifiez la connexion et réessayez."
 failedOk = "OK"
 installFailedTitle = "Impossible d'installer la mise à jour"
 installFailedDesc = "Le gestionnaire de paquets l'a refusée. Réessayez plus tard ou installez la nouvelle version depuis GitHub."
+externalTitle = "Meridian {version} est disponible"
+externalDesc = "Mettez-le à jour avec votre gestionnaire de paquets."
+externalNotes = "Nouveautés"
 
 [js.auth.offline]
 invalidNameTitle = "Nom de joueur invalide"
