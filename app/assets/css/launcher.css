@@ -429,7 +429,7 @@ select:focus-visible,
     background: #a3202e !important;
 }
 
-/* Tiling compositors (Hyprland) move, size and close windows themselves:
+/* Tiling compositors (Hyprland, sway, niri…) move, size and close windows themselves:
    no frame bar, the views take the whole window. */
 :root[tilingwm] {
     --frame-height: 0px;
