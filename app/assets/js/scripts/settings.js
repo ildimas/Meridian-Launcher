@@ -2151,6 +2151,7 @@ async function renderAppearanceTab(){
     const appearance = ConfigManager.getAppearance()
     setSegment('apInterval', String(appearance.interval))
     document.getElementById('apMotion').checked = appearance.motion !== false
+    document.getElementById('apSplash').checked = appearance.splash !== false
 
     const servers = await getAppearanceServers()
     if(!servers.some(s => s.rawServer.id === apPreviewServer)){
@@ -2376,6 +2377,7 @@ function prepareAppearanceTab(){
         btn.onclick = () => setAppearance({ interval: Number(btn.value) })
     }
     document.getElementById('apMotion').onchange = e => setAppearance({ motion: e.target.checked })
+    document.getElementById('apSplash').onchange = e => setAppearance({ splash: e.target.checked })
 
     document.getElementById('apArtAll').onclick = () => {
         apArtExpanded = !apArtExpanded

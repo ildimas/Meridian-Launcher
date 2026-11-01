@@ -21,9 +21,8 @@
     // Scenes still to play this round, in order.
     const STORE_DECK = 'meridian.splash.deck'
     const STORE_FORCE = 'meridian.splash.force'
-    // Every scene's entrance has played out by then (the mark is built); what
-    // follows is detail the launcher fades in over.
-    const MIN_SHOW_MS = 1600
+    // Every scene has played out by then, its last details included.
+    const MIN_SHOW_MS = 2600
 
     // Brand palette, same values as logo.svg.
     const P = {
@@ -722,14 +721,16 @@
 
     window.MeridianSplash = { play, stop, remaining, scenes: Object.keys(SCENES) }
 
-    // Reloaded to change the language: go straight back to the launcher.
+    // Reloaded to change the language: go straight back to the launcher. The
+    // animation can also be turned off (Settings, Appearance): the launcher
+    // then opens as soon as it's ready.
     let reopening
     try {
         reopening = sessionStorage.getItem('meridian.reopen') != null
     } catch {
         reopening = false
     }
-    if(reopening){
+    if(reopening || ConfigManager.getAppearance().splash === false){
         container.style.display = 'none'
     } else {
         play(pickScene())

@@ -100,6 +100,7 @@ const DEFAULT_CONFIG = {
             appearance: {
                 interval: 30, // Seconds each picture stays.
                 motion: true,
+                splash: true, // The startup animation; off opens the launcher as soon as it's ready.
                 serverPicker: 'dial', // dial | dropdown
                 // Per server id: { hidden: [picture keys left out], added: [picture paths] }.
                 packs: {},
