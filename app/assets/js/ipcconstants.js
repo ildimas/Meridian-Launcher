@@ -10,7 +10,10 @@ exports.MSFT_OPCODE = {
     OPEN_LOGIN: 'MSFT_AUTH_OPEN_LOGIN',
     OPEN_LOGOUT: 'MSFT_AUTH_OPEN_LOGOUT',
     REPLY_LOGIN: 'MSFT_AUTH_REPLY_LOGIN',
-    REPLY_LOGOUT: 'MSFT_AUTH_REPLY_LOGOUT'
+    REPLY_LOGOUT: 'MSFT_AUTH_REPLY_LOGOUT',
+    // Sign-in continues in the system browser (browserlogin.js).
+    REPLY_BROWSER: 'MSFT_AUTH_REPLY_BROWSER',
+    CANCEL_LOGIN: 'MSFT_AUTH_CANCEL_LOGIN'
 }
 // Reply types for REPLY opcode.
 exports.MSFT_REPLY_TYPE = {

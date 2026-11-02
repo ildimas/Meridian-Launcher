@@ -424,7 +424,17 @@ document.getElementById('settingsAddMicrosoftAccount').onclick = (e) => {
 }
 
 // Bind reply for Microsoft Login.
+// Sign-in continues in the system browser: the waiting view can cancel it.
+const waitingBrowser = document.getElementById('waitingBrowser')
+ipcRenderer.on(MSFT_OPCODE.REPLY_BROWSER, () => {
+    $(waitingBrowser).fadeIn(200)
+})
+document.getElementById('waitingCancelButton').onclick = () => {
+    ipcRenderer.send(MSFT_OPCODE.CANCEL_LOGIN)
+}
+
 ipcRenderer.on(MSFT_OPCODE.REPLY_LOGIN, (_, ...arguments_) => {
+    $(waitingBrowser).hide()
     if (arguments_[0] === MSFT_REPLY_TYPE.ERROR) {
 
         const viewOnClose = arguments_[2]
@@ -479,7 +489,11 @@ ipcRenderer.on(MSFT_OPCODE.REPLY_LOGIN, (_, ...arguments_) => {
             msftLoginLogger.info('Acquired authCode, proceeding with authentication.')
 
             const authCode = queryMap.code
-            AuthManager.addMicrosoftAccount(authCode).then(value => {
+            const browserLogin = queryMap.code_verifier == null ? undefined : {
+                redirectUri: queryMap.redirect_uri,
+                codeVerifier: queryMap.code_verifier
+            }
+            AuthManager.addMicrosoftAccount(authCode, browserLogin).then(value => {
                 updateSelectedAccount(value)
                 switchView(getCurrentView(), viewOnClose, 500, 500, async () => {
                     await prepareSettings()

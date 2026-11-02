@@ -230,6 +230,8 @@ languageHelp = "Help translate"
 
 [ejs.waiting]
 waitingText = "Waiting for Microsoft…"
+browserText = "Continue signing in in your browser."
+cancelButton = "Cancel"
 
 [ejs.welcome]
 continueButton = "CONTINUE"
@@ -242,6 +244,8 @@ state = "Server: {shortId}"
 [js.index]
 microsoftLoginTitle = "Microsoft sign-in"
 microsoftLogoutTitle = "Microsoft sign-out"
+browserLoginDoneTitle = "Signed in"
+browserLoginDoneText = "You can close this tab and return to Meridian."
 
 [js.login]
 login = "SIGN IN"

@@ -224,6 +224,8 @@ languageHelp = "Ayudar a traducir"
 
 [ejs.waiting]
 waitingText = "Esperando a Microsoft.."
+browserText = "Continúa el inicio de sesión en tu navegador."
+cancelButton = "Cancelar"
 
 [ejs.welcome]
 continueButton = "CONTINUAR"
@@ -239,6 +241,8 @@ state = "Servidor: {shortId}"
 [js.index]
 microsoftLoginTitle = "Inicio de sesión de Microsoft"
 microsoftLogoutTitle = "Cierre de sesión de Microsoft"
+browserLoginDoneTitle = "Sesión iniciada"
+browserLoginDoneText = "Puedes cerrar esta pestaña y volver a Meridian."
 
 [js.login]
 login = "INICIAR SESIÓN"

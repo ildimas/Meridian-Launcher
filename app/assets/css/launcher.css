@@ -1106,6 +1106,13 @@ select:focus-visible,
 #waitingTextContainer {
     position: fixed;
     top: 50%;
+    text-align: center;
+}
+
+#waitingBrowser p {
+    margin: 0 0 12px;
+    color: var(--text-2);
+    font-size: 13px;
 }
 
 @keyframes rotateBefore {

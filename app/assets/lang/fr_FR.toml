@@ -223,6 +223,8 @@ languageHelp = "Aider à traduire"
 
 [ejs.waiting]
 waitingText = "En attente de Microsoft…"
+browserText = "Poursuivez la connexion dans votre navigateur."
+cancelButton = "Annuler"
 
 [ejs.welcome]
 continueButton = "CONTINUER"
@@ -237,6 +239,8 @@ state = "Serveur : {shortId}"
 [js.index]
 microsoftLoginTitle = "Connexion Microsoft"
 microsoftLogoutTitle = "Déconnexion Microsoft"
+browserLoginDoneTitle = "Connexion réussie"
+browserLoginDoneText = "Vous pouvez fermer cet onglet et revenir à Meridian."
 
 [js.login]
 login = "SE CONNECTER"

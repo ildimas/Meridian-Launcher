@@ -18,6 +18,9 @@ Authenticating with Microsoft is fully supported by Helios Launcher.
     - Select **Mobile and desktop applications**.
     - Choose `https://login.microsoftonline.com/common/oauth2/nativeclient` as the **Redirect URI**.
     - Select **Configure** to finish adding the platform.
+    - Under the new platform, add `http://localhost` as another **Redirect URI** and save. Microsoft ignores the port of a localhost redirect, so the launcher can listen on any free one.
+
+    With `http://localhost` registered, the launcher signs in in the system browser, where the player is usually signed in to Microsoft already. Without it, the launcher detects that Microsoft refuses the redirect and uses its own login window, as before.
 8. Go to **Certificates & secrets**.
     - Select **Client secrets**.
     - Click **New client secret**.

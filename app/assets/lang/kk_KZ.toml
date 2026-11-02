@@ -223,6 +223,8 @@ languageHelp = "Аударуға көмектесу"
 
 [ejs.waiting]
 waitingText = "Microsoft-ты күтіп жатырмыз…"
+browserText = "Браузерде кіруді жалғастырыңыз."
+cancelButton = "Бас тарту"
 
 [ejs.welcome]
 continueButton = "ЖАЛҒАСТЫРУ"
@@ -237,6 +239,8 @@ state = "Сервер: {shortId}"
 [js.index]
 microsoftLoginTitle = "Microsoft-қа кіру"
 microsoftLogoutTitle = "Microsoft-тан шығу"
+browserLoginDoneTitle = "Кіру орындалды"
+browserLoginDoneText = "Бұл қойындыны жауып, Meridian-ға орала аласыз."
 
 [js.login]
 login = "КІРУ"

@@ -230,6 +230,8 @@ languageHelp = "Помочь с переводом"
 
 [ejs.waiting]
 waitingText = "Ожидаем Microsoft…"
+browserText = "Продолжите вход в браузере."
+cancelButton = "Отмена"
 
 [ejs.welcome]
 continueButton = "ПРОДОЛЖИТЬ"
@@ -245,6 +247,8 @@ state = "Сервер: {shortId}"
 [js.index]
 microsoftLoginTitle = "Вход в Microsoft"
 microsoftLogoutTitle = "Выход из Microsoft"
+browserLoginDoneTitle = "Вход выполнен"
+browserLoginDoneText = "Эту вкладку можно закрыть и вернуться в Meridian."
 
 [js.login]
 login = "ВОЙТИ"
