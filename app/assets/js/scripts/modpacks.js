@@ -164,7 +164,11 @@ function mpStopWatch(){
  * @param {{watching?: boolean, timedOut?: boolean, found?: number, error?: string}} view
  */
 function mpShowResult(server, missing, view = {}){
-    const select = { label: Lang.queryJS('settings.modpacks.select'), run: () => mpSelect(server.id) }
+    const select = { label: Lang.queryJS('settings.modpacks.select'), run: () => {
+        mpSelect(server.id)
+        // From the version view, show the new pack on the main screen.
+        if(getCurrentView() === VIEWS.version) closeVersionView()
+    } }
     const restricted = server.restricted || []
     const total = server.missingTotal || missing.length
     const title = missing.length > 0
@@ -271,8 +275,14 @@ async function mpRun(name, job){
         return
     }
     mpSetBusy(true)
+    // The progress shows where the install was started: Modpacks, or the
+    // Minecraft version view.
+    const fromVersion = getCurrentView() === VIEWS.version
+    const scroller = fromVersion ? mpEl('versionBody') : mpEl('settingsTabModpacks')
+    if(fromVersion) mpEl('versionBody').prepend(mpEl('mpTask'))
+    else mpEl('mpContainer').prepend(mpEl('mpTask'))
     mpShowTask(Lang.queryJS('settings.modpacks.installing', { name }))
-    mpEl('settingsTabModpacks').scrollTo({ top: 0, behavior: 'smooth' })
+    scroller.scrollTo({ top: 0, behavior: 'smooth' })
     try {
         const server = await job(mpProgress)
         await mpAfterChange()
@@ -285,7 +295,7 @@ async function mpRun(name, job){
             mpAskKey(name, job, keyError)
         } else {
             mpEndTask('error', Lang.queryJS('settings.modpacks.failed', { name }), mpErrorText(err),
-                err.file != null ? { label: Lang.queryJS('settings.modpacks.chooseVersion'), run: () => mpAttachFiles(err.file, err.found) } : null)
+                err.file != null ? { label: Lang.queryJS('settings.modpacks.chooseVersion'), run: () => openVersionView(() => mpAttachFiles(err.file, err.found)) } : null)
         }
     } finally {
         mpSetBusy(false)
@@ -652,28 +662,19 @@ function mpPackDetails(raw, compact = false){
 }
 
 /**
- * Open the pack's folder, and remove it unless it's a default pack: those
- * come from distribution.json and the server would bring them back.
+ * Open the pack's folder, e.g. to drop config files in. Removing a pack is
+ * in its view.
  */
 function mpFileButtons(raw){
-    const buttons = [mpIconButton('', Lang.queryJS('settings.modpacks.openFolder'), MP_FOLDER_SVG, () => {
+    return [mpIconButton('', Lang.queryJS('settings.modpacks.openFolder'), MP_FOLDER_SVG, () => {
         const dir = ModpackManager.instanceDir(raw.id)
         DropinModUtil.validateDir(dir)
         shell.openPath(dir)
     })]
-    if(raw.local != null){
-        buttons.push(mpIconButton('mpRemove', Lang.queryJS('settings.modpacks.remove'), MP_REMOVE_SVG, () => {
-            mpMenu.open = false
-            mpConfirmRemove(raw)
-        }))
-    }
-    return buttons
 }
 
 /**
- * The selected pack's card. The default packs come from distribution.json,
- * so their files can be opened but they can't be removed: the server would
- * bring them back.
+ * The selected pack's card: its folder, its view, and the list of the others.
  */
 function mpRenderPackCard(box, raw, appearance){
     const card = document.createElement('div')
@@ -692,7 +693,15 @@ function mpRenderPackCard(box, raw, appearance){
     const actions = document.createElement('div')
     actions.className = 'mpPackActions'
     if(raw != null){
-        actions.append(...mpFileButtons(raw))
+        const open = document.createElement('button')
+        open.type = 'button'
+        open.className = 'settingsSwitchServerButton'
+        open.textContent = Lang.queryJS('settings.modpacks.openPack')
+        open.onclick = (e) => {
+            e.stopPropagation()
+            openPackView()
+        }
+        actions.append(...mpFileButtons(raw), open)
     }
     const toggle = document.createElement('button')
     toggle.type = 'button'
@@ -712,8 +721,8 @@ function mpRenderPackCard(box, raw, appearance){
 }
 
 /**
- * Every pack, hidden ones too: a click selects it, the eye hides it from
- * the pack pickers, the folder and bin work as on the card.
+ * Every pack, hidden ones too: a click selects it and opens its view, the
+ * eye hides it from the pack pickers, the folder works as on the card.
  */
 function mpRenderPackMenu(box, packs, appearance, selected){
     const menu = document.createElement('div')
@@ -730,10 +739,10 @@ function mpRenderPackMenu(box, packs, appearance, selected){
         const tile = document.createElement('span')
         tile.className = 'serverListTile'
         paintServerTile(tile, raw, appearance, 'serverListTile')
-        const pick = () => {
+        const pick = async () => {
             mpMenu.open = false
-            if(raw.id === selected) mpRenderInstalled()
-            else mpSelect(raw.id)
+            if(raw.id !== selected) await mpSelect(raw.id)
+            openPackView()
         }
         row.onclick = pick
         row.onkeydown = (e) => {
@@ -745,8 +754,6 @@ function mpRenderPackMenu(box, packs, appearance, selected){
         const actions = document.createElement('div')
         actions.className = 'mpPackActions'
         actions.append(mpHideButton(raw), ...mpFileButtons(raw))
-        // Without a remove button the default pack's buttons still line up.
-        if(raw.local == null) actions.appendChild(mpSpan('mpActionGap', ''))
         row.append(tile, mpPackDetails(raw, true), actions)
         menu.appendChild(row)
     }
@@ -1102,21 +1109,6 @@ function mpCropIcon(data, ext){
     })
 }
 
-function mpConfirmRemove(raw){
-    setOverlayContent(
-        Lang.queryJS('settings.modpacks.removeTitle', { name: escapeSettingsHTML(raw.name) }),
-        Lang.queryJS('settings.modpacks.removeDesc'),
-        Lang.queryJS('settings.modpacks.removeConfirm'),
-        Lang.queryJS('settings.modpacks.removeCancel')
-    )
-    setOverlayHandler(async () => {
-        toggleOverlay(false)
-        await mpRemove(raw)
-    })
-    setDismissHandler(null)
-    toggleOverlay(true, true)
-}
-
 async function mpRemove(raw){
     // Move off the pack while it still exists, so its settings are saved
     // before its folder goes and the settings tabs show the next pack.
@@ -1140,7 +1132,12 @@ async function mpRemove(raw){
         error = Lang.queryJS('settings.modpacks.errors.generic', { message: escapeSettingsHTML(err.message || String(err)) })
     }
     await mpAfterChange()
-    if(error != null){
+    if(error != null && getCurrentView() !== VIEWS.settings){
+        setOverlayContent(Lang.queryJS('settings.modpacks.removeFailed', { name: escapeSettingsHTML(raw.name) }), error, Lang.queryJS('settings.modpacks.removeCancel'))
+        setOverlayHandler(null)
+        toggleOverlay(true)
+    } else if(error != null){
+        mpEl('mpContainer').prepend(mpEl('mpTask'))
         mpEl('mpTask').hidden = false
         mpEndTask('error', Lang.queryJS('settings.modpacks.removeFailed', { name: raw.name }), error, null, fs.existsSync(dir) ? {
             label: Lang.queryJS('settings.modpacks.openFolder'),
@@ -1148,6 +1145,25 @@ async function mpRemove(raw){
         } : null)
         mpEl('settingsTabModpacks').scrollTo({ top: 0, behavior: 'smooth' })
     }
+}
+
+/**
+ * Move a server pack's folder to the trash. The pack stays in the list:
+ * its files come back on the next launch.
+ *
+ * @returns {Promise.<string|null>} Why it failed, or null.
+ */
+async function mpRemoveFiles(raw){
+    const dir = ModpackManager.instanceDir(raw.id)
+    if(!await fs.pathExists(dir)){
+        return null
+    }
+    const res = await ipcRenderer.invoke(MP_SHELL_OPCODE.TRASH_ITEM, dir)
+    if(res.result){
+        return null
+    }
+    console.error('Unable to move the pack folder to the trash.', res.error)
+    return Lang.queryJS('settings.modpacks.trashFailed', { path: escapeSettingsHTML(dir), message: escapeSettingsHTML(res.error && res.error.message ? res.error.message : String(res.error)) })
 }
 
 /* Import */
@@ -1606,18 +1622,51 @@ function mpBindBrowse(){
 let mpOpened = false
 
 /**
- * Called when the tab is shown; loads the lists the first time.
+ * Called when the tab is shown; searches the first time.
  */
 function mpOnShow(){
     mpRenderInstalled()
     if(!mpOpened){
         mpOpened = true
-        mpLoadVersions()
         mpSearch()
     }
 }
+
+/**
+ * Called when the Minecraft version view opens; lists the versions until
+ * that worked once.
+ */
+function mpOnVersionShow(){
+    mpLoadVersions()
+}
+
+/**
+ * Open the Minecraft version view, from the main screen's add menu.
+ *
+ * @param {function} then Called once it shows, e.g. to attach pack files.
+ */
+function openVersionView(then = () => {}){
+    if(getCurrentView() === VIEWS.settings){
+        fullSettingsSave()
+    }
+    switchView(getCurrentView(), VIEWS.version, 500, 500, () => mpOnVersionShow(), then)
+}
+
+function closeVersionView(){
+    switchView(getCurrentView(), VIEWS.landing)
+}
+
+document.getElementById('versionBack').onclick = closeVersionView
+document.addEventListener('keydown', (e) => {
+    if(e.key === 'Escape' && getCurrentView() === VIEWS.version && !isOverlayVisible() && !e.defaultPrevented){
+        e.preventDefault()
+        closeVersionView()
+    }
+})
 
 mpBindImport()
 mpBindVersion()
 mpBindBrowse()
 document.querySelector('.settingsNavItem[rSc="settingsTabModpacks"]').addEventListener('click', mpOnShow)
+// The folders are on Interface; they are drawn with the installed packs.
+document.getElementById('settingsNavAppearance').addEventListener('click', mpRenderInstalled)

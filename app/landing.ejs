@@ -51,7 +51,7 @@
                         <div id="accountMenu" role="menu" tabindex="-1" aria-label="<%- lang('landing.accountsHeading') %>">
                             <div class="serverMenuHeading"><span><%- lang('landing.accountsHeading') %></span><button type="button" id="accountMenuManage" class="apLink"><%- lang('landing.accountsManage') %></button></div>
                             <div id="accountMenuList"></div>
-                            <button type="button" id="accountMenuAdd" role="menuitem">
+                            <button type="button" id="accountMenuAdd" class="menuAddButton" role="menuitem">
                                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
                                 <span><%- lang('landing.accountsAdd') %></span>
                             </button>
@@ -131,6 +131,7 @@
         <div id="serverHero">
             <span id="serverHeroLabel"><%- lang('landing.serverHeroLabel') %></span>
             <span id="serverHeroName"><%- lang('landing.serverHeroLoading') %></span>
+            <span id="serverHeroAddHint"><%- lang('landing.addHint') %></span>
             <div id="serverHeroMeta">
                 <span class="heroChip" id="serverHeroVersion"></span>
                 <span class="heroChip" id="serverHeroLoader"></span>
@@ -212,7 +213,29 @@
                 <div id="serverMenuList">
                     <!-- Server rows are populated here. -->
                 </div>
+                <button type="button" id="serverMenuAdd" class="menuAddButton">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                    <span><%- lang('landing.addTile') %></span>
+                </button>
             </div>
+        </div>
+        <%# Opens from the dial's + tile, the list's last row and Play while + is turned to. %>
+        <div id="addMenu" role="menu" tabindex="-1" aria-label="<%- lang('landing.addHeading') %>">
+            <div class="serverMenuHeading"><%- lang('landing.addHeading') %></div>
+            <button type="button" class="addMenuItem" role="menuitem" data-add="modpack">
+                <span class="addMenuIcon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z M4 7.5l8 4.5 8-4.5 M12 12v9"/></svg></span>
+                <span class="serverListText">
+                    <span class="serverListName"><%- lang('landing.addModpack') %></span>
+                    <span class="serverListMeta"><%- lang('landing.addModpackDesc') %></span>
+                </span>
+            </button>
+            <button type="button" class="addMenuItem" role="menuitem" data-add="version">
+                <span class="addMenuIcon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4z M4 10h16 M10 10v10"/></svg></span>
+                <span class="serverListText">
+                    <span class="serverListName"><%- lang('landing.addVersion') %></span>
+                    <span class="serverListMeta"><%- lang('landing.addVersionDesc') %></span>
+                </span>
+            </button>
         </div>
         <button id="launch_button">
             <span id="launch_content">

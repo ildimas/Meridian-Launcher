@@ -1,5 +1,5 @@
-<div id="packContainer" style="display: none;">
-    <header id="packHeader">
+<div id="packContainer" class="sheetView" style="display: none;">
+    <header id="packHeader" class="sheetHeader">
         <button id="packBack" class="packRoundButton" aria-label="<%- lang('pack.back') %>" title="<%- lang('pack.back') %>">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
         </button>
@@ -51,6 +51,13 @@
                         <button class="mpButton mpButtonQuiet" data-open="logs"><%- lang('pack.openLogs') %></button>
                         <button class="mpButton mpButtonQuiet" data-open="crash-reports"><%- lang('pack.openCrashReports') %></button>
                         <button class="mpButton mpButtonQuiet" data-open="saves"><%- lang('pack.openSaves') %></button>
+                    </div>
+                </section>
+                <section class="packCard packCardWide" id="packRemoveCard">
+                    <h2 class="packCardTitle"><%- lang('pack.removeTitle') %></h2>
+                    <div class="packRemoveRow">
+                        <p class="packCardNote" id="packRemoveNote"></p>
+                        <button class="mpButton mpButtonQuiet packRemoveButton" id="packRemove"></button>
                     </div>
                 </section>
             </div>

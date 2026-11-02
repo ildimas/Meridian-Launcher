@@ -733,6 +733,8 @@ const packJavaInput = document.getElementById('settingsJavaExecVal')
 
 const packView = {
     serverId: null,
+    // The view to go back to: the main screen or Settings → Modpacks.
+    returnTo: VIEWS.landing,
     tab: 'packPanelOverview',
     // Groups the pack sets itself, as toggled on the Settings tab.
     own: { memory: false, window: false, jvm: false },
@@ -956,6 +958,46 @@ function renderPackHeader(server){
 
     const launch = document.getElementById('launch_button')
     document.getElementById('packPlay').disabled = launch.disabled
+
+    // Own packs go entirely; a server pack only loses its files, the server
+    // brings it back and they download again on launch.
+    const remove = document.getElementById('packRemove')
+    const running = isServerRunning(raw.id)
+    remove.textContent = Lang.queryJS(local ? 'pack.removePack' : 'pack.removeFiles')
+    remove.disabled = running
+    document.getElementById('packRemoveNote').textContent = Lang.queryJS(running ? 'pack.removeRunning' : local ? 'pack.removePackNote' : 'pack.removeFilesNote')
+}
+
+document.getElementById('packRemove').onclick = async () => {
+    const server = (await DistroAPI.getDistribution()).getServerById(packView.serverId)
+    if(server == null) return
+    const raw = server.rawServer
+    const local = LocalPacks.isLocal(raw)
+    setOverlayContent(
+        Lang.queryJS(local ? 'settings.modpacks.removeTitle' : 'pack.removeFilesTitle', { name: escapeSettingsHTML(raw.name) }),
+        Lang.queryJS(local ? 'settings.modpacks.removeDesc' : 'pack.removeFilesDesc'),
+        Lang.queryJS(local ? 'settings.modpacks.removeConfirm' : 'pack.removeFilesConfirm'),
+        Lang.queryJS('settings.modpacks.removeCancel')
+    )
+    setOverlayHandler(async () => {
+        toggleOverlay(false)
+        // Leave first, so the view doesn't show the pack while it goes.
+        packView.returnTo = VIEWS.landing
+        closePackView()
+        if(local){
+            await mpRemove(raw)
+            return
+        }
+        const error = await mpRemoveFiles(raw)
+        await refreshPackInstalled()
+        if(error != null){
+            setOverlayContent(Lang.queryJS('pack.removeFilesFailed', { name: escapeSettingsHTML(raw.name) }), error, Lang.queryJS('settings.modpacks.removeCancel'))
+            setOverlayHandler(null)
+            toggleOverlay(true)
+        }
+    })
+    setDismissHandler(null)
+    toggleOverlay(true, true)
 }
 
 /**
@@ -1068,16 +1110,22 @@ function savePackView(){
 }
 
 /**
- * Open the view for the selected pack.
+ * Open the view for the selected pack, from the main screen or settings.
  */
 function openPackView(){
     if(document.getElementById('landingContainer').hasAttribute('launching')) return
+    packView.returnTo = getCurrentView() === VIEWS.settings ? VIEWS.settings : VIEWS.landing
+    if(getCurrentView() === VIEWS.settings){
+        fullSettingsSave()
+    }
     switchView(getCurrentView(), VIEWS.pack, 500, 500, () => preparePackView())
 }
 
 function closePackView(){
     savePackView()
-    switchView(getCurrentView(), VIEWS.landing)
+    switchView(getCurrentView(), packView.returnTo, 500, 500, () => {
+        if(packView.returnTo === VIEWS.settings) mpRenderInstalled()
+    })
 }
 
 document.getElementById('packBack').onclick = closePackView
@@ -1089,7 +1137,9 @@ document.getElementById('packPlay').onclick = () => {
     })
 }
 document.addEventListener('keydown', (e) => {
-    if(e.key === 'Escape' && getCurrentView() === VIEWS.pack && !isOverlayVisible()){
+    if(e.key === 'Escape' && getCurrentView() === VIEWS.pack && !isOverlayVisible() && !e.defaultPrevented){
+        // Taken: the view it goes back to mustn't close on it too.
+        e.preventDefault()
         closePackView()
     }
 })

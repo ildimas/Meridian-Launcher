@@ -110,55 +110,6 @@
                     <div id="mpInstalled" class="mpPackCards" role="list"></div>
                 </div>
 
-                <div class="settingsModsHeader"><%- lang('settings.modpacksAdd') %></div>
-                <div id="mpAddGrid">
-                    <button id="mpImport" class="mpCard mpImport">
-                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 19h14"/></svg>
-                        <span class="mpCardTitle"><%- lang('settings.modpacksImportTitle') %></span>
-                        <span class="mpCardDesc"><%- lang('settings.modpacksImportDesc') %></span>
-                    </button>
-                    <div class="mpCard" id="mpVersion">
-                        <span class="mpCardTitle"><%- lang('settings.modpacksVersionTitle') %></span>
-                        <div class="apSegment" id="mpLoader">
-                            <button value="vanilla" selected>Vanilla</button>
-                            <button value="fabric">Fabric</button>
-                            <button value="quilt">Quilt</button>
-                            <button value="forge">Forge</button>
-                            <button value="neoforge">NeoForge</button>
-                        </div>
-                        <div class="mpFiles" id="mpFiles">
-                            <button type="button" class="apLink" id="mpFilesPick"><%- lang('settings.modpacksFilesAdd') %></button>
-                            <div class="mpFilesChip" id="mpFilesChip" hidden>
-                                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/></svg>
-                                <span class="mpFilesText">
-                                    <span id="mpFilesName"></span>
-                                    <span id="mpFilesNote"></span>
-                                </span>
-                                <button type="button" id="mpFilesClear" title="<%- lang('settings.modpacksFilesClear') %>" aria-label="<%- lang('settings.modpacksFilesClear') %>">
-                                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"/></svg>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="mpFormRow">
-                            <label class="mpField">
-                                <span><%- lang('settings.modpacksMinecraft') %></span>
-                                <select id="mpMinecraft" class="mpSelect"></select>
-                            </label>
-                            <label class="mpField" id="mpLoaderVersionField" hidden>
-                                <span><%- lang('settings.modpacksLoaderVersion') %></span>
-                                <select id="mpLoaderVersion" class="mpSelect"></select>
-                            </label>
-                        </div>
-                        <div class="mpFormRow">
-                            <label class="mpField mpFieldGrow">
-                                <span><%- lang('settings.modpacksName') %></span>
-                                <input type="text" id="mpName" spellcheck="false">
-                            </label>
-                            <button id="mpVersionInstall" class="mpButton"><%- lang('settings.modpacksInstall') %></button>
-                        </div>
-                    </div>
-                </div>
-
                 <div class="settingsModsHeader"><%- lang('settings.modpacksBrowse') %></div>
                 <div id="mpBrowseBar">
                     <div class="apSegment" id="mpSource">
@@ -169,6 +120,10 @@
                         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 18a7 7 0 1 0 0-14a7 7 0 0 0 0 14z M20 20l-4-4"/></svg>
                         <input type="text" id="mpSearchInput" spellcheck="false" placeholder="<%- lang('settings.modpacksSearch') %>">
                     </label>
+                    <button id="mpImport" class="mpButton mpButtonQuiet" title="<%- lang('settings.modpacksImportDesc') %>">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 19h14"/></svg>
+                        <span><%- lang('settings.modpacksImportButton') %></span>
+                    </button>
                 </div>
                 <div id="mpCurseForgeKey" class="mpCard" hidden>
                     <span class="mpCardTitle"><%- lang('settings.modpacksCfKeyTitle') %></span>
@@ -181,26 +136,6 @@
                 <div id="mpResults" class="settingsPackList" role="list"></div>
                 <button id="mpMore" class="mpButton mpButtonQuiet" hidden><%- lang('settings.modpacksMore') %></button>
             </div>
-            <section class="settingsSection" id="settingsSectionFolders" aria-labelledby="mpFoldersTitle">
-                <div class="settingsSectionHeader">
-                    <span class="settingsSectionTitle" id="mpFoldersTitle"><%- lang('settings.foldersTitle') %></span>
-                    <span class="settingsSectionDesc"><%- lang('settings.foldersSubtitle') %></span>
-                </div>
-                <div id="mpFolders">
-                    <form id="mpFolderCreate" class="mpFormRow">
-                        <label class="mpField mpFieldGrow" for="mpFolderName">
-                            <span id="mpFolderCreateLabel"><%- lang('settings.folderNew') %></span>
-                            <input id="mpFolderName" type="text" maxlength="60" required aria-label="<%- lang('settings.folderName') %>" placeholder="<%- lang('settings.folderPlaceholder') %>">
-                        </label>
-                        <button class="mpButton" id="mpFolderCreateButton" type="submit" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><%- lang('settings.folderCreate') %></button>
-                    </form>
-                    <p id="mpFolderSource" class="mpFolderHint"></p>
-                    <p id="mpFolderError" role="alert" hidden></p>
-                    <div class="mpFolderSummary"><span id="mpFolderHeading"></span><span id="mpFolderTotal"></span></div>
-                    <div id="mpFolderList"></div>
-                    <p class="mpFolderHint"><%- lang('settings.foldersHint') %></p>
-                </div>
-            </section>
         </div>
         <div id="settingsTabMinecraft" class="settingsTab" style="display: none;">
             <div class="settingsTabHeader">
@@ -344,6 +279,26 @@
                     </div>
                 </div>
             </div>
+            <section class="settingsSection" id="settingsSectionFolders" aria-labelledby="mpFoldersTitle">
+                <div class="settingsSectionHeader">
+                    <span class="settingsSectionTitle" id="mpFoldersTitle"><%- lang('settings.foldersTitle') %></span>
+                    <span class="settingsSectionDesc"><%- lang('settings.foldersSubtitle') %></span>
+                </div>
+                <div id="mpFolders">
+                    <form id="mpFolderCreate" class="mpFormRow">
+                        <label class="mpField mpFieldGrow" for="mpFolderName">
+                            <span id="mpFolderCreateLabel"><%- lang('settings.folderNew') %></span>
+                            <input id="mpFolderName" type="text" maxlength="60" required aria-label="<%- lang('settings.folderName') %>" placeholder="<%- lang('settings.folderPlaceholder') %>">
+                        </label>
+                        <button class="mpButton" id="mpFolderCreateButton" type="submit" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><%- lang('settings.folderCreate') %></button>
+                    </form>
+                    <p id="mpFolderSource" class="mpFolderHint"></p>
+                    <p id="mpFolderError" role="alert" hidden></p>
+                    <div class="mpFolderSummary"><span id="mpFolderHeading"></span><span id="mpFolderTotal"></span></div>
+                    <div id="mpFolderList"></div>
+                    <p class="mpFolderHint"><%- lang('settings.foldersHint') %></p>
+                </div>
+            </section>
             <section class="settingsSection" id="settingsSectionLanguage">
                 <div class="settingsSectionHeader">
                     <span class="settingsSectionTitle"><%- lang('settings.languageHeaderText') %></span>

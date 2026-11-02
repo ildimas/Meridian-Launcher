@@ -46,6 +46,10 @@ const launch_progress_label   = document.getElementById('launch_progress_label')
 const launch_details_text     = document.getElementById('launch_details_text')
 const server_select           = document.getElementById('server_select')
 const packSettingsButton      = document.getElementById('packSettingsButton')
+const addMenu                 = document.getElementById('addMenu')
+// Whether the dial is turned to + after the last pack, to add one. The
+// selected pack doesn't change meanwhile.
+const dialAdd = { on: false }
 const user_text               = document.getElementById('user_text')
 
 const loggerLanding = LoggerUtil.getLogger('Landing')
@@ -244,9 +248,9 @@ function renderRunningState(){
     const updateChip = document.getElementById('serverHeroUpdate')
     updateChip.hidden = running || update == null
     updateChip.textContent = update != null ? Lang.queryJS('landing.packUpdate.chip', { version: update }) : ''
-    document.getElementById('launchButtonLabel').textContent = Lang.queryJS(running ? 'landing.running.button' : update != null ? 'landing.running.update' : needsDownload ? 'landing.running.download' : 'landing.running.play')
+    document.getElementById('launchButtonLabel').textContent = Lang.queryJS(dialAdd.on ? 'landing.addSlot.button' : running ? 'landing.running.button' : update != null ? 'landing.running.update' : needsDownload ? 'landing.running.download' : 'landing.running.play')
     if(!document.getElementById('landingContainer').hasAttribute('launching')){
-        launchButton.disabled = selId == null || running
+        launchButton.disabled = !dialAdd.on && (selId == null || running)
     }
 
     server_select.toggleAttribute('running', running)
@@ -460,6 +464,10 @@ window.addEventListener('focus', () => {
 
 // Bind launch button
 document.getElementById('launch_button').addEventListener('click', async e => {
+    if(dialAdd.on){
+        openAddMenu()
+        return
+    }
     loggerLanding.info('Launching game..')
     try {
         const server = (await DistroAPI.getDistribution()).getServerById(ConfigManager.getSelectedServer())
@@ -621,6 +629,7 @@ updateSelectedAccount(ConfigManager.getSelectedAccount())
 
 // Bind selected server
 function updateSelectedServer(serv){
+    leaveDialAdd()
     if(getCurrentView() === VIEWS.settings){
         fullSettingsSave()
     } else if(getCurrentView() === VIEWS.pack){
@@ -1126,35 +1135,52 @@ async function renderServerPicker(){
             tile.setAttribute('aria-label', raw.name)
             tile.setAttribute('data-id', raw.id)
             paintServerTile(tile, raw, appearance, 'serverTile')
-            tile.onclick = () => selectServerAt(i)
+            tile.onclick = () => {
+                leaveDialAdd()
+                selectServerAt(i)
+            }
             tiles.appendChild(tile)
         })
+        const add = document.createElement('button')
+        add.className = 'serverTile serverTileAdd'
+        add.tabIndex = -1
+        add.setAttribute('role', 'option')
+        add.setAttribute('aria-label', Lang.queryEJS('landing.addTile'))
+        add.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>'
+        add.onclick = () => {
+            enterDialAdd()
+            openAddMenu()
+        }
+        tiles.appendChild(add)
         tiles.setAttribute('data-key', tileKey)
     }
 
     renderDialFolderBoundaries(distro, servers)
 
-    // New tiles are placed at once; otherwise the dial turns to the server.
-    turnServerDial(sel, rebuilt)
+    // New tiles are placed at once; otherwise the dial turns to the server,
+    // or to + after the last one.
+    const top = dialAdd.on ? servers.length : sel
+    const topIndex = dialAdd.on ? servers.length : selIndex
+    turnServerDial(top, rebuilt)
     Array.from(tiles.children).forEach((tile, i) => {
-        const d = i - sel
+        const d = i - top
         const ad = Math.abs(d)
-        tile.toggleAttribute('selected', i === selIndex)
+        tile.toggleAttribute('selected', i === topIndex)
         tile.toggleAttribute('far', ad > 2)
         tile.toggleAttribute('edge', ad === 2)
-        tile.setAttribute('aria-selected', i === selIndex)
+        tile.setAttribute('aria-selected', i === topIndex)
     })
 
-    const cur = servers[selIndex]
+    const cur = dialAdd.on ? null : servers[selIndex]
     const currentFolder = cur != null ? folderFor(cur) : null
     const folderServers = currentFolder != null ? currentFolder.servers.filter(s => !ConfigManager.isPackHidden(s.rawServer.id)) : []
-    document.getElementById('serverDialName').textContent = cur != null ? cur.rawServer.name : ''
+    document.getElementById('serverDialName').textContent = cur != null ? cur.rawServer.name : dialAdd.on ? Lang.queryJS('landing.addSlot.title') : ''
     document.getElementById('serverDialPos').textContent = cur != null
         ? Lang.queryJS('landing.serverHero.position', { current: folderServers.indexOf(cur) + 1, total: folderServers.length }) + (currentFolder.unassigned ? '' : ' · ' + packFolderName(currentFolder))
         : ''
     document.getElementById('serverDialPos').title = document.getElementById('serverDialPos').textContent
-    document.getElementById('serverDialPrev').disabled = selIndex <= 0
-    document.getElementById('serverDialNext').disabled = servers.length === 0 || selIndex >= servers.length - 1
+    document.getElementById('serverDialPrev').disabled = !dialAdd.on && selIndex <= 0
+    document.getElementById('serverDialNext').disabled = dialAdd.on || servers.length === 0
     renderRunningState()
 }
 
@@ -1210,10 +1236,10 @@ function openPackFolders(){
     if(document.getElementById('landingContainer').hasAttribute('launching')) return
     switchView(getCurrentView(), VIEWS.settings, 500, 500, async () => {
         await prepareSettings()
-        document.querySelector('.settingsNavItem[rSc="settingsTabModpacks"]').click()
+        document.getElementById('settingsNavAppearance').click()
     }, () => {
-        // Folders are the last section of Modpacks. Settings has to be on
-        // screen to scroll and take focus, so this waits for it to show.
+        // Folders are a section of Interface. Settings has to be on screen
+        // to scroll and take focus, so this waits for it to show.
         document.getElementById('settingsSectionFolders').scrollIntoView({ block: 'start', behavior: reduceMotion.matches ? 'auto' : 'smooth' })
         document.getElementById('mpFolderName').focus({ preventScroll: true })
     })
@@ -1228,7 +1254,100 @@ packSettingsButton.onclick = () => {
 async function stepServer(delta){
     const servers = pickerServers(await DistroAPI.getDistribution(), true)
     const cur = servers.findIndex(s => s.rawServer.id === ConfigManager.getSelectedServer())
+    if(dialAdd.on){
+        // Back from + to the packs; the step onto + was one of them.
+        if(delta < 0){
+            leaveDialAdd()
+            if(delta < -1) selectServerAt(cur + delta + 1)
+        }
+        return
+    }
+    if(servers.length > 0 && cur + delta >= servers.length){
+        if(cur !== servers.length - 1) await selectServerAt(servers.length - 1)
+        enterDialAdd()
+        return
+    }
     selectServerAt(cur + delta)
+}
+
+/* Adding a pack: the dial's + after the last pack, the list's last row. */
+
+
+function enterDialAdd(){
+    const landing = document.getElementById('landingContainer')
+    if(dialAdd.on || landing.hasAttribute('launching')) return
+    dialAdd.on = true
+    landing.setAttribute('addSlot', '')
+    document.getElementById('serverHeroName').textContent = Lang.queryJS('landing.addSlot.title')
+    document.getElementById('serverHeroName').removeAttribute('title')
+    fitHeroName()
+    renderServerPicker()
+}
+
+function leaveDialAdd(){
+    if(!dialAdd.on) return
+    dialAdd.on = false
+    document.getElementById('landingContainer').removeAttribute('addSlot')
+    closeAddMenu()
+    DistroAPI.getDistribution().then(distro => {
+        updateServerHero(distro.getServerById(ConfigManager.getSelectedServer()))
+        renderServerPicker()
+    })
+}
+
+function openAddMenu(){
+    if(document.getElementById('landingContainer').hasAttribute('launching')) return
+    closeServerMenu()
+    addMenu.setAttribute('open', '')
+    addMenu.focus()
+}
+
+/**
+ * @param {boolean} refocus Return focus to the dial.
+ */
+function closeAddMenu(refocus = false){
+    if(!addMenu.hasAttribute('open')) return
+    addMenu.removeAttribute('open')
+    if(refocus) serverDial.focus()
+}
+
+for(const item of addMenu.getElementsByClassName('addMenuItem')){
+    item.onclick = () => {
+        closeAddMenu()
+        // Back on the main screen the dial shows the selected pack again.
+        leaveDialAdd()
+        if(item.getAttribute('data-add') === 'version'){
+            openVersionView()
+            return
+        }
+        switchView(getCurrentView(), VIEWS.settings, 500, 500, async () => {
+            await prepareSettings()
+            document.querySelector('.settingsNavItem[rSc="settingsTabModpacks"]').click()
+        }, () => document.getElementById('mpSearchInput').focus())
+    }
+}
+addMenu.addEventListener('keydown', e => {
+    // Keep arrows and Escape away from the dial and the news drawer.
+    e.stopPropagation()
+    const items = Array.from(addMenu.getElementsByClassName('addMenuItem'))
+    const i = items.indexOf(document.activeElement)
+    if(e.key === 'ArrowDown' || e.key === 'ArrowUp'){
+        e.preventDefault()
+        const dir = e.key === 'ArrowDown' ? 1 : -1
+        items[i < 0 ? (dir > 0 ? 0 : items.length - 1) : (i + dir + items.length) % items.length].focus()
+    } else if(e.key === 'Escape'){
+        closeAddMenu(true)
+    } else if(e.key === 'Tab'){
+        closeAddMenu()
+    }
+})
+document.addEventListener('mousedown', e => {
+    // Play opens it too while + is turned to.
+    if(!addMenu.contains(e.target) && !e.target.closest('#launch_button, .serverTileAdd')) closeAddMenu()
+})
+document.getElementById('serverMenuAdd').onclick = () => {
+    closeServerMenu()
+    openAddMenu()
 }
 
 /* Server list popover. */
@@ -1241,12 +1360,16 @@ function serverMenuRows(){
     return document.querySelectorAll('#serverMenuList .serverListRow')
 }
 
+// The pack rows, then the + row under them.
+function serverMenuItems(){
+    return [...serverMenuRows(), document.getElementById('serverMenuAdd')]
+}
+
 function setServerMenuActive(index){
-    const rows = serverMenuRows()
-    if(rows.length === 0) return
-    serverMenuActive = Math.max(0, Math.min(rows.length - 1, index))
-    Array.from(rows).forEach((row, i) => row.toggleAttribute('active', i === serverMenuActive))
-    rows[serverMenuActive].scrollIntoView({ block: 'nearest' })
+    const items = serverMenuItems()
+    serverMenuActive = Math.max(0, Math.min(items.length - 1, index))
+    items.forEach((item, i) => item.toggleAttribute('active', i === serverMenuActive))
+    items[serverMenuActive].scrollIntoView({ block: 'nearest' })
     updateServerMenuFade()
 }
 
@@ -1261,7 +1384,8 @@ function updateServerMenuFade(){
 document.getElementById('serverMenuList').addEventListener('scroll', updateServerMenuFade, { passive: true })
 
 function openServerMenu(){
-    if(server_select.disabled || server_select.hasAttribute('empty')) return
+    // Without packs the menu still offers to add one.
+    if(server_select.disabled) return
     serverPicker.setAttribute('open', '')
     server_select.setAttribute('aria-expanded', 'true')
     const rows = Array.from(serverMenuRows())
@@ -1299,8 +1423,8 @@ serverMenu.addEventListener('keydown', e => {
         setServerMenuActive(serverMenuActive + (e.key === 'ArrowDown' ? 1 : -1))
     } else if(e.key === 'Enter' || e.key === ' '){
         e.preventDefault()
-        const row = serverMenuRows()[serverMenuActive]
-        if(row != null) row.click()
+        const item = serverMenuItems()[serverMenuActive]
+        if(item != null) item.click()
     } else if(e.key === 'Escape' || e.key === 'Tab'){
         closeServerMenu(e.key === 'Escape')
     }
@@ -1370,6 +1494,9 @@ serverDial.addEventListener('keydown', e => {
         e.preventDefault()
         e.stopPropagation()
         stepServer(e.key === 'ArrowRight' ? 1 : -1)
+    } else if(e.key === 'Enter' && dialAdd.on){
+        e.preventDefault()
+        openAddMenu()
     }
 })
 

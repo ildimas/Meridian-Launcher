@@ -387,6 +387,19 @@ settingsNavDone.onclick = () => {
     switchView(getCurrentView(), VIEWS.landing)
 }
 
+// Escape leaves too, unless a dialog, the picture drawer or the pack list
+// is open: those close first.
+document.addEventListener('keydown', (e) => {
+    if(e.key !== 'Escape' || e.defaultPrevented || getCurrentView() !== VIEWS.settings || settingsNavDone.disabled){
+        return
+    }
+    if(isOverlayVisible() || document.getElementById('settingsContainerRight').hasAttribute('drawer') || mpMenu.open){
+        return
+    }
+    e.preventDefault()
+    settingsNavDone.click()
+})
+
 /**
  * Account Management Tab
  */

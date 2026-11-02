@@ -1651,21 +1651,19 @@ select:focus-visible,
     padding-left: 36px;
 }
 
-/* Settings tab shared styles. */
+/* Settings tab shared styles. The space under the last item is padding,
+   inside the height, so a tab that fits doesn't scroll. */
 .settingsTab {
     width: 100%;
     height: 100%;
+    box-sizing: border-box;
+    padding-bottom: 40px;
     overflow-y: auto;
 }
 
 /* Add spacing to the top of each settings tab. */
 .settingsTab > *:first-child {
     margin-top: 30px;
-}
-
-/* Add spacing to the bottom of each settings tab. */
-.settingsTab > *:last-child {
-    margin-bottom: 20%;
 }
 
 /* Tab header shared styles. */
@@ -1763,15 +1761,15 @@ select:focus-visible,
 
 /* Remove spin button from number inputs. */
 #settingsContainer input[type=number]::-webkit-inner-spin-button,
-#packContainer input[type=number]::-webkit-inner-spin-button {
+.sheetView input[type=number]::-webkit-inner-spin-button {
     -webkit-appearance: none;
 }
 
 /* Default styles for text/number inputs. */
 #settingsContainer input[type=number],
 #settingsContainer input[type=text],
-#packContainer input[type=number],
-#packContainer input[type=text] {
+.sheetView input[type=number],
+.sheetView input[type=text] {
     color: var(--text-1);
     background: var(--glass-sunk);
     border-radius: var(--radius-pill);
@@ -1783,14 +1781,14 @@ select:focus-visible,
 }
 #settingsContainer input[type=number]:focus,
 #settingsContainer input[type=text]:focus,
-#packContainer input[type=number]:focus,
-#packContainer input[type=text]:focus {
+.sheetView input[type=number]:focus,
+.sheetView input[type=text]:focus {
     outline: none;
     border-color: var(--accent-line);
     background: rgba(6, 5, 9, 0.55);
 }
 #settingsContainer input[type=number][error],
-#packContainer input[type=number][error] {
+.sheetView input[type=number][error] {
     border-color: var(--danger);
     background: var(--danger-soft);
     color: var(--danger);
@@ -2592,12 +2590,6 @@ input:checked + .toggleSwitchSlider:before {
     white-space: nowrap;
 }
 
-/* Add: import card and the version form, side by side. */
-#mpAddGrid {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr);
-    gap: 10px;
-}
 .mpCard {
     box-sizing: border-box;
     display: flex;
@@ -2629,35 +2621,25 @@ input:checked + .toggleSwitchSlider:before {
 .mpCardDesc a:hover {
     text-decoration: underline;
 }
-.mpImport {
-    justify-content: center;
-    border-style: dashed;
-    border-color: var(--line-strong);
-    background: transparent;
-    cursor: pointer;
-    transition: background 160ms ease, border-color 160ms ease;
+/* Import, next to the search: click to pick a file or drop one on it. */
+#mpImport {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0px;
 }
-.mpImport svg {
-    width: 28px;
-    height: 28px;
-    padding: 8px;
-    border-radius: 50%;
-    background: var(--accent-soft);
+#mpImport svg {
+    width: 16px;
+    height: 16px;
     fill: none;
-    stroke: var(--accent-hi);
-    stroke-width: 1.8;
+    stroke: currentColor;
+    stroke-width: 2;
     stroke-linecap: round;
     stroke-linejoin: round;
 }
-.mpImport:hover:not(:disabled),
-.mpImport:focus-visible,
-.mpImport[drag] {
-    background: var(--glass-hover);
+#mpImport[drag] {
+    background: var(--accent-soft);
     border-color: var(--accent-line);
-}
-.mpImport:disabled {
-    opacity: 0.5;
-    cursor: default;
 }
 .mpFiles {
     width: 100%;
@@ -2761,7 +2743,8 @@ input:checked + .toggleSwitchSlider:before {
 .mpFieldGrow {
     flex: 1;
 }
-#mpContainer input[type=text] {
+#mpContainer input[type=text],
+#versionBody input[type=text] {
     box-sizing: border-box;
     height: 36px;
     width: 100%;
@@ -3170,10 +3153,6 @@ input:checked + .toggleSwitchSlider:before {
 }
 .mpPackOption .serverListingDetails {
     flex: 1;
-}
-.mpActionGap {
-    width: 30px;
-    flex: none;
 }
 .mpPackOption[packHidden]:not([selected]) .serverListingName {
     color: var(--text-2);
@@ -4718,7 +4697,8 @@ body[settingsOpen] #wallpaper .wpImg {
 .accountMenuRow[selected] .accountMenuCheck {
     visibility: visible;
 }
-#accountMenuAdd {
+/* "+ Add" at the bottom of the account and pack menus. */
+.menuAddButton {
     display: flex;
     align-items: center;
     gap: 10px;
@@ -4734,12 +4714,13 @@ body[settingsOpen] #wallpaper .wpImg {
     font-weight: 600;
     cursor: pointer;
 }
-#accountMenuAdd:hover,
-#accountMenuAdd:focus-visible {
+.menuAddButton:hover,
+.menuAddButton:focus-visible,
+.menuAddButton[active] {
     color: var(--accent-hi);
     background: var(--glass-hover);
 }
-#accountMenuAdd > svg {
+.menuAddButton > svg {
     width: 16px;
     height: 16px;
     fill: none;
@@ -7111,7 +7092,7 @@ input.mpFolderTitle { width: min(100%, 300px); height: 34px; }
 
 /* One pack: a header with its name and Play, tabs, and the tab's panel. Opens
    like settings, as a sheet over the blurred launcher. */
-#packContainer {
+.sheetView {
     position: relative;
     height: 100%;
     display: flex;
@@ -7120,7 +7101,7 @@ input.mpFolderTitle { width: min(100%, 300px); height: 34px; }
     color: var(--text-1);
     font-family: var(--font-ui);
 }
-#packHeader {
+.sheetHeader {
     flex: none;
     display: flex;
     align-items: center;
@@ -7271,11 +7252,12 @@ input.mpFolderTitle { width: min(100%, 300px); height: 34px; }
     flex: 1;
     min-height: 0;
 }
-.packPanel {
+.packPanel,
+.sheetBody {
     height: 100%;
     overflow-y: auto;
     box-sizing: border-box;
-    padding: 4px 36px 80px;
+    padding: 4px 36px 40px;
 }
 .packPanel[hidden] {
     display: none;
@@ -7341,6 +7323,51 @@ input.mpFolderTitle { width: min(100%, 300px); height: 34px; }
     margin: 0px;
     font-size: 12.5px;
     color: var(--text-2);
+}
+.packRemoveRow {
+    align-self: stretch;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+}
+.packRemoveButton {
+    margin: 0px;
+    color: var(--danger);
+    border-color: rgba(255, 154, 154, 0.4);
+}
+.packRemoveButton:hover:not(:disabled),
+.packRemoveButton:focus-visible {
+    background: var(--danger-soft);
+    border-color: var(--danger);
+}
+
+/* Title and a line about the view, next to the back button. */
+.sheetHeading {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.sheetTitle {
+    font-size: 24px;
+    font-weight: var(--display-weight);
+    letter-spacing: var(--display-tracking);
+}
+.sheetDesc {
+    font-size: 13px;
+    color: var(--text-2);
+}
+#versionBody {
+    flex: 1;
+    min-height: 0;
+    border-top: 1px solid var(--line);
+}
+#versionBody #mpVersion,
+#versionBody #mpTask {
+    width: 88%;
+    margin-top: 22px;
 }
 .packFileButtons {
     display: flex;
@@ -7512,4 +7539,117 @@ input.mpFolderTitle { width: min(100%, 300px); height: 34px; }
     font-size: 15px;
     color: var(--text-2);
     font-variant-numeric: tabular-nums;
+}
+
+/* * *
+* Adding a pack (landing)
+* * */
+
+/* + after the last pack on the dial. */
+.serverTileAdd {
+    background: var(--glass-strong);
+    backdrop-filter: var(--glass-blur);
+    box-shadow: inset 0 0 0 1.5px var(--line-strong), 0 6px 18px rgba(0, 0, 0, 0.3);
+    color: var(--accent-hi);
+}
+.serverTileAdd > svg {
+    width: 30px;
+    height: 30px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+}
+.serverTileAdd[selected] {
+    cursor: pointer;
+}
+
+/* While + is turned to, the hero says what it does instead of a pack's details. */
+#serverHeroAddHint {
+    display: none;
+    font-size: 15px;
+    color: var(--text-2);
+}
+#landingContainer[addSlot] #serverHeroAddHint {
+    display: block;
+}
+#landingContainer[addSlot] #serverHeroLabel,
+#landingContainer[addSlot] #serverHeroMeta,
+#landingContainer[addSlot] #heroFooter,
+#landingContainer[addSlot] #serverDialPos {
+    display: none;
+}
+
+/* What to add: the same glass as the pack list, above Play. */
+#addMenu {
+    position: absolute;
+    right: 0px;
+    bottom: calc(100% + 10px);
+    width: 340px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 14px 10px 10px;
+    border-radius: var(--radius-panel);
+    background: var(--glass-strong);
+    border: 1px solid var(--line-strong);
+    backdrop-filter: var(--glass-blur);
+    box-shadow: var(--shadow-float), var(--sheen);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(6px) scale(0.98);
+    transform-origin: bottom right;
+    transition: opacity 160ms ease, transform 220ms var(--ease-out), visibility 0s linear 220ms;
+    outline: none;
+    z-index: 5;
+}
+#addMenu[open] {
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+    transition: opacity 160ms ease, transform 220ms var(--ease-out), visibility 0s;
+}
+.addMenuItem {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 10px;
+    border: 0px;
+    border-radius: 18px;
+    background: none;
+    color: var(--text-1);
+    font-family: var(--font-ui);
+    text-align: left;
+    cursor: pointer;
+}
+.addMenuItem:hover,
+.addMenuItem:focus-visible {
+    background: var(--glass-hover);
+}
+.addMenuItem .serverListMeta {
+    white-space: normal;
+}
+.addMenuIcon {
+    flex: none;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    background: var(--accent-soft);
+    color: var(--accent-hi);
+}
+.addMenuIcon > svg {
+    width: 22px;
+    height: 22px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.7;
+    stroke-linejoin: round;
+}
+#serverMenuAdd {
+    flex: none;
 }
