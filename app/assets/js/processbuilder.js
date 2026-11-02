@@ -519,7 +519,7 @@ class ProcessBuilder {
                         // We don't have many 'features' in the index at the moment.
                         // This should be fine for a while.
                         if(rule.features.has_custom_resolution != null && rule.features.has_custom_resolution === true){
-                            if(ConfigManager.getFullscreen()){
+                            if(ConfigManager.getGameWindow(this.server.rawServer.id).fullscreen){
                                 args[i].value = [
                                     '--fullscreen',
                                     'true'
@@ -579,10 +579,10 @@ class ProcessBuilder {
                             val = this.vanillaManifest.type
                             break
                         case 'resolution_width':
-                            val = ConfigManager.getGameWidth()
+                            val = ConfigManager.getGameWindow(this.server.rawServer.id).resWidth
                             break
                         case 'resolution_height':
-                            val = ConfigManager.getGameHeight()
+                            val = ConfigManager.getGameWindow(this.server.rawServer.id).resHeight
                             break
                         case 'natives_directory':
                             val = args[i].replace(argDiscovery, tempNativePath)
@@ -688,14 +688,15 @@ class ProcessBuilder {
         mcArgs.push(...ProxyManager.getGameArgs(ConfigManager.getProxy()))
 
         // Prepare game resolution
-        if(ConfigManager.getFullscreen()){
+        const gameWindow = ConfigManager.getGameWindow(this.server.rawServer.id)
+        if(gameWindow.fullscreen){
             mcArgs.push('--fullscreen')
             mcArgs.push(true)
         } else {
             mcArgs.push('--width')
-            mcArgs.push(ConfigManager.getGameWidth())
+            mcArgs.push(gameWindow.resWidth)
             mcArgs.push('--height')
-            mcArgs.push(ConfigManager.getGameHeight())
+            mcArgs.push(gameWindow.resHeight)
         }
         
         // Mod List File Argument (Forge only, from 1.5.2)

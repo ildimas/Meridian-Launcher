@@ -1,8 +1,6 @@
 // Requirements
-const os     = require('os')
 const semver = require('semver')
 
-const DropinModUtil  = require('./assets/js/dropinmodutil')
 const Screenshots    = require('./assets/js/screenshots')
 const { MSFT_OPCODE, MSFT_REPLY_TYPE, MSFT_ERROR } = require('./assets/js/ipcconstants')
 
@@ -352,19 +350,19 @@ function fullSettingsSave() {
     // A failed save must not keep the user from leaving settings.
     try {
         saveSettingsValues()
-        if(selectedServerExists()){
-            saveModConfiguration()
-            ConfigManager.save()
-            saveDropinModConfiguration()
-            saveShaderpackSettings()
-            saveResourcepackSettings()
-        } else {
-            ConfigManager.save()
-        }
+        saveGameDefaults()
+        ConfigManager.save()
     } catch(err) {
         console.error('Unable to save the settings.', err)
         settingsSaveFailed(err)
     }
+}
+
+/**
+ * Escape text for use in HTML content and attributes.
+ */
+function escapeSettingsHTML(str){
+    return String(str).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', '\'': '&#39;' })[c])
 }
 
 /**
@@ -708,6 +706,9 @@ const settingsCurrentOfflineAccounts = document.getElementById('settingsCurrentO
 function populateAuthAccounts(){
     const authAccounts = ConfigManager.getAuthAccounts()
     const authKeys = Object.keys(authAccounts)
+    // Mojang sign-in is gone; the section stays only for accounts added before.
+    const hasMojang = authKeys.some(k => authAccounts[k].type !== 'microsoft' && authAccounts[k].type !== 'offline')
+    settingsCurrentMojangAccounts.closest('.settingsAuthAccountTypeContainer').style.display = hasMojang ? '' : 'none'
     if(authKeys.length === 0){
         return
     }
@@ -786,855 +787,50 @@ document.getElementById('settingsGameHeight').addEventListener('keydown', (e) =>
     }
 })
 
-/**
- * Mods Tab
- */
-
-const settingsModsContainer = document.getElementById('settingsModsContainer')
-
-/**
- * Escape text for use in HTML content and attributes.
- */
-function escapeSettingsHTML(str){
-    return String(str).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', '\'': '&#39;' })[c])
+// Memory and JVM options for every pack that doesn't set its own. Turned
+// off, each pack takes what it recommends.
+const gameMemory = document.getElementById('gameMemory')
+const gameJvmInput = document.getElementById('gameJVMOptsVal')
+const gameGroups = {
+    memory: document.querySelector('[data-game-group="memory"]'),
+    jvm: document.querySelector('[data-game-group="jvm"]')
 }
 
-// Icon lookups for tiles in the HTML being built, keyed by their data-icon.
-const settingsIconJobs = new Map()
-let settingsIconSeq = 0
-
-/**
- * Markup for an icon tile: the name's first letter until the icon is known.
- * Call paintSettingsIcons once the markup is in the page.
- *
- * @param {string} name The display name.
- * @param {function(): (string|null|undefined)} peek The already resolved icon, if any.
- * @param {function(): Promise.<string|null>} load Resolves the icon.
- */
-function settingsIconTile(name, peek, load){
-    const key = String(++settingsIconSeq)
-    settingsIconJobs.set(key, { peek, load })
-    const letter = (String(name).match(/[A-Za-z0-9]/) || ['?'])[0].toUpperCase()
-    return `<span class="modIcon settingsModIcon" data-icon="${key}" style="--shade: ${Math.round(38 + modShade(String(name)) * 30)}%">${letter}</span>`
+function renderGameGroupState(name){
+    const group = gameGroups[name]
+    group.querySelector('.packGroupState').textContent = Lang.queryJS(group.hasAttribute('own') ? 'settings.game.stateOwn' : 'settings.game.stateRecommended')
 }
 
-/**
- * Put the icons on the tiles inside an element.
- */
-function paintSettingsIcons(root){
-    for(const tile of root.querySelectorAll('.settingsModIcon[data-icon]')){
-        const key = tile.getAttribute('data-icon')
-        const job = settingsIconJobs.get(key)
-        settingsIconJobs.delete(key)
-        tile.removeAttribute('data-icon')
-        if(job == null) continue
-        const show = (url) => {
-            if(url == null || !tile.isConnected) return
-            const img = document.createElement('img')
-            img.alt = ''
-            img.onload = () => {
-                tile.setAttribute('hasIcon', '')
-                // Pixel-art icons stay crisp when scaled up.
-                tile.toggleAttribute('pixelated', img.naturalWidth < 30)
-            }
-            img.onerror = () => img.remove()
-            img.src = url
-            tile.appendChild(img)
-        }
-        const cached = job.peek()
-        if(cached !== undefined) show(cached)
-        else job.load().then(show)
+for(const [name, group] of Object.entries(gameGroups)){
+    group.querySelector('.packOwnToggle').onchange = (e) => {
+        setGroupOwn(group, e.target.checked)
+        renderGameGroupState(name)
     }
 }
 
 /**
- * Resolve and update the mods on the UI.
+ * Show the shared memory and JVM options. While unset, the selected pack's
+ * recommendation fills the greyed out controls.
  */
-async function resolveModsForUI(){
-    const serv = ConfigManager.getSelectedServer()
+async function prepareGameDefaults(){
+    const id = ConfigManager.getSelectedServer()
+    const rec = id != null && selectedServerExists() ? ConfigManager.getRecommendedJava(id) : null
+    const memory = ConfigManager.getDefaultMemory()
+    setMemoryControl(gameMemory, 1, memory ?? rec ?? { minRAM: '4G', maxRAM: '4G' })
+    setGroupOwn(gameGroups.memory, memory != null)
 
-    const distro = await DistroAPI.getDistribution()
-    const servConf = ConfigManager.getModConfiguration(serv)
+    const jvm = ConfigManager.getDefaultJVMOptions()
+    gameJvmInput.value = (jvm ?? rec?.jvmOptions ?? []).join(' ')
+    setGroupOwn(gameGroups.jvm, jvm != null)
 
-    const modStr = parseModulesForUI(distro.getServerById(serv).modules, false, servConf.mods)
-
-    document.getElementById('settingsReqModsContent').innerHTML = modStr.reqMods
-    document.getElementById('settingsOptModsContent').innerHTML = modStr.optMods
-    paintSettingsIcons(document.getElementById('settingsReqModsContent'))
-    paintSettingsIcons(document.getElementById('settingsOptModsContent'))
+    renderGameGroupState('memory')
+    renderGameGroupState('jvm')
 }
 
-/**
- * Recursively build the mod UI elements.
- * 
- * @param {Object[]} mdls An array of modules to parse.
- * @param {boolean} submodules Whether or not we are parsing submodules.
- * @param {Object} servConf The server configuration object for this module level.
- */
-function parseModulesForUI(mdls, submodules, servConf){
-
-    let reqMods = ''
-    let optMods = ''
-
-    for(const mdl of mdls){
-
-        if(mdl.rawModule.type === Type.ForgeMod || mdl.rawModule.type === Type.LiteMod || mdl.rawModule.type === Type.LiteLoader || mdl.rawModule.type === Type.FabricMod){
-
-            if(mdl.getRequired().value){
-
-                reqMods += `<div id="${mdl.getVersionlessMavenIdentifier()}" class="settingsBaseMod settings${submodules ? 'Sub' : ''}Mod" enabled>
-                    <div class="settingsModContent">
-                        <div class="settingsModMainWrapper">
-                            <div class="settingsModStatus"></div>
-                            ${settingsIconTile(mdl.rawModule.name, () => IconCache.peek(mdl), () => IconCache.mod(mdl))}
-                            <div class="settingsModDetails">
-                                <span class="settingsModName">${escapeSettingsHTML(mdl.rawModule.name)}</span>
-                                <span class="settingsModVersion">v${mdl.mavenComponents.version}</span>
-                            </div>
-                        </div>
-                        <label class="toggleSwitch" reqmod>
-                            <input type="checkbox" checked>
-                            <span class="toggleSwitchSlider"></span>
-                        </label>
-                    </div>
-                    ${mdl.subModules.length > 0 ? `<div class="settingsSubModContainer">
-                        ${Object.values(parseModulesForUI(mdl.subModules, true, servConf[mdl.getVersionlessMavenIdentifier()])).join('')}
-                    </div>` : ''}
-                </div>`
-
-            } else {
-
-                const conf = servConf[mdl.getVersionlessMavenIdentifier()]
-                const val = typeof conf === 'object' ? conf.value : conf
-
-                optMods += `<div id="${mdl.getVersionlessMavenIdentifier()}" class="settingsBaseMod settings${submodules ? 'Sub' : ''}Mod" ${val ? 'enabled' : ''}>
-                    <div class="settingsModContent">
-                        <div class="settingsModMainWrapper">
-                            <div class="settingsModStatus"></div>
-                            ${settingsIconTile(mdl.rawModule.name, () => IconCache.peek(mdl), () => IconCache.mod(mdl))}
-                            <div class="settingsModDetails">
-                                <span class="settingsModName">${escapeSettingsHTML(mdl.rawModule.name)}</span>
-                                <span class="settingsModVersion">v${mdl.mavenComponents.version}</span>
-                            </div>
-                        </div>
-                        <label class="toggleSwitch">
-                            <input type="checkbox" formod="${mdl.getVersionlessMavenIdentifier()}" ${val ? 'checked' : ''}>
-                            <span class="toggleSwitchSlider"></span>
-                        </label>
-                    </div>
-                    ${mdl.subModules.length > 0 ? `<div class="settingsSubModContainer">
-                        ${Object.values(parseModulesForUI(mdl.subModules, true, conf.mods)).join('')}
-                    </div>` : ''}
-                </div>`
-
-            }
-        }
-    }
-
-    return {
-        reqMods,
-        optMods
-    }
-
-}
-
-/**
- * Bind functionality to mod config toggle switches. Switching the value
- * will also switch the status color on the left of the mod UI.
- */
-function bindModsToggleSwitch(){
-    const sEls = settingsModsContainer.querySelectorAll('[formod]')
-    Array.from(sEls).map((v, index, arr) => {
-        v.onchange = () => {
-            if(v.checked) {
-                document.getElementById(v.getAttribute('formod')).setAttribute('enabled', '')
-            } else {
-                document.getElementById(v.getAttribute('formod')).removeAttribute('enabled')
-            }
-        }
-    })
-}
-
-
-/**
- * Save the mod configuration based on the UI values.
- */
-function saveModConfiguration(){
-    const serv = ConfigManager.getSelectedServer()
-    const modConf = ConfigManager.getModConfiguration(serv)
-    if(modConf == null){
-        return
-    }
-    modConf.mods = _saveModConfiguration(modConf.mods)
-    ConfigManager.setModConfiguration(serv, modConf)
-}
-
-/**
- * Recursively save mod config with submods.
- * 
- * @param {Object} modConf Mod config object to save.
- */
-function _saveModConfiguration(modConf){
-    for(let m of Object.entries(modConf)){
-        const tSwitch = settingsModsContainer.querySelectorAll(`[formod='${m[0]}']`)
-        // The tab can still show another pack's mods while it refreshes.
-        if(tSwitch.length === 0){
-            continue
-        }
-        if(!tSwitch[0].hasAttribute('dropin')){
-            if(typeof m[1] === 'boolean'){
-                modConf[m[0]] = tSwitch[0].checked
-            } else {
-                if(m[1] != null){
-                    if(tSwitch.length > 0){
-                        modConf[m[0]].value = tSwitch[0].checked
-                    }
-                    modConf[m[0]].mods = _saveModConfiguration(modConf[m[0]].mods)
-                }
-            }
-        }
-    }
-    return modConf
-}
-
-// Drop-in mod elements.
-
-let CACHE_SETTINGS_MODS_DIR
-let CACHE_DROPIN_MODS
-
-/**
- * Resolve any located drop-in mods for this server and
- * populate the results onto the UI.
- */
-async function resolveDropinModsForUI(){
-    const serv = (await DistroAPI.getDistribution()).getServerById(ConfigManager.getSelectedServer())
-    CACHE_SETTINGS_MODS_DIR = path.join(ConfigManager.getInstanceDirectory(), serv.rawServer.id, 'mods')
-    CACHE_DROPIN_MODS = DropinModUtil.scanForDropinMods(CACHE_SETTINGS_MODS_DIR, serv.rawServer.minecraftVersion)
-
-    let dropinMods = ''
-
-    for(dropin of CACHE_DROPIN_MODS){
-        const jar = path.join(CACHE_SETTINGS_MODS_DIR, dropin.fullName)
-        // File names come from whatever is in the mods folder, imported packs included.
-        dropinMods += `<div id="${escapeSettingsHTML(dropin.fullName)}" class="settingsBaseMod settingsDropinMod" ${!dropin.disabled ? 'enabled' : ''}>
-                    <div class="settingsModContent">
-                        <div class="settingsModMainWrapper">
-                            <div class="settingsModStatus"></div>
-                            ${settingsIconTile(dropin.name, () => IconCache.peekFile(jar), () => IconCache.jar(jar))}
-                            <div class="settingsModDetails">
-                                <span class="settingsModName">${escapeSettingsHTML(dropin.name)}</span>
-                                <div class="settingsDropinRemoveWrapper">
-                                    <button class="settingsDropinRemoveButton" remmod="${escapeSettingsHTML(dropin.fullName)}">${Lang.queryJS('settings.dropinMods.removeButton')}</button>
-                                </div>
-                            </div>
-                        </div>
-                        <label class="toggleSwitch">
-                            <input type="checkbox" formod="${escapeSettingsHTML(dropin.fullName)}" dropin ${!dropin.disabled ? 'checked' : ''}>
-                            <span class="toggleSwitchSlider"></span>
-                        </label>
-                    </div>
-                </div>`
-    }
-
-    document.getElementById('settingsDropinModsContent').innerHTML = dropinMods
-    paintSettingsIcons(document.getElementById('settingsDropinModsContent'))
-}
-
-/**
- * Bind the remove button for each loaded drop-in mod.
- */
-function bindDropinModsRemoveButton(){
-    const sEls = settingsModsContainer.querySelectorAll('[remmod]')
-    Array.from(sEls).map((v, index, arr) => {
-        v.onclick = async () => {
-            const fullName = v.getAttribute('remmod')
-            const res = await DropinModUtil.deleteDropinMod(CACHE_SETTINGS_MODS_DIR, fullName)
-            if(res){
-                document.getElementById(fullName).remove()
-            } else {
-                setOverlayContent(
-                    Lang.queryJS('settings.dropinMods.deleteFailedTitle', { fullName }),
-                    Lang.queryJS('settings.dropinMods.deleteFailedMessage'),
-                    Lang.queryJS('settings.dropinMods.okButton')
-                )
-                setOverlayHandler(null)
-                toggleOverlay(true)
-            }
-        }
-    })
-}
-
-/**
- * Bind functionality to the file system button for the selected
- * server configuration.
- */
-function bindDropinModFileSystemButton(){
-    const fsBtn = document.getElementById('settingsDropinFileSystemButton')
-    fsBtn.onclick = () => {
-        DropinModUtil.validateDir(CACHE_SETTINGS_MODS_DIR)
-        shell.openPath(CACHE_SETTINGS_MODS_DIR)
-    }
-    fsBtn.ondragenter = e => {
-        e.dataTransfer.dropEffect = 'move'
-        fsBtn.setAttribute('drag', '')
-        e.preventDefault()
-    }
-    fsBtn.ondragover = e => {
-        e.preventDefault()
-    }
-    fsBtn.ondragleave = e => {
-        fsBtn.removeAttribute('drag')
-    }
-
-    fsBtn.ondrop = async e => {
-        fsBtn.removeAttribute('drag')
-        e.preventDefault()
-
-        DropinModUtil.addDropinMods(e.dataTransfer.files, CACHE_SETTINGS_MODS_DIR)
-        await reloadDropinMods()
-    }
-}
-
-/**
- * Save drop-in mod states. Enabling and disabling is just a matter
- * of adding/removing the .disabled extension.
- */
-function saveDropinModConfiguration(){
-    if(CACHE_DROPIN_MODS == null) return
-    for(dropin of CACHE_DROPIN_MODS){
-        const dropinUI = document.getElementById(dropin.fullName)
-        if(dropinUI != null){
-            const dropinUIEnabled = dropinUI.hasAttribute('enabled')
-            if(DropinModUtil.isDropinModEnabled(dropin.fullName) != dropinUIEnabled){
-                DropinModUtil.toggleDropinMod(CACHE_SETTINGS_MODS_DIR, dropin.fullName, dropinUIEnabled).catch(err => {
-                    if(!isOverlayVisible()){
-                        setOverlayContent(
-                            Lang.queryJS('settings.dropinMods.failedToggleTitle'),
-                            err.message,
-                            Lang.queryJS('settings.dropinMods.okButton')
-                        )
-                        setOverlayHandler(null)
-                        toggleOverlay(true)
-                    }
-                })
-            }
-        }
-    }
-}
-
-// Refresh the drop-in mods when F5 is pressed.
-// Only active on the mods tab.
-document.addEventListener('keydown', async (e) => {
-    if(getCurrentView() === VIEWS.settings && selectedSettingsTab === 'settingsTabMods'){
-        if(e.key === 'F5'){
-            await reloadDropinMods()
-            saveShaderpackSettings()
-            await resolveShaderpacksForUI()
-            saveResourcepackSettings()
-            await resolveResourcepacksForUI()
-        }
-    }
-})
-
-async function reloadDropinMods(){
-    await resolveDropinModsForUI()
-    bindDropinModsRemoveButton()
-    bindDropinModFileSystemButton()
-    bindModsToggleSwitch()
-}
-
-// Shaderpacks and resource packs.
-
-let CACHE_SETTINGS_INSTANCE_DIR
-let CACHE_SHADERPACKS
-let CACHE_SELECTED_SHADERPACK
-let CACHE_RESOURCEPACKS
-let CACHE_SETTINGS_MC_VERSION
-
-/**
- * Markup for a shaderpack or resource pack row.
- *
- * @param {{fullName: string, name: string, dir: boolean}} pack The pack.
- * @param {string} file The pack's path on disk.
- * @param {string} attr The toggle's attribute that carries the pack's fullName.
- * @param {boolean} enabled Whether the pack is on.
- */
-function packRowHTML(pack, file, attr, enabled){
-    return `<div class="settingsBaseMod settingsDropinMod settingsPack" ${enabled ? 'enabled' : ''}>
-                    <div class="settingsModContent">
-                        <div class="settingsModMainWrapper">
-                            <div class="settingsModStatus"></div>
-                            ${settingsIconTile(pack.name, () => IconCache.peekFile(file), () => IconCache.pack(file))}
-                            <div class="settingsModDetails">
-                                <span class="settingsModName">${escapeSettingsHTML(pack.name)}</span>
-                                <span class="settingsModVersion">${Lang.queryJS(pack.dir ? 'settings.packs.folder' : 'settings.packs.zip')}</span>
-                            </div>
-                        </div>
-                        <label class="toggleSwitch">
-                            <input type="checkbox" ${attr}="${escapeSettingsHTML(pack.fullName)}" ${enabled ? 'checked' : ''}>
-                            <span class="toggleSwitchSlider"></span>
-                        </label>
-                    </div>
-                </div>`
-}
-
-/**
- * Fill a pack list, or show its empty note.
- */
-function renderPackList(cont, rows, emptyKey){
-    cont.innerHTML = rows.length > 0 ? rows.join('') : `<div class="settingsPackEmpty">${Lang.queryJS(emptyKey)}</div>`
-    cont.toggleAttribute('empty', rows.length === 0)
-    paintSettingsIcons(cont)
-}
-
-/**
- * Load shaderpack information.
- */
-async function resolveShaderpacksForUI(){
-    const serv = (await DistroAPI.getDistribution()).getServerById(ConfigManager.getSelectedServer())
-    CACHE_SETTINGS_INSTANCE_DIR = path.join(ConfigManager.getInstanceDirectory(), serv.rawServer.id)
-    CACHE_SHADERPACKS = DropinModUtil.scanForShaderpacks(CACHE_SETTINGS_INSTANCE_DIR).filter(p => p.fullName !== 'OFF')
-    CACHE_SELECTED_SHADERPACK = DropinModUtil.getEnabledShaderpack(CACHE_SETTINGS_INSTANCE_DIR)
-
-    const dir = path.join(CACHE_SETTINGS_INSTANCE_DIR, 'shaderpacks')
-    const cont = document.getElementById('settingsShadersContent')
-    renderPackList(cont, CACHE_SHADERPACKS.map(p => packRowHTML(p, path.join(dir, p.fullName), 'forshader', p.fullName === CACHE_SELECTED_SHADERPACK)), 'settings.packs.noShaderpacks')
-
-    // Only one shaderpack runs at a time.
-    for(const input of cont.querySelectorAll('[forshader]')){
-        input.onchange = () => {
-            for(const other of cont.querySelectorAll('[forshader]')){
-                if(other !== input && input.checked) other.checked = false
-                other.closest('.settingsPack').toggleAttribute('enabled', other.checked)
-            }
-        }
-    }
-}
-
-function saveShaderpackSettings(){
-    if(CACHE_SHADERPACKS == null) return
-    const on = document.querySelector('#settingsShadersContent [forshader]:checked')
-    const sel = on != null ? on.getAttribute('forshader') : 'OFF'
-    if(sel !== CACHE_SELECTED_SHADERPACK){
-        DropinModUtil.setEnabledShaderpack(CACHE_SETTINGS_INSTANCE_DIR, sel)
-        CACHE_SELECTED_SHADERPACK = sel
-    }
-}
-
-/**
- * Load resource pack information.
- */
-async function resolveResourcepacksForUI(){
-    const serv = (await DistroAPI.getDistribution()).getServerById(ConfigManager.getSelectedServer())
-    CACHE_SETTINGS_INSTANCE_DIR = path.join(ConfigManager.getInstanceDirectory(), serv.rawServer.id)
-    CACHE_SETTINGS_MC_VERSION = serv.rawServer.minecraftVersion
-    CACHE_RESOURCEPACKS = DropinModUtil.scanForResourcepacks(CACHE_SETTINGS_INSTANCE_DIR)
-    const enabled = DropinModUtil.getEnabledResourcepacks(CACHE_SETTINGS_INSTANCE_DIR, CACHE_RESOURCEPACKS)
-
-    const dir = path.join(CACHE_SETTINGS_INSTANCE_DIR, 'resourcepacks')
-    const cont = document.getElementById('settingsResourcepacksContent')
-    renderPackList(cont, CACHE_RESOURCEPACKS.map(p => packRowHTML(p, path.join(dir, p.fullName), 'forpack', enabled.includes(p.fullName))), 'settings.packs.noResourcepacks')
-
-    for(const input of cont.querySelectorAll('[forpack]')){
-        input.onchange = () => input.closest('.settingsPack').toggleAttribute('enabled', input.checked)
-    }
-}
-
-function saveResourcepackSettings(){
-    if(CACHE_RESOURCEPACKS == null) return
-    const enabled = Array.from(document.querySelectorAll('#settingsResourcepacksContent [forpack]:checked')).map(i => i.getAttribute('forpack'))
-    try {
-        DropinModUtil.setEnabledResourcepacks(CACHE_SETTINGS_INSTANCE_DIR, CACHE_RESOURCEPACKS, enabled, CACHE_SETTINGS_MC_VERSION)
-    } catch(err) {
-        console.error('Unable to save resource packs.', err)
-        settingsSaveFailed(err)
-    }
-}
-
-/**
- * Open a pack folder on click and take .zip files dropped on the button.
- *
- * @param {HTMLElement} btn The add button.
- * @param {string} folder The folder inside the instance directory.
- * @param {function(FileList, string)} add Moves dropped files into the folder.
- * @param {function(): Promise} reload Saves the current toggles and reloads the list.
- */
-function bindPackButton(btn, folder, add, reload){
-    btn.onclick = () => {
-        const p = path.join(CACHE_SETTINGS_INSTANCE_DIR, folder)
-        DropinModUtil.validateDir(p)
-        shell.openPath(p)
-    }
-    btn.ondragenter = e => {
-        e.dataTransfer.dropEffect = 'move'
-        btn.setAttribute('drag', '')
-        e.preventDefault()
-    }
-    btn.ondragover = e => {
-        e.preventDefault()
-    }
-    btn.ondragleave = e => {
-        btn.removeAttribute('drag')
-    }
-
-    btn.ondrop = async e => {
-        btn.removeAttribute('drag')
-        e.preventDefault()
-
-        add(e.dataTransfer.files, CACHE_SETTINGS_INSTANCE_DIR)
-        await reload()
-    }
-}
-
-function bindShaderpackButton() {
-    bindPackButton(document.getElementById('settingsShaderpackButton'), 'shaderpacks', DropinModUtil.addShaderpacks, async () => {
-        saveShaderpackSettings()
-        await resolveShaderpacksForUI()
-    })
-}
-
-function bindResourcepackButton() {
-    bindPackButton(document.getElementById('settingsResourcepackButton'), 'resourcepacks', DropinModUtil.addResourcepacks, async () => {
-        saveResourcepackSettings()
-        await resolveResourcepacksForUI()
-    })
-}
-
-// Server status bar functions.
-
-/**
- * Load the currently selected server information onto the mods tab.
- */
-async function loadSelectedServerOnModsTab(){
-    const serv = (await DistroAPI.getDistribution()).getServerById(ConfigManager.getSelectedServer())
-
-    for(const el of document.getElementsByClassName('settingsSelServContent')) {
-        el.innerHTML = `
-            <span class="serverListTile settingsSelServTile"></span>
-            <div class="serverListingDetails">
-                <span class="serverListingName"></span>
-                <span class="serverListingDescription"></span>
-                <div class="serverListingInfo">
-                    <div class="serverListingVersion"></div>
-                    <div class="serverListingRevision"></div>
-                    ${serv.rawServer.mainServer ? mainServerBadgeHTML() : ''}
-                </div>
-            </div>
-        `
-        // Local packs are named by the files the player imported: text only.
-        el.querySelector('.serverListingName').textContent = serv.rawServer.name
-        el.querySelector('.serverListingDescription').textContent = serv.rawServer.description || ''
-        el.querySelector('.serverListingVersion').textContent = serv.rawServer.minecraftVersion
-        el.querySelector('.serverListingRevision').textContent = serv.rawServer.version
-        // The pack's logo over its monogram, like the modpack picker.
-        paintServerTile(el.querySelector('.settingsSelServTile'), serv.rawServer, ConfigManager.getAppearance(), 'serverListTile')
-    }
-}
-
-// Bind functionality to the server switch button.
-Array.from(document.getElementsByClassName('settingsSwitchServerButton')).forEach(el => {
-    el.addEventListener('click', async e => {
-        e.target.blur()
-        await toggleServerSelection(true)
-    })
-})
-
-/**
- * Save mod configuration for the current selected server.
- */
-function saveAllModConfigurations(){
-    saveModConfiguration()
-    ConfigManager.save()
-    saveDropinModConfiguration()
-    saveShaderpackSettings()
-    saveResourcepackSettings()
-}
-
-/**
- * Function to refresh the current tab whenever the selected
- * server is changed.
- */
-async function animateSettingsTabRefresh(){
-    const tab = document.getElementById(selectedSettingsTab)
-    await Promise.all([animateOut(tab, 160), prepareSettings()])
-    animateIn(tab, 320, { rise: 8 })
-}
-
-/**
- * Prepare the Mods tab for display.
- */
-async function prepareModsTab(first){
-    // No pack left to show, e.g. offline after removing the last one.
-    if(!selectedServerExists()){
-        return
-    }
-    await resolveModsForUI()
-    await resolveDropinModsForUI()
-    await resolveShaderpacksForUI()
-    await resolveResourcepacksForUI()
-    bindDropinModsRemoveButton()
-    bindDropinModFileSystemButton()
-    bindShaderpackButton()
-    bindResourcepackButton()
-    bindModsToggleSwitch()
-    await loadSelectedServerOnModsTab()
-}
-
-/**
- * Java Tab
- */
-
-// DOM Cache
-const settingsMaxRAMRange     = document.getElementById('settingsMaxRAMRange')
-const settingsMinRAMRange     = document.getElementById('settingsMinRAMRange')
-const settingsMaxRAMLabel     = document.getElementById('settingsMaxRAMLabel')
-const settingsMinRAMLabel     = document.getElementById('settingsMinRAMLabel')
-const settingsMemoryTotal     = document.getElementById('settingsMemoryTotal')
-const settingsMemoryAvail     = document.getElementById('settingsMemoryAvail')
-const settingsJavaExecDetails = document.getElementById('settingsJavaExecDetails')
-const settingsJavaReqDesc     = document.getElementById('settingsJavaReqDesc')
-const settingsJvmOptsLink     = document.getElementById('settingsJvmOptsLink')
-
-// Bind on change event for min memory container.
-settingsMinRAMRange.onchange = (e) => {
-
-    // Current range values
-    const sMaxV = Number(settingsMaxRAMRange.getAttribute('value'))
-    const sMinV = Number(settingsMinRAMRange.getAttribute('value'))
-
-    // Get reference to range bar.
-    const bar = e.target.getElementsByClassName('rangeSliderBar')[0]
-    // Calculate effective total memory.
-    const max = os.totalmem()/1073741824
-
-    // Change range bar color based on the selected value.
-    if(sMinV >= max/2){
-        bar.style.background = '#e86060'
-    } else if(sMinV >= max/4) {
-        bar.style.background = '#e8e18b'
-    } else {
-        bar.style.background = null
-    }
-
-    // Increase maximum memory if the minimum exceeds its value.
-    if(sMaxV < sMinV){
-        const sliderMeta = calculateRangeSliderMeta(settingsMaxRAMRange)
-        updateRangedSlider(settingsMaxRAMRange, sMinV,
-            ((sMinV-sliderMeta.min)/sliderMeta.step)*sliderMeta.inc)
-        settingsMaxRAMLabel.innerHTML = sMinV.toFixed(1) + 'G'
-    }
-
-    // Update label
-    settingsMinRAMLabel.innerHTML = sMinV.toFixed(1) + 'G'
-}
-
-// Bind on change event for max memory container.
-settingsMaxRAMRange.onchange = (e) => {
-    // Current range values
-    const sMaxV = Number(settingsMaxRAMRange.getAttribute('value'))
-    const sMinV = Number(settingsMinRAMRange.getAttribute('value'))
-
-    // Get reference to range bar.
-    const bar = e.target.getElementsByClassName('rangeSliderBar')[0]
-    // Calculate effective total memory.
-    const max = os.totalmem()/1073741824
-
-    // Change range bar color based on the selected value.
-    if(sMaxV >= max/2){
-        bar.style.background = '#e86060'
-    } else if(sMaxV >= max/4) {
-        bar.style.background = '#e8e18b'
-    } else {
-        bar.style.background = null
-    }
-
-    // Decrease the minimum memory if the maximum value is less.
-    if(sMaxV < sMinV){
-        const sliderMeta = calculateRangeSliderMeta(settingsMaxRAMRange)
-        updateRangedSlider(settingsMinRAMRange, sMaxV,
-            ((sMaxV-sliderMeta.min)/sliderMeta.step)*sliderMeta.inc)
-        settingsMinRAMLabel.innerHTML = sMaxV.toFixed(1) + 'G'
-    }
-    settingsMaxRAMLabel.innerHTML = sMaxV.toFixed(1) + 'G'
-}
-
-/**
- * Calculate common values for a ranged slider.
- * 
- * @param {Element} v The range slider to calculate against. 
- * @returns {Object} An object with meta values for the provided ranged slider.
- */
-function calculateRangeSliderMeta(v){
-    const val = {
-        max: Number(v.getAttribute('max')),
-        min: Number(v.getAttribute('min')),
-        step: Number(v.getAttribute('step')),
-    }
-    val.ticks = (val.max-val.min)/val.step
-    val.inc = 100/val.ticks
-    return val
-}
-
-/**
- * Binds functionality to the ranged sliders. They're more than
- * just divs now :').
- */
-function bindRangeSlider(){
-    Array.from(document.getElementsByClassName('rangeSlider')).map((v) => {
-
-        // Reference the track (thumb).
-        const track = v.getElementsByClassName('rangeSliderTrack')[0]
-
-        // Set the initial slider value.
-        const value = v.getAttribute('value')
-        const sliderMeta = calculateRangeSliderMeta(v)
-
-        updateRangedSlider(v, value, ((value-sliderMeta.min)/sliderMeta.step)*sliderMeta.inc)
-
-        // Move the slider to the notch closest to the mouse. The track is
-        // centered on its position (margin-left: -width/2), so the mouse and
-        // the track's center line up.
-        const moveTo = (e) => {
-            // In the slider's own box: offsetLeft is relative to the settings
-            // panel, not the page, and put the track off by the panel's margin.
-            const rect = v.getBoundingClientRect()
-            const perc = Math.min(Math.max((e.clientX - rect.left)/rect.width, 0), 1)*100
-            const ticks = Math.round(perc/sliderMeta.inc)
-            const notch = ticks*sliderMeta.inc
-            if(notch !== Number(track.style.left.replace('%', ''))){
-                updateRangedSlider(v, sliderMeta.min+(sliderMeta.step*ticks), notch)
-            }
-        }
-
-        // Drag the track, or click anywhere on the bar to jump there.
-        v.onmousedown = (e) => {
-            if(e.button !== 0){
-                return
-            }
-            e.preventDefault()
-            moveTo(e)
-
-            // Stop moving the track on mouse up.
-            document.onmouseup = () => {
-                document.onmousemove = null
-                document.onmouseup = null
-            }
-
-            // Move slider according to the mouse position.
-            document.onmousemove = moveTo
-        }
-    }) 
-}
-
-/**
- * Update a ranged slider's value and position.
- * 
- * @param {Element} element The ranged slider to update.
- * @param {string | number} value The new value for the ranged slider.
- * @param {number} notch The notch that the slider should now be at.
- */
-function updateRangedSlider(element, value, notch){
-    const oldVal = element.getAttribute('value')
-    const bar = element.getElementsByClassName('rangeSliderBar')[0]
-    const track = element.getElementsByClassName('rangeSliderTrack')[0]
-    
-    element.setAttribute('value', value)
-
-    if(notch < 0){
-        notch = 0
-    } else if(notch > 100) {
-        notch = 100
-    }
-
-    const event = new MouseEvent('change', {
-        target: element,
-        type: 'change',
-        bubbles: false,
-        cancelable: true
-    })
-
-    let cancelled = !element.dispatchEvent(event)
-
-    if(!cancelled){
-        track.style.left = notch + '%'
-        bar.style.width = notch + '%'
-    } else {
-        element.setAttribute('value', oldVal)
-    }
-}
-
-/**
- * Display the total and available RAM.
- */
-function populateMemoryStatus(){
-    settingsMemoryTotal.innerHTML = Number((os.totalmem()-1073741824)/1073741824).toFixed(1) + 'G'
-    settingsMemoryAvail.innerHTML = Number(os.freemem()/1073741824).toFixed(1) + 'G'
-}
-
-/**
- * Validate the provided executable path and display the data on
- * the UI.
- * 
- * @param {string} execPath The executable path to populate against.
- */
-async function populateJavaExecDetails(execPath){
-    const server = (await DistroAPI.getDistribution()).getServerById(ConfigManager.getSelectedServer())
-
-    const details = await validateSelectedJvm(ensureJavaDirIsRoot(execPath), server.effectiveJavaOptions.supported)
-
-    if(details != null) {
-        settingsJavaExecDetails.innerHTML = Lang.queryJS('settings.java.selectedJava', { version: details.semverStr, vendor: details.vendor })
-    } else {
-        settingsJavaExecDetails.innerHTML = Lang.queryJS('settings.java.invalidSelection')
-    }
-}
-
-function populateJavaReqDesc(server) {
-    settingsJavaReqDesc.innerHTML = Lang.queryJS('settings.java.requiresJava', { major: server.effectiveJavaOptions.suggestedMajor })
-}
-
-function populateJvmOptsLink(server) {
-    const major = server.effectiveJavaOptions.suggestedMajor
-    settingsJvmOptsLink.innerHTML = Lang.queryJS('settings.java.availableOptions', { major: major })
-    if(major >= 12) {
-        settingsJvmOptsLink.href = `https://docs.oracle.com/en/java/javase/${major}/docs/specs/man/java.html#extra-options-for-java`
-    }
-    else if(major >= 11) {
-        settingsJvmOptsLink.href = 'https://docs.oracle.com/en/java/javase/11/tools/java.html#GUID-3B1CE181-CD30-4178-9602-230B800D4FAE'
-    }
-    else if(major >= 9) {
-        settingsJvmOptsLink.href = `https://docs.oracle.com/javase/${major}/tools/java.htm`
-    }
-    else {
-        settingsJvmOptsLink.href = `https://docs.oracle.com/javase/${major}/docs/technotes/tools/${process.platform === 'win32' ? 'windows' : 'unix'}/java.html`
-    }
-}
-
-function bindMinMaxRam(server) {
-    // Store maximum memory values.
-    const SETTINGS_MAX_MEMORY = ConfigManager.getAbsoluteMaxRAM(server.rawServer.javaOptions?.ram)
-    const SETTINGS_MIN_MEMORY = ConfigManager.getAbsoluteMinRAM(server.rawServer.javaOptions?.ram)
-
-    // Set the max and min values for the ranged sliders.
-    settingsMaxRAMRange.setAttribute('max', SETTINGS_MAX_MEMORY)
-    settingsMaxRAMRange.setAttribute('min', SETTINGS_MIN_MEMORY)
-    settingsMinRAMRange.setAttribute('max', SETTINGS_MAX_MEMORY)
-    settingsMinRAMRange.setAttribute('min', SETTINGS_MIN_MEMORY)
-}
-
-/**
- * Prepare the Java tab for display.
- */
-async function prepareJavaTab(){
-    const server = (await DistroAPI.getDistribution()).getServerById(ConfigManager.getSelectedServer())
-    if(server == null){
-        return
-    }
-    bindMinMaxRam(server)
-    bindRangeSlider(server)
-    populateMemoryStatus()
-    populateJavaReqDesc(server)
-    populateJvmOptsLink(server)
+function saveGameDefaults(){
+    ConfigManager.setDefaultMemory(gameGroups.memory.hasAttribute('own') ? readMemoryControl(gameMemory) : null)
+    const jvm = gameJvmInput.value.trim()
+    ConfigManager.setDefaultJVMOptions(gameGroups.jvm.hasAttribute('own') ? (jvm ? jvm.split(/\s+/) : []) : null)
 }
 
 /**
@@ -2414,19 +1610,27 @@ function prepareAppearanceTab(){
     })
 }
 
+/**
+ * Function to refresh the current tab whenever the selected
+ * server is changed.
+ */
+async function animateSettingsTabRefresh(){
+    const tab = document.getElementById(selectedSettingsTab)
+    await Promise.all([animateOut(tab, 160), prepareSettings()])
+    animateIn(tab, 320, { rise: 8 })
+}
+
 async function prepareSettings(first = false) {
     if(first){
         setupSettingsTabs()
         initSettingsValidators()
         prepareUpdateTab()
         prepareAppearanceTab()
-    } else {
-        await prepareModsTab()
     }
     await initSettingsValues()
     prepareProxySettings()
     prepareAccountsTab()
-    await prepareJavaTab()
+    await prepareGameDefaults()
     prepareAboutTab()
     prepareLanguageTab()
     prepareDistroUrlSetting()

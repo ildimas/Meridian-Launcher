@@ -493,8 +493,102 @@ document.getElementById('settingsMediaButton').onclick = () => {
     switchView(getCurrentView(), VIEWS.settings, 500, 500, () => prepareSettings())
 }
 
-// Bind avatar overlay button.
-document.getElementById('avatarOverlay').onclick = () => {
+// Account menu: switch accounts, add one, or manage them in settings.
+const accountPicker = document.getElementById('accountPicker')
+const accountButton = document.getElementById('user_content')
+const accountMenu = document.getElementById('accountMenu')
+
+/**
+ * Fill the account menu, the selected account first.
+ */
+function renderAccountMenu(){
+    const list = document.getElementById('accountMenuList')
+    const selected = ConfigManager.getSelectedAccount()
+    const accounts = Object.values(ConfigManager.getAuthAccounts())
+        .sort((a, b) => (b.uuid === selected?.uuid) - (a.uuid === selected?.uuid))
+    list.replaceChildren(...accounts.map(acc => {
+        const row = document.createElement('button')
+        row.type = 'button'
+        row.className = 'serverListRow accountMenuRow'
+        row.setAttribute('role', 'menuitemradio')
+        const isSelected = acc.uuid === selected?.uuid
+        row.setAttribute('aria-checked', String(isSelected))
+        row.toggleAttribute('selected', isSelected)
+        row.innerHTML = `<span class="serverListTile accountMenuAvatar"></span>
+            <span class="serverListText">
+                <span class="serverListName"></span>
+                <span class="serverListMeta"></span>
+            </span>
+            <svg class="accountMenuCheck" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>`
+        row.querySelector('.accountMenuAvatar').style.backgroundImage = `url('https://mc-heads.net/avatar/${getAccountSkinId(acc)}/80')`
+        row.querySelector('.serverListName').textContent = acc.displayName
+        row.querySelector('.serverListMeta').textContent = Lang.queryJS(`landing.accounts.${acc.type === 'microsoft' || acc.type === 'offline' ? acc.type : 'mojang'}`)
+        row.onclick = () => {
+            closeAccountMenu(true)
+            if(!isSelected) setSelectedAccount(acc.uuid)
+        }
+        return row
+    }))
+}
+
+function openAccountMenu(){
+    // The account can't change while a launch is in progress.
+    if(document.getElementById('landingContainer').hasAttribute('launching')) return
+    renderAccountMenu()
+    accountPicker.setAttribute('open', '')
+    accountButton.setAttribute('aria-expanded', 'true')
+    // Arrows move into the rows from here.
+    accountMenu.focus()
+}
+
+/**
+ * @param {boolean} refocus Return focus to the account button.
+ */
+function closeAccountMenu(refocus = false){
+    if(!accountPicker.hasAttribute('open')) return
+    accountPicker.removeAttribute('open')
+    accountButton.setAttribute('aria-expanded', 'false')
+    if(refocus) accountButton.focus()
+}
+
+accountButton.onclick = () => {
+    if(accountPicker.hasAttribute('open')) closeAccountMenu()
+    else openAccountMenu()
+}
+accountMenu.addEventListener('keydown', e => {
+    // Keep arrows and Escape away from the news drawer shortcuts.
+    e.stopPropagation()
+    // Accounts first, Manage in the heading last.
+    const items = [...accountMenu.querySelectorAll('[role^="menuitem"]'), document.getElementById('accountMenuManage')]
+    const i = items.indexOf(document.activeElement)
+    if(e.key === 'ArrowDown' || e.key === 'ArrowUp'){
+        e.preventDefault()
+        const dir = e.key === 'ArrowDown' ? 1 : -1
+        // From the menu itself, start at either end.
+        items[i < 0 ? (dir > 0 ? 0 : items.length - 1) : (i + dir + items.length) % items.length].focus()
+    } else if(e.key === 'Escape'){
+        closeAccountMenu(true)
+    } else if(e.key === 'Tab'){
+        closeAccountMenu()
+    }
+})
+document.addEventListener('mousedown', e => {
+    if(!accountPicker.contains(e.target)) closeAccountMenu()
+})
+
+document.getElementById('accountMenuAdd').onclick = () => {
+    closeAccountMenu()
+    switchView(getCurrentView(), VIEWS.loginOptions, 500, 500, () => {
+        loginOptionsViewOnLoginSuccess = VIEWS.landing
+        loginOptionsViewOnLoginCancel = VIEWS.loginOptions
+        loginOptionsViewOnCancel = VIEWS.landing
+        loginOptionsCancelEnabled(true)
+        loginOptionsShowOffline(false)
+    })
+}
+
+document.getElementById('accountMenuManage').onclick = () => {
+    closeAccountMenu()
     switchView(getCurrentView(), VIEWS.settings, 500, 500, async () => {
         await prepareSettings()
         settingsNavItemListener(document.getElementById('settingsNavAccount'), false)
@@ -529,6 +623,8 @@ updateSelectedAccount(ConfigManager.getSelectedAccount())
 function updateSelectedServer(serv){
     if(getCurrentView() === VIEWS.settings){
         fullSettingsSave()
+    } else if(getCurrentView() === VIEWS.pack){
+        savePackView()
     }
     ConfigManager.setSelectedServer(serv != null ? serv.rawServer.id : null)
     ConfigManager.save()
@@ -537,6 +633,8 @@ function updateSelectedServer(serv){
     ThemeEngine.setServer(serv != null ? serv.rawServer : null)
     if(getCurrentView() === VIEWS.settings){
         animateSettingsTabRefresh()
+    } else if(getCurrentView() === VIEWS.pack){
+        preparePackView()
     }
     setLaunchEnabled(serv != null)
     // News can be for one pack only.
@@ -1122,15 +1220,9 @@ function openPackFolders(){
 }
 document.getElementById('managePackFolders').onclick = openPackFolders
 
-// Until packs get their own screen, the Mods tab is where the selected
-// pack is configured.
 packSettingsButton.onclick = () => {
-    if(document.getElementById('landingContainer').hasAttribute('launching')) return
     closeServerMenu()
-    switchView(getCurrentView(), VIEWS.settings, 500, 500, async () => {
-        await prepareSettings()
-        document.querySelector('.settingsNavItem[rSc="settingsTabMods"]').click()
-    })
+    openPackView()
 }
 
 async function stepServer(delta){

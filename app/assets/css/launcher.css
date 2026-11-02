@@ -1762,13 +1762,16 @@ select:focus-visible,
 }
 
 /* Remove spin button from number inputs. */
-#settingsContainer input[type=number]::-webkit-inner-spin-button {
+#settingsContainer input[type=number]::-webkit-inner-spin-button,
+#packContainer input[type=number]::-webkit-inner-spin-button {
     -webkit-appearance: none;
 }
 
 /* Default styles for text/number inputs. */
 #settingsContainer input[type=number],
-#settingsContainer input[type=text] {
+#settingsContainer input[type=text],
+#packContainer input[type=number],
+#packContainer input[type=text] {
     color: var(--text-1);
     background: var(--glass-sunk);
     border-radius: var(--radius-pill);
@@ -1779,12 +1782,15 @@ select:focus-visible,
     transition: border-color 160ms var(--ease-out), background 160ms var(--ease-out);
 }
 #settingsContainer input[type=number]:focus,
-#settingsContainer input[type=text]:focus {
+#settingsContainer input[type=text]:focus,
+#packContainer input[type=number]:focus,
+#packContainer input[type=text]:focus {
     outline: none;
     border-color: var(--accent-line);
     background: rgba(6, 5, 9, 0.55);
 }
-#settingsContainer input[type=number][error] {
+#settingsContainer input[type=number][error],
+#packContainer input[type=number][error] {
     border-color: var(--danger);
     background: var(--danger-soft);
     color: var(--danger);
@@ -1910,11 +1916,6 @@ input:checked + .toggleSwitchSlider:before {
     margin-bottom: 20px;
     margin-top: 20px;
     width: 75%;
-}
-
-/* File selector title. */
-.settingsFileSelTitle {
-    margin-bottom: 10px;
 }
 
 /* Wrapper container for the actionable elements. */
@@ -3360,105 +3361,25 @@ input:checked + .toggleSwitchSlider:before {
 }
 
 /* * *
-* Settings View (Java Tab)
+* Pack View (Java)
 * * */
 
 /* Style links in the Java section. */
-#settingsSectionJava a,
+#settingsJVMOptsDesc a,
 .settingsChangelogText a {
     color: var(--accent-hi);
     transition: 0.25s ease;
     outline: none;
 }
-#settingsSectionJava a:hover,
-#settingsSectionJava a:focus,
+#settingsJVMOptsDesc a:hover,
+#settingsJVMOptsDesc a:focus,
 .settingsChangelogText a:hover,
 .settingsChangelogText a:focus {
     color: var(--text-2);
 }
-#settingsSectionJava a:active,
+#settingsJVMOptsDesc a:active,
 .settingsChangelogText a:active {
     color: var(--text-3);
-}
-
-/* Main container for memory management. */
-#settingsMemoryContainer {
-    width: 75%;
-    display: flex;
-    flex-direction: column;
-    border-bottom: 1px solid var(--line);
-    margin-bottom: 20px;
-}
-
-/* Memory management title. */
-/* Memory management content. */
-#settingsMemoryContent {
-    display: flex;
-    justify-content: space-between;
-    width: 100%;
-}
-#settingsMemoryContentLeft {
-    width: 69%;
-}
-#settingsMemoryContentRight {
-    display: flex;
-    align-items: center;
-    margin-right: 10%;
-}
-
-/* Header for memory sliders. */
-.settingsMemoryHeader {
-    font-size: 14px;
-}
-
-/* Wrapper container for a memory slider and label. */
-.settingsMemoryActionContainer {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
-/* Label which displays a memory slider's value. */
-.settingsMemoryLabel {
-    font-size: 14px;
-    margin-right: 2%;
-}
-
-/* Range sliders for min and max memory settings. */
-#settingsMaxRAMRange,
-#settingsMinRAMRange {
-    width: 85%;
-}
-
-/* Memory status elements. */
-#settingsMemoryStatus {
-    display: flex;
-    flex-direction: column;
-}
-#settingsMemoryStatus > .settingsMemoryStatusContainer:not(:last-child){
-    margin-bottom: 50%;
-}
-.settingsMemoryStatusContainer {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-.settingsMemoryStatusTitle {
-    font-size: 12px;
-    color: var(--text-3);
-    font-weight: bold;
-}
-.settingsMemoryStatusValue {
-    color: lightgrey;
-    font-size: 16px;
-}
-
-/* Description for memory management. */
-#settingsMemoryDesc {
-    font-size: 10px;
-    margin: 20px 0px;
-    color: lightgrey;
-    font-weight: bold;
 }
 
 /* Status text which displays details on the selected executable. */
@@ -3471,11 +3392,6 @@ input:checked + .toggleSwitchSlider:before {
 /* Main container for the JVM options setting. */
 #settingsJVMOptsContainer {
     width: 75%;
-}
-
-/* JVM options title. */
-#settingsJVMOptsTitle {
-    margin-bottom: 10px;
 }
 
 /* Wrapper container for the actionable elements. */
@@ -4687,15 +4603,153 @@ body[settingsOpen] #wallpaper .wpImg {
 }
 
 /* Account pill. */
+#accountPicker {
+    position: relative;
+}
 #user_content {
     height: 44px;
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 0px 14px 0px 4px;
+    padding: 0px 12px 0px 4px;
+    color: var(--text-1);
+    font-family: var(--font-ui);
+    cursor: pointer;
+    transition: background 160ms ease, border-color 160ms ease;
+}
+#user_content:hover,
+#accountPicker[open] #user_content {
+    background: rgba(12, 43, 74, 0.82);
+    border-color: var(--accent-line);
+}
+#user_content > svg {
+    flex: none;
+    width: 14px;
+    height: 14px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    color: var(--text-2);
+    transition: transform 200ms var(--ease-out);
+}
+#accountPicker[open] #user_content > svg {
+    transform: rotate(180deg);
+}
+/* Same glass as the modpack list, opening downwards. */
+#accountMenu {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0px;
+    z-index: 20;
+    width: 300px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    padding: 14px 10px 10px;
+    border-radius: var(--radius-panel);
+    background: var(--glass-strong);
+    border: 1px solid var(--line-strong);
+    backdrop-filter: var(--glass-blur);
+    box-shadow: var(--shadow-float), var(--sheen);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-6px) scale(0.98);
+    transform-origin: top right;
+    transition: opacity 160ms ease, transform 220ms var(--ease-out), visibility 0s linear 220ms;
+    outline: none;
+}
+#accountPicker[open] #accountMenu {
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+    transition: opacity 160ms ease, transform 220ms var(--ease-out), visibility 0s;
+}
+#accountMenu .serverMenuHeading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+#accountMenuList {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-height: 280px;
+    overflow-y: auto;
+}
+.accountMenuRow {
+    width: 100%;
+    border: 0px;
+    background: none;
+    color: var(--text-1);
+    font-family: var(--font-ui);
+    text-align: left;
+}
+.accountMenuRow:hover,
+.accountMenuRow:focus-visible {
+    background: var(--glass-hover);
+}
+.accountMenuRow[selected] {
+    background: rgba(125, 180, 230, 0.12);
+}
+.accountMenuRow .accountMenuAvatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    image-rendering: pixelated;
+}
+.accountMenuRow .serverListText {
+    flex: 1;
+    min-width: 0;
+}
+.accountMenuCheck {
+    flex: none;
+    width: 18px;
+    height: 18px;
+    margin-right: 6px;
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 2.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    visibility: hidden;
+}
+.accountMenuRow[selected] .accountMenuCheck {
+    visibility: visible;
+}
+#accountMenuAdd {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 6px;
+    padding: 10px 12px;
+    border: 0px;
+    border-top: 1px solid var(--line);
+    border-radius: 0px 0px 18px 18px;
+    background: none;
+    color: var(--accent);
+    font-family: var(--font-ui);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+#accountMenuAdd:hover,
+#accountMenuAdd:focus-visible {
+    color: var(--accent-hi);
+    background: var(--glass-hover);
+}
+#accountMenuAdd > svg {
+    width: 16px;
+    height: 16px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
 }
 #avatarContainer {
     position: relative;
+    display: block;
     width: 34px;
     height: 34px;
     border-radius: 50%;
@@ -4707,36 +4761,6 @@ body[settingsOpen] #wallpaper .wpImg {
     background-repeat: no-repeat;
     background-size: cover;
     image-rendering: pixelated;
-}
-#avatarOverlay {
-    opacity: 0;
-    position: absolute;
-    inset: 0px;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    border: none;
-    cursor: pointer;
-    padding: 0px;
-    color: var(--text-1);
-    background-color: rgba(2, 26, 48, 0.65);
-    transition: opacity 160ms ease;
-}
-/* An icon, not the label: the label doesn't fit in the 34px circle. */
-#avatarOverlay svg {
-    width: 16px;
-    height: 16px;
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 2;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-}
-#avatarOverlay:hover,
-#avatarOverlay:focus {
-    opacity: 1;
 }
 #user_text {
     font-size: 13px;
@@ -7080,3 +7104,412 @@ input.mpFolderTitle { width: min(100%, 300px); height: 34px; }
 .mpUnassignedPacks { margin-top: 24px; }
 .mpUnassignedHeading { display: block; padding: 0 0 12px; font-size: 14px; font-weight: 650; color: var(--text-1); }
 .mpUnassignedPacks .mpFolderPack { padding-left: 0; }
+
+/* * *
+* Pack View
+* * */
+
+/* One pack: a header with its name and Play, tabs, and the tab's panel. Opens
+   like settings, as a sheet over the blurred launcher. */
+#packContainer {
+    position: relative;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background-color: rgba(2, 26, 48, 0.62);
+    color: var(--text-1);
+    font-family: var(--font-ui);
+}
+#packHeader {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 22px 36px 18px;
+}
+.packRoundButton {
+    flex: none;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    border: 1px solid var(--line-strong);
+    background: var(--glass-hover);
+    color: var(--text-1);
+    cursor: pointer;
+    transition: background 160ms ease, border-color 160ms ease;
+}
+.packRoundButton:hover {
+    background: var(--accent-soft);
+    border-color: var(--accent-line);
+}
+.packRoundButton > svg {
+    width: 20px;
+    height: 20px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+#packTile {
+    width: 56px;
+    height: 56px;
+    font-size: 18px;
+}
+#packHeading {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+#packName {
+    font-size: 26px;
+    font-weight: var(--display-weight);
+    letter-spacing: var(--display-tracking);
+    line-height: 1.1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+#packChips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+.packChip {
+    padding: 3px 10px;
+    border-radius: var(--radius-pill);
+    background: var(--accent-soft);
+    color: var(--accent-hi);
+    font-size: 12px;
+    font-weight: 600;
+}
+.packChip:empty {
+    display: none;
+}
+.packChip[main] {
+    background: rgba(255, 210, 122, 0.14);
+    color: var(--warn);
+}
+#packPlay {
+    flex: none;
+    min-width: 150px;
+    height: 48px;
+    padding: 0px 24px;
+    border: 0px;
+    border-radius: var(--radius-pill);
+    background: var(--accent);
+    color: var(--accent-ink);
+    font-family: var(--font-ui);
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 160ms ease, opacity 160ms ease;
+}
+#packPlay:hover:not(:disabled) {
+    background: var(--accent-hi);
+}
+#packPlay:disabled {
+    opacity: 0.45;
+    cursor: default;
+}
+
+/* Tabs across the top, so they don't read as the settings menu. */
+#packTabs {
+    flex: none;
+    display: flex;
+    gap: 4px;
+    padding: 0px 36px;
+    border-bottom: 1px solid var(--line);
+}
+.packTabButton {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    height: 44px;
+    margin-bottom: -1px;
+    padding: 0px 12px;
+    border: 0px;
+    border-bottom: 2px solid transparent;
+    background: none;
+    color: var(--text-2);
+    font-family: var(--font-ui);
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: color 160ms ease, border-color 160ms ease;
+}
+.packTabButton:hover {
+    color: var(--text-1);
+}
+.packTabButton[selected] {
+    color: var(--text-1);
+    border-bottom-color: var(--accent);
+}
+.packTabCount {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-3);
+    font-variant-numeric: tabular-nums;
+}
+.packTabBadge {
+    padding: 1px 7px;
+    border-radius: var(--radius-pill);
+    background: var(--accent-soft);
+    color: var(--accent-hi);
+    font-size: 11px;
+}
+
+#packBody {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+}
+.packPanel {
+    height: 100%;
+    overflow-y: auto;
+    box-sizing: border-box;
+    padding: 4px 36px 80px;
+}
+.packPanel[hidden] {
+    display: none;
+}
+.packPanelLead {
+    width: 88%;
+    margin: 22px 0px 6px;
+    font-size: 13px;
+    color: var(--text-2);
+}
+
+/* Overview */
+.packCards {
+    width: 88%;
+    margin-top: 22px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 14px;
+}
+.packCard {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 18px 20px;
+    border-radius: var(--radius-l);
+    background: var(--glass-sunk);
+    border: 1px solid var(--line);
+}
+.packCardWide {
+    grid-column: 1 / -1;
+}
+.packCardTitle {
+    margin: 0px;
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-3);
+}
+.packFacts {
+    align-self: stretch;
+    margin: 0px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.packFacts > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    font-size: 13.5px;
+}
+.packFacts dt {
+    color: var(--text-2);
+}
+.packFacts dd {
+    margin: 0px;
+    font-weight: 600;
+    text-align: right;
+}
+.packCardNote {
+    margin: 0px;
+    font-size: 12.5px;
+    color: var(--text-2);
+}
+.packFileButtons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.packFileButtons .mpButtonQuiet {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0px;
+}
+.packFileButtons svg {
+    width: 16px;
+    height: 16px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linejoin: round;
+}
+
+/* A group of settings that is either inherited (greyed out) or the pack's
+   own. Settings → Game uses them for the shared defaults too. */
+.packGroup {
+    width: 88%;
+    box-sizing: border-box;
+    margin-top: 14px;
+    padding: 16px 20px;
+    border-radius: var(--radius-l);
+    background: var(--glass-sunk);
+    border: 1px solid var(--line);
+    transition: border-color 160ms ease;
+}
+.packGroup[own] {
+    border-color: var(--accent-line);
+}
+.packGroupHead {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+}
+.packOwn {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text-2);
+    cursor: pointer;
+}
+.packGroupBody {
+    margin-top: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    transition: opacity 160ms ease;
+}
+.packGroup[data-group]:not([own]) .packGroupBody,
+.packGroup[data-game-group]:not([own]) .packGroupBody {
+    opacity: 0.5;
+}
+#packGroupJava .settingsFileSelContainer {
+    width: 100%;
+    margin: 0px;
+    border-bottom: 0px;
+}
+#packContainer #settingsJVMOptsContainer {
+    width: 100%;
+}
+.packWindowRow {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.packWindowRow input[type=number] {
+    width: 90px;
+}
+.packWindowCross {
+    color: var(--text-3);
+    font-size: 11px;
+}
+.packWindowFull {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-left: 16px;
+    font-size: 13px;
+    color: var(--text-2);
+}
+/* The shared window settings follow the groups on Settings → Game. */
+.packGroup + #settingsGameResolutionContainer {
+    margin-top: 30px;
+}
+.gameJvmInput {
+    box-sizing: border-box;
+    width: 100%;
+}
+.packSettingsFoot {
+    width: 88%;
+    margin-top: 22px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+.packSettingsFoot .mpButtonQuiet {
+    margin: 0px;
+}
+
+/* Max and min memory sliders, with the system's memory beside them. */
+.memoryControl {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+}
+.memoryControl[disabled] .rangeSlider {
+    pointer-events: none;
+}
+.memoryRows {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.memoryRow {
+    display: grid;
+    grid-template-columns: 120px 1fr 52px;
+    align-items: center;
+    gap: 16px;
+    font-size: 13.5px;
+}
+.memoryRow .rangeSlider {
+    width: auto;
+}
+.memoryRowValue {
+    text-align: right;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+.rangeSlider:focus-visible {
+    outline: 2px solid var(--accent-line);
+    outline-offset: 6px;
+}
+.rangeSlider[warn=mid] .rangeSliderBar {
+    background: var(--warn);
+}
+.rangeSlider[warn=high] .rangeSliderBar {
+    background: var(--danger);
+}
+.memoryStatus {
+    flex: none;
+    display: flex;
+    gap: 22px;
+}
+.memoryStatusItem {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+.memoryStatusTitle {
+    font-size: 11.5px;
+    font-weight: 700;
+    color: var(--text-3);
+}
+.memoryStatusValue {
+    font-size: 15px;
+    color: var(--text-2);
+    font-variant-numeric: tabular-nums;
+}
