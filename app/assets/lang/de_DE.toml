@@ -35,6 +35,7 @@ launchingButton = "WIRD GESTARTET"
 serverPickerLabel = "Server"
 serverDialLabel = "Server"
 serverMenuHeading = "Modpacks"
+packSettingsLabel = "Modpack-Einstellungen"
 serverDialPrev = "Vorheriger Server"
 serverDialNext = "Nächster Server"
 

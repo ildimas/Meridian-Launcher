@@ -5353,17 +5353,19 @@ input.mpFolderTitle { width: min(100%, 300px); height: 34px; }
 #landingContainer[dialHidden] #serverPicker {
     width: 320px;
 }
+/* The picker and its settings segment read as one split pill. */
 #server_select {
-    width: 100%;
+    width: calc(100% - 48px);
     height: 100%;
     box-sizing: border-box;
     display: flex;
     align-items: center;
     gap: 11px;
     padding: 0px 14px 0px 9px;
-    border-radius: var(--radius-pill);
+    border-radius: var(--radius-pill) 0 0 var(--radius-pill);
     background: var(--glass-strong);
     border: 1px solid var(--line-strong);
+    border-right: 0;
     backdrop-filter: var(--glass-blur);
     color: var(--text-1);
     font-family: var(--font-ui);
@@ -5396,6 +5398,44 @@ input.mpFolderTitle { width: min(100%, 300px); height: 34px; }
 }
 #serverPicker[open] #server_select > svg {
     transform: rotate(180deg);
+}
+#packSettingsButton {
+    position: absolute;
+    top: 0px;
+    right: 0px;
+    width: 48px;
+    height: 100%;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0px 4px 0px 0px;
+    border-radius: 0 var(--radius-pill) var(--radius-pill) 0;
+    background: var(--glass-strong);
+    border: 1px solid var(--line-strong);
+    border-left-color: rgba(185, 211, 236, 0.16);
+    backdrop-filter: var(--glass-blur);
+    color: var(--text-2);
+    cursor: pointer;
+    transition: background 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+#packSettingsButton:hover:not(:disabled) {
+    background: rgba(12, 43, 74, 0.82);
+    border-color: var(--accent-line);
+    color: var(--text-1);
+}
+#packSettingsButton:disabled {
+    cursor: default;
+    opacity: 0.6;
+}
+#packSettingsButton > svg {
+    width: 20px;
+    height: 20px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
 }
 
 /* Shared row anatomy: tile, name over meta, status. */

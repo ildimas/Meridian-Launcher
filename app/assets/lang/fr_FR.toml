@@ -35,6 +35,7 @@ launchingButton = "LANCEMENT"
 serverPickerLabel = "Serveur"
 serverDialLabel = "Serveurs"
 serverMenuHeading = "Modpacks"
+packSettingsLabel = "Paramètres du modpack"
 serverDialPrev = "Serveur précédent"
 serverDialNext = "Serveur suivant"
 

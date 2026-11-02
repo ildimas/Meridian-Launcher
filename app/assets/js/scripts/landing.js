@@ -45,6 +45,7 @@ const launch_progress         = document.getElementById('launch_progress')
 const launch_progress_label   = document.getElementById('launch_progress_label')
 const launch_details_text     = document.getElementById('launch_details_text')
 const server_select           = document.getElementById('server_select')
+const packSettingsButton      = document.getElementById('packSettingsButton')
 const user_text               = document.getElementById('user_text')
 
 const loggerLanding = LoggerUtil.getLogger('Landing')
@@ -62,6 +63,7 @@ function toggleLaunchArea(loading){
     document.getElementById('landingContainer').toggleAttribute('launching', loading)
     launchButton.toggleAttribute('launching', loading)
     server_select.disabled = loading
+    packSettingsButton.disabled = loading || !ConfigManager.getSelectedServer()
     if(loading) closeServerMenu()
     if(loading){
         launchButton.disabled = true
@@ -1009,6 +1011,7 @@ async function renderServerPicker(){
     }
     pickerTile.toggleAttribute('empty', curServ == null)
     server_select.toggleAttribute('empty', menuServers.length === 0)
+    packSettingsButton.disabled = curServ == null || document.getElementById('landingContainer').hasAttribute('launching')
 
     // Dial tiles. Tiles are reused so their position animates between states.
     // Rebuild when the servers or the theme (tile colours) change.
@@ -1118,6 +1121,17 @@ function openPackFolders(){
     })
 }
 document.getElementById('managePackFolders').onclick = openPackFolders
+
+// Until packs get their own screen, the Mods tab is where the selected
+// pack is configured.
+packSettingsButton.onclick = () => {
+    if(document.getElementById('landingContainer').hasAttribute('launching')) return
+    closeServerMenu()
+    switchView(getCurrentView(), VIEWS.settings, 500, 500, async () => {
+        await prepareSettings()
+        document.querySelector('.settingsNavItem[rSc="settingsTabMods"]').click()
+    })
+}
 
 async function stepServer(delta){
     const servers = pickerServers(await DistroAPI.getDistribution(), true)

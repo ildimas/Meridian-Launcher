@@ -35,6 +35,7 @@ launchingButton = "ЗАПУСК"
 serverPickerLabel = "Сервер"
 serverDialLabel = "Серверы"
 serverMenuHeading = "Модпакі"
+packSettingsLabel = "Налады модпака"
 serverDialPrev = "Папярэдні сервер"
 serverDialNext = "Наступны сервер"
 

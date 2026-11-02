@@ -35,6 +35,7 @@ launchingButton = "ЗАПУСК"
 serverPickerLabel = "Сервер"
 serverDialLabel = "Серверы"
 serverMenuHeading = "Сборки"
+packSettingsLabel = "Настройки сборки"
 serverDialPrev = "Предыдущий сервер"
 serverDialNext = "Следующий сервер"
 

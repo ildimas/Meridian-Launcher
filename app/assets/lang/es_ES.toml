@@ -36,6 +36,7 @@ launchingButton = "INICIANDO"
 serverPickerLabel = "Servidor"
 serverDialLabel = "Servidores"
 serverMenuHeading = "Paquetes de servidor"
+packSettingsLabel = "Ajustes del paquete"
 serverDialPrev = "Servidor anterior"
 serverDialNext = "Servidor siguiente"
 

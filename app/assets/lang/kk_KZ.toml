@@ -35,6 +35,7 @@ launchingButton = "ІСКЕ ҚОСУ"
 serverPickerLabel = "Сервер"
 serverDialLabel = "Серверлер"
 serverMenuHeading = "Модпактар"
+packSettingsLabel = "Модпак баптаулары"
 serverDialPrev = "Алдыңғы сервер"
 serverDialNext = "Келесі сервер"
 
