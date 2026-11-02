@@ -1685,6 +1685,29 @@ select:focus-visible,
     color: var(--text-2);
 }
 
+/* A group of related settings inside a tab (Folders under Modpacks, Java
+   under Mods, Language under Appearance, Proxy under Launcher). */
+.settingsSection {
+    margin-top: 40px;
+    padding-top: 24px;
+    border-top: 1px solid var(--line);
+}
+.settingsSectionHeader {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin-bottom: 14px;
+}
+.settingsSectionTitle {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text-1);
+}
+.settingsSectionDesc {
+    font-size: 12.5px;
+    color: var(--text-2);
+}
+
 /* Selected server content container */
 .settingsSelServContainer {
     box-sizing: border-box;
@@ -3340,20 +3363,20 @@ input:checked + .toggleSwitchSlider:before {
 * Settings View (Java Tab)
 * * */
 
-/* Style links on the Java tab. */
-#settingsTabJava a,
+/* Style links in the Java section. */
+#settingsSectionJava a,
 .settingsChangelogText a {
     color: var(--accent-hi);
     transition: 0.25s ease;
     outline: none;
 }
-#settingsTabJava a:hover,
-#settingsTabJava a:focus,
+#settingsSectionJava a:hover,
+#settingsSectionJava a:focus,
 .settingsChangelogText a:hover,
 .settingsChangelogText a:focus {
     color: var(--text-2);
 }
-#settingsTabJava a:active,
+#settingsSectionJava a:active,
 .settingsChangelogText a:active {
     color: var(--text-3);
 }
@@ -3368,12 +3391,6 @@ input:checked + .toggleSwitchSlider:before {
 }
 
 /* Memory management title. */
-#settingsMemoryTitle {
-    margin-bottom: 10px;
-    padding-bottom: 5px;
-    border-bottom: 1px solid var(--line);
-}
-
 /* Memory management content. */
 #settingsMemoryContent {
     display: flex;
@@ -3604,6 +3621,18 @@ input:checked + .toggleSwitchSlider:before {
 }
 
 /* Main changelog container. */
+/* Prerelease updates: a row shaped like the cards around it. */
+#settingsPrereleaseField {
+    box-sizing: border-box;
+    /* The cards are 75% wide plus their border. */
+    width: calc(75% + 2px);
+    margin-bottom: 20px;
+    padding: 14px 18px;
+    background: var(--glass-sunk);
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-card);
+}
+
 .settingsChangelogContainer {
     display: flex;
     flex-direction: column;
@@ -5066,7 +5095,6 @@ body[settingsOpen] #wallpaper .wpImg {
 }
 #mpFolders { width: 96%; box-sizing: border-box; padding: 6px; }
 #mpFolders [hidden] { display: none !important; }
-#settingsTabFolders .settingsTabHeader { padding-right: 24px; }
 #mpFolderCreate { position: relative; padding: 12px; gap: 10px; border: 1px solid var(--line); border-radius: 18px; background: var(--glass); box-sizing: border-box; margin-top: 42px; }
 #mpFolderCreateLabel { position: absolute; top: -28px; left: 0; font-size: 10.5px; font-weight: 650; letter-spacing: .08em; color: var(--text-2); }
 #mpFolderCreateButton { display: inline-flex; align-items: center; justify-content: center; gap: 7px; border-radius: 10px; }

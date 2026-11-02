@@ -1109,8 +1109,12 @@ function openPackFolders(){
     if(document.getElementById('landingContainer').hasAttribute('launching')) return
     switchView(getCurrentView(), VIEWS.settings, 500, 500, async () => {
         await prepareSettings()
-        document.querySelector('.settingsNavItem[rSc="settingsTabFolders"]').click()
-        document.getElementById('mpFolderName').focus()
+        document.querySelector('.settingsNavItem[rSc="settingsTabModpacks"]').click()
+    }, () => {
+        // Folders are the last section of Modpacks. Settings has to be on
+        // screen to scroll and take focus, so this waits for it to show.
+        document.getElementById('settingsSectionFolders').scrollIntoView({ block: 'start', behavior: reduceMotion.matches ? 'auto' : 'smooth' })
+        document.getElementById('mpFolderName').focus({ preventScroll: true })
     })
 }
 document.getElementById('managePackFolders').onclick = openPackFolders

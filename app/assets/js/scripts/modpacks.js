@@ -1621,5 +1621,3 @@ mpBindImport()
 mpBindVersion()
 mpBindBrowse()
 document.querySelector('.settingsNavItem[rSc="settingsTabModpacks"]').addEventListener('click', mpOnShow)
-
-document.querySelector('.settingsNavItem[rSc="settingsTabFolders"]').addEventListener('click', mpRenderInstalled)
