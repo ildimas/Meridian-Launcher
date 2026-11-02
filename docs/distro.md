@@ -2,6 +2,8 @@
 
 You can use [Nebula](https://github.com/dscalzi/Nebula) to automate the generation of a distribution index.
 
+See [NeoForge packs from Nebula](neoforge.md) for runtime handling and Windows VM graphics troubleshooting.
+
 The most up to date and accurate descriptions of the distribution spec can be viewed in [helios-distribution-types](https://github.com/dscalzi/helios-distribution-types).
 
 The distribution index is written in JSON. The general format of the index is as posted below.
@@ -456,6 +458,19 @@ installer's `install_profile.json` libraries. Publish it as a `Library` with
 `classpath: false` at its Maven path: FML locates it there to register the
 `neoforge` mod. Omitting it causes every mod requiring NeoForge to report
 that dependency as missing.
+
+Meridian also completes a missing NeoForge universal dependency when loading
+remote, cached, or locally imported distributions. The version comes from the
+loader's Maven coordinates or its `neoforge-<version>` manifest, rather than
+from a fixed launcher version. For this fallback, Maven checksums and sizes
+are cached locally and checked before launch. This does not replace including
+all runtime files in Studio's published distribution: libraries declared only
+in the installer profile must not be discarded just because they are absent
+from `version.json`. Local Forge and NeoForge imports retain those universal
+jars separately from classpath libraries.
+
+After downloading, Meridian verifies distribution files again and stops
+before starting Java if files are missing or their declared hashes differ.
 
 NeoForge mods from Studio are `File` modules targeting `mods/*.jar` (or
 `mods/*.jar.disabled`), so they are discovered from the instance directory.

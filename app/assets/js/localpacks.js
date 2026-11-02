@@ -10,6 +10,7 @@
 const fs   = require('fs')
 const path = require('path')
 const { Type } = require('helios-distribution-types')
+const LoaderRuntime = require('./loaderruntime')
 
 const FILE = 'localpacks.json'
 
@@ -98,9 +99,9 @@ exports.mergeInto = function(distro, launcherDir){
     const local = exports.read(launcherDir)
     if(distro == null){
         // Offline with no cached distribution: the local packs still work.
-        return local.length > 0 ? { version: '1.0.0', servers: local } : null
+        return local.length > 0 ? { version: '1.0.0', servers: local.map(LoaderRuntime.complete) } : null
     }
-    distro.servers = (distro.servers || []).filter(s => !exports.isLocal(s)).concat(local)
+    distro.servers = (distro.servers || []).filter(s => !exports.isLocal(s)).concat(local).map(LoaderRuntime.complete)
     return distro
 }
 
@@ -140,6 +141,26 @@ exports.patchIndexProcessor = function(DistributionIndexProcessor){
         return
     }
     proto.localPacksPatched = true
+    const validate = proto.validate
+    proto.validate = async function(...args){
+        const server = this.distribution.getServerById(this.serverId)
+        if(server != null) await LoaderRuntime.prepare(server.modules, this.commonDir)
+        return validate.apply(this, args)
+    }
+    const postDownload = proto.postDownload
+    proto.postDownload = async function(...args){
+        // Helios only logs checksum failures after downloading. Do not let
+        // truncated or incorrect pack files reach the game, for any loader.
+        const server = this.distribution.getServerById(this.serverId)
+        if(server != null){
+            const invalid = []
+            await this.validateModules(server.modules, invalid)
+            if(invalid.length > 0){
+                throw new Error(`Downloaded pack files failed verification: ${invalid.map(m => m.id).join(', ')}`)
+            }
+        }
+        return postDownload.apply(this, args)
+    }
     const original = proto.loadModLoaderVersionJson
     proto.loadModLoaderVersionJson = async function(...args){
         const server = this.distribution.getServerById(this.serverId)

@@ -24,6 +24,7 @@ const os            = require('os')
 const path          = require('path')
 const { MavenUtil, isLibraryCompatible, mcVersionAtLeast } = require('helios-core/common')
 const { Type }      = require('helios-distribution-types')
+const LoaderRuntime = require('./loaderruntime')
 
 const MOJANG_MANIFEST = 'https://piston-meta.mojang.com/mc/game/version_manifest_v2.json'
 const LIBRARY_MIRRORS = [
@@ -186,7 +187,7 @@ function libraryInfo(lib, libDir){
  * (no url), downloaded otherwise.
  */
 async function fetchLibrary(lib, installer, download){
-    if(await fs.pathExists(lib.file)){
+    if(await fs.pathExists(lib.file) && (!lib.sha1 || sha1Of(lib.file) === lib.sha1)){
         return
     }
     const embedded = installer.getEntry(`maven/${lib.rel}`)
@@ -616,7 +617,7 @@ exports.install = async function(opts, tools){
         const extra = []
         // NeoForge's universal jar can be profile-only, but FML still reads it
         // at launch from the library directory (outside the Java classpath).
-        const launchLibraries = tools_.filter(l => /^net\.neoforged:(neoforge|forge):[^:]+:universal$/.test(l.name))
+        const launchLibraries = tools_.filter(l => LoaderRuntime.isProfileRuntimeLibrary(l.name))
         const candidates = new Map([...outputs, ...launchLibraries].map(l => [l.rel, l]))
         for(const o of candidates.values()){
             if(!onClasspath.has(o.rel) && await fs.pathExists(o.file)){
