@@ -44,6 +44,7 @@ const launch_details          = document.getElementById('launch_details')
 const launch_progress         = document.getElementById('launch_progress')
 const launch_progress_label   = document.getElementById('launch_progress_label')
 const launch_details_text     = document.getElementById('launch_details_text')
+const launch_busy_label       = document.getElementById('launchBusyLabel')
 const server_select           = document.getElementById('server_select')
 const packSettingsButton      = document.getElementById('packSettingsButton')
 const addMenu                 = document.getElementById('addMenu')
@@ -55,6 +56,26 @@ const user_text               = document.getElementById('user_text')
 const loggerLanding = LoggerUtil.getLogger('Landing')
 
 /* Launch Progress Wrapper Functions */
+
+// What the launch button is doing: 'play', or 'update' and 'download' for files.
+let launchTask = 'play'
+// A press that downloaded anything stops there: the game starts on the next one.
+let launchDownloaded = false
+
+function showLaunchTask(){
+    launch_busy_label.textContent = launchTask === 'play'
+        ? Lang.queryEJS('landing.launchingButton')
+        : Lang.queryJS(`landing.running.${launchTask === 'update' ? 'updating' : 'downloading'}`)
+}
+
+/**
+ * Note that this press is downloading something.
+ */
+function markLaunchDownload(){
+    launchDownloaded = true
+    if(launchTask === 'play') launchTask = 'download'
+    showLaunchTask()
+}
 
 /**
  * Show/hide the loading area.
@@ -71,6 +92,7 @@ function toggleLaunchArea(loading){
     if(loading) closeServerMenu()
     if(loading){
         launchButton.disabled = true
+        showLaunchTask()
         launch_details.style.display = 'flex'
         launch_content.style.display = 'none'
     } else {
@@ -232,6 +254,18 @@ async function refreshPackInstalled(){
 }
 
 /**
+ * What pressing the launch button does for a pack. Until the check finishes
+ * it counts as playable.
+ *
+ * @param {string} id The server id.
+ * @returns {'play' | 'update' | 'download'} The task.
+ */
+function launchTaskFor(id){
+    if(packUpdateFor(id) != null) return 'update'
+    return packInstalled.get(id) === false ? 'download' : 'play'
+}
+
+/**
  * Show which modpacks are running: the hero chip, the Play button, the server
  * list rows and the dial tiles.
  */
@@ -242,13 +276,11 @@ function renderRunningState(){
 
     document.getElementById('serverHeroRunning').hidden = !running
     launchButton.toggleAttribute('running', running)
-    // Until the check finishes the button keeps saying Play.
-    const needsDownload = packInstalled.get(selId) === false
     const update = packUpdateFor(selId)
     const updateChip = document.getElementById('serverHeroUpdate')
     updateChip.hidden = running || update == null
     updateChip.textContent = update != null ? Lang.queryJS('landing.packUpdate.chip', { version: update }) : ''
-    document.getElementById('launchButtonLabel').textContent = Lang.queryJS(dialAdd.on ? 'landing.addSlot.button' : running ? 'landing.running.button' : update != null ? 'landing.running.update' : needsDownload ? 'landing.running.download' : 'landing.running.play')
+    document.getElementById('launchButtonLabel').textContent = Lang.queryJS(dialAdd.on ? 'landing.addSlot.button' : running ? 'landing.running.button' : `landing.running.${launchTaskFor(selId)}`)
     if(!document.getElementById('landingContainer').hasAttribute('launching')){
         launchButton.disabled = !dialAdd.on && (selId == null || running)
     }
@@ -468,7 +500,9 @@ document.getElementById('launch_button').addEventListener('click', async e => {
         openAddMenu()
         return
     }
-    loggerLanding.info('Launching game..')
+    launchTask = launchTaskFor(ConfigManager.getSelectedServer())
+    launchDownloaded = false
+    loggerLanding.info(`Launch button: ${launchTask}.`)
     try {
         const server = (await DistroAPI.getDistribution()).getServerById(ConfigManager.getSelectedServer())
         const jExe = ConfigManager.getJavaExecutable(ConfigManager.getSelectedServer())
@@ -1729,6 +1763,8 @@ async function asyncSystemScan(effectiveJavaOptions, launchAfter = true){
 
 async function downloadJava(effectiveJavaOptions, launchAfter = true) {
 
+    markLaunchDownload()
+
     // TODO Error handling.
     // asset can be null.
     const asset = await latestOpenJDK(
@@ -1831,10 +1867,9 @@ function downloadFailureDesc(displayable, hint){
     return desc
 }
 
-async function dlAsync(login = true) {
+async function dlAsync(login = launchTask !== 'update') {
 
-    // Login parameter is temporary for debug purposes. Allows testing the validation/downloads without
-    // launching the game.
+    // Without login no account is needed: an update stops once the files are in place.
 
     const loggerLaunchSuite = LoggerUtil.getLogger('LaunchSuite')
 
@@ -1912,6 +1947,7 @@ async function dlAsync(login = true) {
 
     if(invalidFileCount > 0) {
         loggerLaunchSuite.info('Downloading files.')
+        markLaunchDownload()
         setLaunchDetails(Lang.queryJS('landing.dlAsync.downloadingFiles'))
         setLaunchPercentage(0)
         try {
@@ -1930,6 +1966,11 @@ async function dlAsync(login = true) {
         }
     } else {
         loggerLaunchSuite.info('No invalid files, skipping download.')
+        // Nothing to download after all: this press starts the game.
+        if(launchTask === 'download' && !launchDownloaded){
+            launchTask = 'play'
+            showLaunchTask()
+        }
     }
 
     // Remove download bar.
@@ -1950,6 +1991,12 @@ async function dlAsync(login = true) {
         ConfigManager.save()
     }
     hidePackUpdateToast()
+
+    if(launchTask === 'update' || launchDownloaded){
+        packInstalled.set(serv.rawServer.id, true)
+        toggleLaunchArea(false)
+        return
+    }
 
     setLaunchDetails(Lang.queryJS('landing.dlAsync.preparingToLaunch'))
 

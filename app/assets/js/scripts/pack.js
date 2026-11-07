@@ -997,10 +997,12 @@ function renderPackHeader(server){
     document.getElementById('packSourceNote').textContent = Lang.queryJS(local ? 'pack.noteLocal' : 'pack.noteServer')
 
     const launch = document.getElementById('launch_button')
-    document.getElementById('packPlay').disabled = launch.disabled
+    const play = document.getElementById('packPlay')
+    play.disabled = launch.disabled
+    play.textContent = Lang.queryJS(`landing.running.${launchTaskFor(raw.id)}`)
 
     // Own packs go entirely; a server pack only loses its files, the server
-    // brings it back and they download again on launch.
+    // brings it back and they can be downloaded again.
     const remove = document.getElementById('packRemove')
     const running = isServerRunning(raw.id)
     remove.textContent = Lang.queryJS(local ? 'pack.removePack' : 'pack.removeFiles')
