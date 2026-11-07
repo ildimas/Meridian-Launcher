@@ -218,11 +218,10 @@ function trackRunningServer(id, child){
 const packInstalled = new Map()
 
 /**
- * Collect the files a pack needs on disk: every module (optional ones are
- * downloaded too) and the Minecraft version jar.
+ * Collect the files of a pack's modules, optional ones included.
  */
-function packFiles(serv){
-    const files = [getVersionJarPath(ConfigManager.getCommonDirectory(), serv.rawServer.minecraftVersion)]
+function packModuleFiles(serv){
+    const files = []
     const walk = (mdls) => {
         for(const mdl of mdls){
             try {
@@ -235,6 +234,14 @@ function packFiles(serv){
     }
     walk(serv.modules)
     return files
+}
+
+/**
+ * Collect the files a pack needs on disk: every module (optional ones are
+ * downloaded too) and the Minecraft version jar.
+ */
+function packFiles(serv){
+    return [getVersionJarPath(ConfigManager.getCommonDirectory(), serv.rawServer.minecraftVersion), ...packModuleFiles(serv)]
 }
 
 /**

@@ -105,11 +105,6 @@
                     </div>
                 </div>
 
-                <div id="mpInstalledSection">
-                    <div class="settingsModsHeader"><%- lang('settings.modpacksInstalled') %></div>
-                    <div id="mpInstalled" class="mpPackCards" role="list"></div>
-                </div>
-
                 <div class="settingsModsHeader"><%- lang('settings.modpacksBrowse') %></div>
                 <div id="mpBrowseBar">
                     <div class="apSegment" id="mpSource">
@@ -124,6 +119,13 @@
                         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 19h14"/></svg>
                         <span><%- lang('settings.modpacksImportButton') %></span>
                     </button>
+                </div>
+                <div id="mpCategoryBar">
+                    <div id="mpCategories" role="group"></div>
+                    <div id="mpLinks">
+                        <button id="mpKeyEdit" class="apLink" hidden></button>
+                        <button id="mpSite" class="apLink"></button>
+                    </div>
                 </div>
                 <div id="mpCurseForgeKey" class="mpCard" hidden>
                     <span class="mpCardTitle"><%- lang('settings.modpacksCfKeyTitle') %></span>

@@ -8,6 +8,7 @@
 const os            = require('os')
 const DropinModUtil = require('./assets/js/dropinmodutil')
 const GameGpu       = require('./assets/js/gamegpu')
+const PackSize      = require('./assets/js/packsize')
 
 /**
  * Mods, resource packs and shaderpacks of the selected pack.
@@ -765,7 +766,9 @@ const packView = {
     // The pack's own values from when the view opened, shown again if a group
     // is turned off and back on.
     saved: {},
-    javaExec: null
+    javaExec: null,
+    // The pack the size on the Overview tab is for.
+    sizeOf: null
 }
 
 function memoryText(memory){
@@ -1042,6 +1045,29 @@ document.getElementById('packRemove').onclick = async () => {
     toggleOverlay(true, true)
 }
 
+let packSizeRun = 0
+
+/**
+ * Show how much space the pack takes. Counted again on each visit to the
+ * Overview tab, the other tabs add and remove files. The old value stays up
+ * meanwhile so the line doesn't blink.
+ */
+async function renderPackSize(){
+    const run = ++packSizeRun
+    const id = packView.serverId
+    const el = document.getElementById('packFactSize')
+    if(packView.sizeOf !== id){
+        el.textContent = Lang.queryJS('pack.sizeCounting')
+    }
+    const server = (await DistroAPI.getDistribution()).getServerById(id)
+    if(server == null) return
+    const size = await PackSize.packSize(path.join(ConfigManager.getInstanceDirectory(), id), packModuleFiles(server))
+    // The view has moved on, a newer count fills the line.
+    if(run !== packSizeRun) return
+    packView.sizeOf = id
+    el.textContent = size > 0 ? `≈ ${PackSize.formatSize(size, Lang.getCurrent().tag)}` : Lang.queryJS('pack.sizeEmpty')
+}
+
 /**
  * Item counts next to the tab names.
  */
@@ -1060,6 +1086,7 @@ function renderPackCounts(){
  */
 function selectPackTab(panelId, fade = true){
     packView.tab = panelId
+    if(panelId === 'packPanelOverview') renderPackSize()
     for(const tab of document.getElementsByClassName('packTabButton')){
         const on = tab.getAttribute('rSc') === panelId
         tab.toggleAttribute('selected', on)
@@ -1166,7 +1193,7 @@ function openPackView(){
 function closePackView(){
     savePackView()
     switchView(getCurrentView(), packView.returnTo, 500, 500, () => {
-        if(packView.returnTo === VIEWS.settings) mpRenderInstalled()
+        if(packView.returnTo === VIEWS.settings) mpRenderPackFolders()
     })
 }
 

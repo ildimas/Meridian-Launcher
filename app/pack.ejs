@@ -46,6 +46,10 @@
                 </section>
                 <section class="packCard packCardWide">
                     <h2 class="packCardTitle"><%- lang('pack.filesTitle') %></h2>
+                    <dl class="packFacts packFactsInline">
+                        <div><dt><%- lang('pack.factSize') %></dt><dd id="packFactSize"></dd></div>
+                    </dl>
+                    <p class="packCardNote"><%- lang('pack.sizeNote') %></p>
                     <div class="packFileButtons">
                         <button class="mpButton mpButtonQuiet" data-open=""><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><%- lang('pack.openFolder') %></button>
                         <button class="mpButton mpButtonQuiet" data-open="screenshots"><%- lang('pack.openScreenshots') %></button>

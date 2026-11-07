@@ -647,11 +647,11 @@ async function installMrpack(file, progress, extra = {}){
  * @param {number} offset How many results to skip.
  * @returns {Promise.<{hits: Array.<Object>, total: number}>}
  */
-exports.searchModrinth = async function(query, offset = 0){
+exports.searchModrinth = async function(query, offset = 0, category = null){
     const res = await http().get(`${MODRINTH}/search`, {
         searchParams: {
             query,
-            facets: JSON.stringify([['project_type:modpack']]),
+            facets: JSON.stringify(category != null ? [['project_type:modpack'], [`categories:${category}`]] : [['project_type:modpack']]),
             index: query ? 'relevance' : 'downloads',
             limit: 20,
             offset
@@ -667,11 +667,58 @@ exports.searchModrinth = async function(query, offset = 0){
             description: h.description,
             icon: h.icon_url || '',
             downloads: h.downloads,
-            loaders: (h.categories || []).filter(c => isKnownLoader(c) || UNSUPPORTED_LOADERS[c] != null),
+            loaders: (h.categories || []).filter(isLoaderTag),
+            categories: (h.display_categories || []).filter(c => !isLoaderTag(c)),
             minecraft: h.versions && h.versions.length > 0 ? h.versions[h.versions.length - 1] : null,
             url: `https://modrinth.com/modpack/${h.slug}`
         }))
     }
+}
+
+/**
+ * @param {string} tag A tag from a Modrinth project.
+ * @returns {boolean} Whether it names a mod loader rather than a category.
+ */
+function isLoaderTag(tag){
+    return isKnownLoader(tag) || UNSUPPORTED_LOADERS[tag] != null
+}
+
+/**
+ * The categories a source sorts its modpacks into.
+ *
+ * @param {'modrinth' | 'curseforge'} source The source.
+ * @returns {Promise.<Array.<{id: (string|number), name: string}>>} The categories; id is what a search takes.
+ */
+exports.categories = async function(source){
+    if(source === 'modrinth'){
+        const tags = await http().get(`${MODRINTH}/tag/category`).json()
+        return tags.filter(t => t.project_type === 'modpack' && t.header === 'categories').map(t => ({ id: t.name, name: t.name }))
+    }
+    const res = await curseForge().get('categories', {
+        searchParams: { gameId: CF_GAME_MINECRAFT, classId: CF_CLASS_MODPACK }
+    }).json()
+    return res.data.filter(c => !c.isClass).map(c => ({ id: c.id, name: c.name })).sort((a, b) => a.name.localeCompare(b.name))
+}
+
+/**
+ * The source's own modpack page, with the same search where it can take it.
+ * CurseForge's site doesn't filter by the API's category ids.
+ *
+ * @param {'modrinth' | 'curseforge'} source The source.
+ * @param {string} query The search.
+ * @param {string|number|null} category The category from categories().
+ * @returns {string} The url.
+ */
+exports.browseUrl = function(source, query = '', category = null){
+    if(source === 'curseforge'){
+        if(!query) return 'https://www.curseforge.com/minecraft/modpacks'
+        return `https://www.curseforge.com/minecraft/search?${new URLSearchParams({ class: 'modpacks', search: query })}`
+    }
+    const params = new URLSearchParams()
+    if(query) params.set('q', query)
+    if(category != null) params.set('g', `categories:${category}`)
+    const search = params.toString()
+    return `https://modrinth.com/modpacks${search ? `?${search}` : ''}`
 }
 
 /**
@@ -821,12 +868,13 @@ async function installCurseForgeZip(zip, manifest, progress, extra = {}){
  * @param {number} offset How many results to skip.
  * @returns {Promise.<{hits: Array.<Object>, total: number}>}
  */
-exports.searchCurseForge = async function(query, offset = 0){
+exports.searchCurseForge = async function(query, offset = 0, category = null){
     const res = await curseForge().get('mods/search', {
         searchParams: {
             gameId: CF_GAME_MINECRAFT,
             classId: CF_CLASS_MODPACK,
             searchFilter: query,
+            ...(category != null ? { categoryId: category } : {}),
             // 2 = popularity, 6 = total downloads.
             sortField: query ? 2 : 6,
             sortOrder: 'desc',
@@ -847,6 +895,7 @@ exports.searchCurseForge = async function(query, offset = 0){
                 icon: m.logo ? m.logo.thumbnailUrl : '',
                 downloads: m.downloadCount,
                 loaders: [...new Set(indexes.map(i => CF_LOADERS[i.modLoader]).filter(Boolean))],
+                categories: (m.categories || []).map(c => c.name),
                 minecraft: indexes.length > 0 ? indexes[0].gameVersion : null,
                 url: m.links ? m.links.websiteUrl : ''
             }

@@ -11,6 +11,8 @@ const mpState = {
     busy: false,
     source: 'modrinth',
     query: '',
+    // The category filter: an id from ModpackManager.categories, or null.
+    category: null,
     offset: 0,
     total: 0,
     // Bumped per search so late answers to an old query are dropped.
@@ -260,7 +262,7 @@ async function mpAfterChange(){
     syncModConfigurations(distro)
     ensureJavaSettings(distro)
     renderServerPicker()
-    mpRenderInstalled()
+    mpRenderPackFolders()
     return distro
 }
 
@@ -350,7 +352,7 @@ function mpFolderEdit(edit){
         PackFolders.write(ConfigManager.getLauncherDirectory(), state)
         error.hidden = true
         renderServerPicker()
-        mpRenderInstalled()
+        mpRenderPackFolders()
         return true
     } catch(err){
         const key = ['invalidName', 'duplicateName', 'unknownFolder'].includes(err.message) ? err.message : 'saveError'
@@ -541,8 +543,11 @@ function mpFolderPackRow(raw){
     const server = distroServerForFolder(raw)
     meta.append(mpSpan('mpFolderVersion', raw.minecraftVersion), mpSpan('', raw.local != null ? mpLoaderLabel(raw) : server != null ? getServerLoaderLabel(server) : ''))
     meta.appendChild(mpSpan('mpFolderSource', Lang.queryJS('settings.folders.' + (raw.local == null ? 'serverPack' : 'localPack'))))
+    if(ConfigManager.isPackHidden(raw.id)){
+        meta.appendChild(mpSpan('mpPackBadge mpPackBadgeHidden', Lang.queryJS('settings.modpacks.hiddenMeta')))
+    }
     details.append(title, meta)
-    pack.append(tile, details, mpFolderSelect(raw))
+    pack.append(tile, details, mpHideButton(raw), mpFolderSelect(raw))
     return pack
 }
 
@@ -558,7 +563,7 @@ async function mpSelect(id){
     const serv = (await DistroAPI.getDistribution()).getServerById(id)
     if(serv != null){
         updateSelectedServer(serv)
-        mpRenderInstalled()
+        mpRenderPackFolders()
     }
 }
 
@@ -583,7 +588,7 @@ function mpIconButton(cls, title, svg, onclick){
     return btn
 }
 
-const mpInstalledSeq = { n: 0 }
+const mpFolderRenderSeq = { n: 0 }
 
 /**
  * A pack's tile in the installed list; a click picks another icon.
@@ -612,13 +617,12 @@ function mpHideButton(raw){
     const btn = mpIconButton(hidden ? 'mpHidden' : '', title, svg, () => {
         ConfigManager.setPackHidden(raw.id, !hidden)
         ConfigManager.save()
-        mpRenderInstalled()
+        mpRenderPackFolders()
         renderServerPicker()
     })
     return btn
 }
 
-const MP_FOLDER_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>'
 const MP_REMOVE_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg>'
 
 function mpSpan(cls, text){
@@ -628,140 +632,8 @@ function mpSpan(cls, text){
     return span
 }
 
-// Whether the pack list under the selected pack's card is open.
-const mpMenu = { open: false }
-
-/**
- * The details of a pack as on the Mods and Java tabs: name, description,
- * then its Minecraft version and where it comes from.
- */
-function mpPackDetails(raw, compact = false){
-    const fromServer = raw.local == null
-    const details = document.createElement('div')
-    details.className = 'serverListingDetails'
-    details.appendChild(mpSpan('serverListingName', raw.name))
-    if(raw.description && !compact){
-        details.appendChild(mpSpan('serverListingDescription', raw.description))
-    }
-    const info = document.createElement('div')
-    info.className = 'serverListingInfo'
-    info.appendChild(mpSpan('serverListingVersion', raw.minecraftVersion))
-    if(fromServer){
-        if(raw.version) info.appendChild(mpSpan('serverListingRevision', raw.version))
-        const badge = mpSpan('mpPackBadge', Lang.queryJS('settings.modpacks.source.server'))
-        badge.title = Lang.queryJS('settings.modpacks.serverLocked')
-        info.appendChild(badge)
-    } else {
-        info.appendChild(mpSpan('serverListingRevision', `${mpLoaderLabel(raw)} · ${Lang.queryJS(`settings.modpacks.source.${raw.local.source}`)}`))
-    }
-    if(ConfigManager.isPackHidden(raw.id)){
-        info.appendChild(mpSpan('mpPackBadge mpPackBadgeHidden', Lang.queryJS('settings.modpacks.hiddenMeta')))
-    }
-    details.appendChild(info)
-    return details
-}
-
-/**
- * Open the pack's folder, e.g. to drop config files in. Removing a pack is
- * in its view.
- */
-function mpFileButtons(raw){
-    return [mpIconButton('', Lang.queryJS('settings.modpacks.openFolder'), MP_FOLDER_SVG, () => {
-        const dir = ModpackManager.instanceDir(raw.id)
-        DropinModUtil.validateDir(dir)
-        shell.openPath(dir)
-    })]
-}
-
-/**
- * The selected pack's card: its folder, its view, and the list of the others.
- */
-function mpRenderPackCard(box, raw, appearance){
-    const card = document.createElement('div')
-    card.className = 'settingsSelServContainer mpPackCard'
-
-    const content = document.createElement('div')
-    content.className = 'settingsSelServContent'
-    if(raw != null){
-        const tile = mpPackTile(raw, appearance)
-        tile.classList.add('settingsSelServTile')
-        content.append(tile, mpPackDetails(raw))
-    } else {
-        content.appendChild(mpSpan('serverListingName', Lang.queryJS('landing.selectedServer.noSelection')))
-    }
-
-    const actions = document.createElement('div')
-    actions.className = 'mpPackActions'
-    if(raw != null){
-        const open = document.createElement('button')
-        open.type = 'button'
-        open.className = 'settingsSwitchServerButton'
-        open.textContent = Lang.queryJS('settings.modpacks.openPack')
-        open.onclick = (e) => {
-            e.stopPropagation()
-            openPackView()
-        }
-        actions.append(...mpFileButtons(raw), open)
-    }
-    const toggle = document.createElement('button')
-    toggle.type = 'button'
-    toggle.className = 'settingsSwitchServerButton mpSwitch'
-    toggle.setAttribute('aria-expanded', mpMenu.open)
-    toggle.innerHTML = '<span></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>'
-    toggle.firstChild.textContent = Lang.queryEJS('settings.switchServerButton')
-    toggle.onclick = (e) => {
-        e.stopPropagation()
-        mpMenu.open = !mpMenu.open
-        mpRenderInstalled()
-    }
-    actions.appendChild(toggle)
-
-    card.append(content, actions)
-    box.appendChild(card)
-}
-
-/**
- * Every pack, hidden ones too: a click selects it and opens its view, the
- * eye hides it from the pack pickers, the folder works as on the card.
- */
-function mpRenderPackMenu(box, packs, appearance, selected){
-    const menu = document.createElement('div')
-    menu.className = 'mpPackMenu'
-    menu.setAttribute('role', 'listbox')
-    for(const raw of packs){
-        const row = document.createElement('div')
-        row.className = 'mpPackOption'
-        row.setAttribute('role', 'option')
-        row.tabIndex = 0
-        row.toggleAttribute('selected', raw.id === selected)
-        row.setAttribute('aria-selected', raw.id === selected)
-        row.toggleAttribute('packHidden', ConfigManager.isPackHidden(raw.id))
-        const tile = document.createElement('span')
-        tile.className = 'serverListTile'
-        paintServerTile(tile, raw, appearance, 'serverListTile')
-        const pick = async () => {
-            mpMenu.open = false
-            if(raw.id !== selected) await mpSelect(raw.id)
-            openPackView()
-        }
-        row.onclick = pick
-        row.onkeydown = (e) => {
-            if(e.key === 'Enter' || e.key === ' '){
-                e.preventDefault()
-                pick()
-            }
-        }
-        const actions = document.createElement('div')
-        actions.className = 'mpPackActions'
-        actions.append(mpHideButton(raw), ...mpFileButtons(raw))
-        row.append(tile, mpPackDetails(raw, true), actions)
-        menu.appendChild(row)
-    }
-    box.appendChild(menu)
-}
-
-async function mpRenderInstalled(){
-    const seq = ++mpInstalledSeq.n
+async function mpRenderPackFolders(){
+    const seq = ++mpFolderRenderSeq.n
     let servers = []
     try {
         mpFolderServers = (await DistroAPI.getDistribution()).servers
@@ -772,36 +644,11 @@ async function mpRenderInstalled(){
         console.warn('Could not list the distribution packs.', err)
     }
     // A newer render started while the distribution was loading.
-    if(seq !== mpInstalledSeq.n){
+    if(seq !== mpFolderRenderSeq.n){
         return
     }
-    const packs = servers.concat(ModpackManager.installed())
-    mpRenderFolders(packs)
-    const box = mpEl('mpInstalled')
-    mpEl('mpInstalledSection').hidden = packs.length === 0
-    box.innerHTML = ''
-    const appearance = ConfigManager.getAppearance()
-    const selected = ConfigManager.getSelectedServer()
-    mpRenderPackCard(box, packs.find(raw => raw.id === selected), appearance)
-    box.toggleAttribute('open', mpMenu.open)
-    if(mpMenu.open){
-        mpRenderPackMenu(box, packs, appearance, selected)
-    }
+    mpRenderFolders(servers.concat(ModpackManager.installed()))
 }
-
-// The pack list closes on a click elsewhere or Escape.
-document.addEventListener('click', (e) => {
-    if(mpMenu.open && !mpEl('mpInstalled').contains(e.target)){
-        mpMenu.open = false
-        mpRenderInstalled()
-    }
-})
-document.addEventListener('keydown', (e) => {
-    if(e.key === 'Escape' && mpMenu.open){
-        mpMenu.open = false
-        mpRenderInstalled()
-    }
-})
 
 // Pictures that can be used as a pack's own icon.
 const MP_ICON_TYPES = ['.png', '.jpg', '.jpeg', '.webp', '.gif']
@@ -944,7 +791,7 @@ async function mpPickIcon(raw){
         if(choice.original){
             PackIcons.unpick(raw.id)
             toggleOverlay(false)
-            mpRenderInstalled()
+            mpRenderPackFolders()
             repaintPackTiles(raw)
             return
         }
@@ -958,7 +805,7 @@ async function mpPickIcon(raw){
         }
         PackIcons.setChoice(raw.id, choice, true)
         toggleOverlay(false)
-        mpRenderInstalled()
+        mpRenderPackFolders()
         // Every other tile of this pack: the dial, the list, settings.
         repaintPackTiles(raw)
     })
@@ -1461,6 +1308,14 @@ function mpBindVersion(){
 
 const mpNumber = new Intl.NumberFormat(undefined, { notation: 'compact', maximumFractionDigits: 1 })
 
+/**
+ * @param {string} name A Modrinth category id or a CurseForge category name.
+ * @returns {string} What to show for it. CurseForge's names come as they are.
+ */
+function mpCategoryName(name){
+    return Lang.queryJS(`settings.modpacks.category.${name}`) || name.charAt(0).toUpperCase() + name.slice(1)
+}
+
 function mpResultRow(hit){
     const supported = hit.loaders.length === 0 || hit.loaders.some(ModpackManager.isSupportedLoader)
     const row = document.createElement('div')
@@ -1507,6 +1362,9 @@ function mpResultRow(hit){
         chip.toggleAttribute('unsupported', !ModpackManager.isSupportedLoader(l))
         chip.textContent = ModpackManager.LOADER_NAMES[l] || l
         meta.appendChild(chip)
+    }
+    for(const category of hit.categories.slice(0, 3)){
+        meta.appendChild(mpSpan('mpChip mpChipCategory', mpCategoryName(category)))
     }
     text.append(title, desc, meta)
 
@@ -1558,11 +1416,13 @@ async function mpSearch(more = false){
     let res
     try {
         res = source === 'modrinth'
-            ? await ModpackManager.searchModrinth(mpState.query, mpState.offset)
-            : await ModpackManager.searchCurseForge(mpState.query, mpState.offset)
+            ? await ModpackManager.searchModrinth(mpState.query, mpState.offset, mpState.category)
+            : await ModpackManager.searchCurseForge(mpState.query, mpState.offset, mpState.category)
     } catch(err) {
         if(seq === mpState.seq){
             console.error('Modpack search failed.', err)
+            // A refused key gets the key card back, so it can be replaced.
+            mpEl('mpCurseForgeKey').hidden = mpKeyError(err) !== 'invalid'
             mpResultsNote(mpErrorText(err))
         }
         return
@@ -1589,6 +1449,58 @@ async function mpSearch(more = false){
     moreBtn.disabled = false
 }
 
+const mpCategories = new Map()
+
+function mpCategoryButton(label, id){
+    const btn = document.createElement('button')
+    btn.type = 'button'
+    btn.className = 'mpCategory'
+    btn.textContent = label
+    const on = id === mpState.category
+    btn.toggleAttribute('selected', on)
+    btn.setAttribute('aria-pressed', on)
+    btn.onclick = () => {
+        if(id === mpState.category) return
+        mpState.category = id
+        mpRenderCategories()
+        mpSearch()
+    }
+    return btn
+}
+
+/**
+ * Draw the category filter of the chosen source and name the link to its
+ * site. Without the categories the search still works, the row just stays
+ * empty.
+ */
+async function mpRenderCategories(){
+    const source = mpState.source
+    const site = mpEl('mpSource').querySelector('[selected]').textContent
+    mpEl('mpSite').textContent = Lang.queryJS('settings.modpacks.openSite', { site })
+    // Without a key its card is open anyway.
+    mpEl('mpKeyEdit').hidden = source !== 'curseforge' || !ModpackManager.hasCurseForge()
+    const box = mpEl('mpCategories')
+    box.setAttribute('aria-label', Lang.queryJS('settings.modpacks.categories'))
+    if(source === 'curseforge' && !ModpackManager.hasCurseForge()){
+        box.replaceChildren()
+        return
+    }
+    if(!mpCategories.has(source)){
+        try {
+            mpCategories.set(source, await ModpackManager.categories(source))
+        } catch(err) {
+            console.warn('Could not load the modpack categories.', err)
+            mpCategories.set(source, [])
+        }
+        if(source !== mpState.source) return
+    }
+    const list = mpCategories.get(source)
+    box.replaceChildren(...(list.length === 0 ? [] : [
+        mpCategoryButton(Lang.queryJS('settings.modpacks.allCategories'), null),
+        ...list.map(c => mpCategoryButton(mpCategoryName(c.name), c.id))
+    ]))
+}
+
 function mpBindBrowse(){
     for(const btn of mpEl('mpSource').children){
         btn.onclick = () => {
@@ -1597,6 +1509,8 @@ function mpBindBrowse(){
                 other.toggleAttribute('selected', other === btn)
             }
             mpState.source = btn.value
+            mpState.category = null
+            mpRenderCategories()
             mpSearch()
         }
     }
@@ -1609,10 +1523,23 @@ function mpBindBrowse(){
         }, 350)
     }
     mpEl('mpMore').onclick = () => mpSearch(true)
+    mpEl('mpSite').onclick = () => shell.openExternal(ModpackManager.browseUrl(mpState.source, mpState.query, mpState.category))
     mpEl('mpCurseForgeKeyInput').value = ConfigManager.getCurseForgeApiKey()
+    mpEl('mpKeyEdit').textContent = Lang.queryJS('settings.modpacks.changeKey')
+    mpEl('mpKeyEdit').onclick = () => {
+        const card = mpEl('mpCurseForgeKey')
+        card.hidden = !card.hidden
+        if(!card.hidden){
+            const input = mpEl('mpCurseForgeKeyInput')
+            input.value = ConfigManager.getCurseForgeApiKey()
+            input.focus()
+            input.select()
+        }
+    }
     mpEl('mpCurseForgeKeySave').onclick = () => {
         ConfigManager.setCurseForgeApiKey(mpEl('mpCurseForgeKeyInput').value)
         ConfigManager.save()
+        mpRenderCategories()
         mpSearch()
     }
 }
@@ -1625,9 +1552,10 @@ let mpOpened = false
  * Called when the tab is shown; searches the first time.
  */
 function mpOnShow(){
-    mpRenderInstalled()
+    mpRenderPackFolders()
     if(!mpOpened){
         mpOpened = true
+        mpRenderCategories()
         mpSearch()
     }
 }
@@ -1669,4 +1597,4 @@ mpBindVersion()
 mpBindBrowse()
 document.querySelector('.settingsNavItem[rSc="settingsTabModpacks"]').addEventListener('click', mpOnShow)
 // The folders are on Interface; they are drawn with the installed packs.
-document.getElementById('settingsNavAppearance').addEventListener('click', mpRenderInstalled)
+document.getElementById('settingsNavAppearance').addEventListener('click', mpRenderPackFolders)
