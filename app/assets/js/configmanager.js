@@ -86,7 +86,8 @@ const DEFAULT_CONFIG = {
             // Defaults for every pack that doesn't set its own (javaConfig[id].own).
             // null follows what each pack recommends.
             memory: null, // { minRAM, maxRAM }
-            jvmOptions: null
+            jvmOptions: null,
+            gpu: 'auto' // auto | integrated | discrete
         },
         launcher: {
             allowPrerelease: false,
@@ -680,7 +681,7 @@ exports.getInheritedMemory = function(serverid){
  * shared defaults.
  *
  * @param {string} serverid The server id.
- * @param {'memory' | 'jvm' | 'window'} group The group of settings.
+ * @param {'memory' | 'jvm' | 'window' | 'gpu'} group The group of settings.
  * @returns {boolean} True if the pack uses its own values.
  */
 exports.getPackOwn = function(serverid, group){
@@ -689,7 +690,7 @@ exports.getPackOwn = function(serverid, group){
 
 /**
  * @param {string} serverid The server id.
- * @param {'memory' | 'jvm' | 'window'} group The group of settings.
+ * @param {'memory' | 'jvm' | 'window' | 'gpu'} group The group of settings.
  * @param {boolean} own True to use the pack's own values.
  */
 exports.setPackOwn = function(serverid, group, own){
@@ -779,6 +780,42 @@ exports.getInheritedGameWindow = function(){
  */
 exports.setOwnGameWindow = function(serverid, window){
     config.javaConfig[serverid].window = window
+}
+
+/**
+ * The graphics card a pack launches on: its own choice or the shared one.
+ *
+ * @param {string} serverid The server id.
+ * @returns {'auto' | 'integrated' | 'discrete'} The card.
+ */
+exports.getGameGpu = function(serverid){
+    const cfg = config.javaConfig[serverid]
+    if(cfg?.own?.gpu && cfg.gpu != null) {
+        return cfg.gpu
+    }
+    return exports.getDefaultGpu()
+}
+
+/**
+ * @returns {'auto' | 'integrated' | 'discrete'} The card for packs without their own.
+ */
+exports.getDefaultGpu = function(){
+    return config.settings.game.gpu
+}
+
+/**
+ * @param {'auto' | 'integrated' | 'discrete'} gpu The card for packs without their own.
+ */
+exports.setDefaultGpu = function(gpu){
+    config.settings.game.gpu = gpu
+}
+
+/**
+ * @param {string} serverid The server id.
+ * @param {'auto' | 'integrated' | 'discrete'} gpu The pack's own card, used while getPackOwn(id, 'gpu').
+ */
+exports.setOwnGameGpu = function(serverid, gpu){
+    config.javaConfig[serverid].gpu = gpu
 }
 
 /**

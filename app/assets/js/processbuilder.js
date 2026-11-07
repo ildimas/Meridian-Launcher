@@ -9,6 +9,7 @@ const os                    = require('os')
 const path                  = require('path')
 
 const ConfigManager            = require('./configmanager')
+const GameGpu                  = require('./gamegpu')
 const LocalPacks               = require('./localpacks')
 const ProxyManager             = require('./proxymanager')
 
@@ -89,10 +90,16 @@ class ProcessBuilder {
 
         logger.info('Launch Arguments:', loggableArgs)
 
-        const child = child_process.spawn(ConfigManager.getJavaExecutable(this.server.rawServer.id), args, {
+        const javaExe = ConfigManager.getJavaExecutable(this.server.rawServer.id)
+        const env = {
+            ...GameGpu.applyChoice(ConfigManager.getGameGpu(this.server.rawServer.id), javaExe),
+            ...(this.modManifest.jarMod && process.platform === 'win32' ? { APPDATA: this.gameDir } : {})
+        }
+
+        const child = child_process.spawn(javaExe, args, {
             cwd: this.gameDir,
             detached: ConfigManager.getLaunchDetached(),
-            ...(this.modManifest.jarMod && process.platform === 'win32' ? { env: { ...process.env, APPDATA: this.gameDir } } : {})
+            ...(Object.keys(env).length > 0 ? { env: { ...process.env, ...env } } : {})
         })
 
         if(ConfigManager.getLaunchDetached()){

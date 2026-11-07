@@ -39,6 +39,7 @@
                     <dl class="packFacts" id="packSettingsSummary">
                         <div><dt><%- lang('pack.groupMemory') %></dt><dd id="packSumMemory"></dd></div>
                         <div><dt><%- lang('pack.groupWindow') %></dt><dd id="packSumWindow"></dd></div>
+                        <div id="packSumGpuRow"><dt><%- lang('gpu.title') %></dt><dd id="packSumGpu"></dd></div>
                         <div><dt><%- lang('pack.groupJvm') %></dt><dd id="packSumJvm"></dd></div>
                     </dl>
                     <button class="apLink" id="packSumEdit"><%- lang('pack.settingsEdit') %></button>
@@ -152,6 +153,24 @@
                             <span><%- lang('pack.windowFullscreen') %></span>
                         </label>
                     </div>
+                </div>
+            </section>
+            <section class="packGroup" data-group="gpu" id="packGpuGroup">
+                <div class="packGroupHead">
+                    <div class="settingsFieldLeft">
+                        <span class="settingsFieldTitle"><%- lang('gpu.title') %></span>
+                        <span class="settingsFieldDesc packGroupState"></span>
+                    </div>
+                    <label class="packOwn">
+                        <span><%- lang('pack.own') %></span>
+                        <span class="toggleSwitch">
+                            <input type="checkbox" class="packOwnToggle">
+                            <span class="toggleSwitchSlider"></span>
+                        </span>
+                    </label>
+                </div>
+                <div class="packGroupBody">
+                    <%- include('gpuControl', { id: 'packGpu' }) %>
                 </div>
             </section>
             <section class="packGroup" data-group="jvm">

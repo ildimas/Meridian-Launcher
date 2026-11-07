@@ -274,6 +274,13 @@ welcomeDescription = "El launcher instala Minecraft, los mods y la configuració
 welcomeDescCTA = "Inicia sesión, elige un modpack y pulsa Jugar."
 
 
+[ejs.gpu]
+title = "Tarjeta gráfica"
+desc = "Qué tarjeta gráfica ejecuta el juego. Un modpack puede cambiarla en sus ajustes."
+auto = "Auto"
+integrated = "Integrada"
+discrete = "Dedicada"
+
 [js.discord]
 waiting = "Esperando al cliente.."
 state = "Servidor: {shortId}"

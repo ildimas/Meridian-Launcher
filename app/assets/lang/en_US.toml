@@ -277,6 +277,13 @@ cancelButton = "Cancel"
 continueButton = "CONTINUE"
 
 
+[ejs.gpu]
+title = "Graphics card"
+desc = "Which graphics card runs the game. A modpack can override this in its settings."
+auto = "Auto"
+integrated = "Integrated"
+discrete = "Discrete"
+
 [js.discord]
 waiting = "Waiting for client…"
 state = "Server: {shortId}"

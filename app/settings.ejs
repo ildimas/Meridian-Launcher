@@ -179,6 +179,15 @@
                     <span class="settingsFieldDesc"><%- lang('settings.jvmOptsDesc') %></span>
                 </div>
             </section>
+            <div class="settingsFieldContainer" id="gameGpuField">
+                <div class="settingsFieldLeft">
+                    <span class="settingsFieldTitle"><%- lang('gpu.title') %></span>
+                    <span class="settingsFieldDesc"><%- lang('gpu.desc') %></span>
+                </div>
+                <div class="settingsFieldRight">
+                    <%- include('gpuControl', { id: 'gameGpu' }) %>
+                </div>
+            </div>
             <div id="settingsGameResolutionContainer">
                 <span class="settingsFieldTitle"><%- lang('settings.gameResolutionTitle') %></span>
                 <div id="settingsGameResolutionContent">

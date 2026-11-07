@@ -11,6 +11,9 @@ const ServerLoader = require('../app/assets/js/serverloader')
 const ForgeInstaller = require('../app/assets/js/forgeinstaller')
 const LoaderRuntime = require('../app/assets/js/loaderruntime')
 const AdmZip = require('adm-zip')
+const child_process = require('child_process')
+const { EventEmitter } = require('events')
+const GameGpu = require('../app/assets/js/gamegpu')
 
 // ProcessBuilder's settings and proxy live in Electron; exercise command
 // construction in Node with only those two application boundaries replaced.
@@ -22,7 +25,10 @@ const config = {
     getMaxRAM: () => '4G', getMinRAM: () => '2G', getJVMOptions: () => [],
     getAutoConnect: () => false, getProxy: () => ({ enabled: false }),
     // The game window of the pack being launched (configmanager.getGameWindow).
-    getGameWindow: () => ({ resWidth: 1280, resHeight: 720, fullscreen: false })
+    getGameWindow: () => ({ resWidth: 1280, resHeight: 720, fullscreen: false }),
+    getGameGpu: () => 'discrete',
+    getJavaExecutable: () => '/java', getLaunchDetached: () => false,
+    getTempNativeFolder: () => 'natives', getModConfiguration: () => ({ mods: {} })
 }
 const savedConfig = require.cache[configPath]
 const savedProxy = require.cache[proxyPath]
@@ -128,6 +134,28 @@ test('Studio files validate to the shared runtime and instance mods paths and lo
     await processor.postDownload()
     await fs.remove(server.modules[0].getPath())
     await assert.rejects(processor.postDownload(), /files failed verification/)
+})
+
+test('the game process gets the environment of the chosen graphics card', t => {
+    const spawn = t.mock.method(child_process, 'spawn', () => {
+        const child = Object.assign(new EventEmitter(), { stdout: new EventEmitter(), stderr: new EventEmitter() })
+        child.stdout.setEncoding = child.stderr.setEncoding = () => {}
+        return child
+    })
+    const applyChoice = t.mock.method(GameGpu, 'applyChoice', () => ({ DRI_PRIME: '1' }))
+    const launch = builder()
+    launch.setupLiteLoader = () => {}
+    launch.resolveModConfiguration = () => ({ fMods: [], lMods: [] })
+    launch.constructJVMArguments = () => []
+    launch.constructModList = () => []
+    launch.build()
+    assert.deepEqual(applyChoice.mock.calls[0].arguments, ['discrete', '/java'])
+    assert.equal(spawn.mock.calls[0].arguments[2].env.DRI_PRIME, '1')
+    assert.equal(spawn.mock.calls[0].arguments[2].env.PATH, process.env.PATH)
+
+    applyChoice.mock.mockImplementation(() => ({}))
+    launch.build()
+    assert.equal(spawn.mock.calls[1].arguments[2].env, undefined)
 })
 
 test('NeoForge BootstrapLauncher keeps Minecraft and processor outputs off the classpath', () => {

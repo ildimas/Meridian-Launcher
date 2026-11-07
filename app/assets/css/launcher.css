@@ -3735,6 +3735,11 @@ input:checked + .toggleSwitchSlider:before {
 .apLink:hover {
     color: var(--accent-hi);
 }
+.packGroup[hidden],
+#gameGpuField[hidden],
+#packSumGpuRow[hidden] {
+    display: none;
+}
 .apLink[hidden] {
     display: none;
 }
@@ -7426,6 +7431,9 @@ input.mpFolderTitle { width: min(100%, 300px); height: 34px; }
     flex-direction: column;
     gap: 8px;
     transition: opacity 160ms ease;
+}
+.packGroupBody .apSegment {
+    align-self: flex-start;
 }
 .packGroup[data-group]:not([own]) .packGroupBody,
 .packGroup[data-game-group]:not([own]) .packGroupBody {

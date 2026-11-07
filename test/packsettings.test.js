@@ -66,6 +66,16 @@ test('JVM options and the window come from the pack only while it sets them', ()
     assert.deepEqual(ConfigManager.getGameWindow('changed'), { resWidth: 1280, resHeight: 720, fullscreen: false })
 })
 
+test('the graphics card comes from the pack only while it sets one', () => {
+    assert.equal(ConfigManager.getGameGpu('untouched'), 'auto')
+    ConfigManager.setDefaultGpu('discrete')
+    assert.equal(ConfigManager.getGameGpu('untouched'), 'discrete')
+    ConfigManager.setPackOwn('untouched', 'gpu', true)
+    ConfigManager.setOwnGameGpu('untouched', 'integrated')
+    assert.equal(ConfigManager.getGameGpu('untouched'), 'integrated')
+    assert.equal(ConfigManager.getGameGpu('changed'), 'discrete')
+})
+
 test('the choices survive a reload without being migrated again', () => {
     ConfigManager.setPackOwn('changed', 'memory', false)
     ConfigManager.save()

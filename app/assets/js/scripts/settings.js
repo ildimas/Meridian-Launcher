@@ -838,13 +838,19 @@ async function prepareGameDefaults(){
 
     renderGameGroupState('memory')
     renderGameGroupState('jvm')
+
+    setSegment('gameGpu', ConfigManager.getDefaultGpu())
+    document.getElementById('gameGpuField').toggleAttribute('hidden', await GameGpu.detect() == null)
 }
 
 function saveGameDefaults(){
     ConfigManager.setDefaultMemory(gameGroups.memory.hasAttribute('own') ? readMemoryControl(gameMemory) : null)
     const jvm = gameJvmInput.value.trim()
     ConfigManager.setDefaultJVMOptions(gameGroups.jvm.hasAttribute('own') ? (jvm ? jvm.split(/\s+/) : []) : null)
+    ConfigManager.setDefaultGpu(readSegment('gameGpu'))
 }
+
+bindSegment('gameGpu')
 
 /**
  * Language Tab

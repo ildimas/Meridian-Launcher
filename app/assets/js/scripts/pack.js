@@ -7,6 +7,7 @@
  */
 const os            = require('os')
 const DropinModUtil = require('./assets/js/dropinmodutil')
+const GameGpu       = require('./assets/js/gamegpu')
 
 /**
  * Mods, resource packs and shaderpacks of the selected pack.
@@ -656,6 +657,29 @@ function readMemoryControl(root){
 }
 
 /**
+ * @param {string} id The id of a segmented control (.apSegment).
+ * @returns {string} The selected value.
+ */
+function readSegment(id){
+    return document.querySelector(`#${id} button[selected]`).value
+}
+
+/**
+ * Select a segment when it's clicked.
+ *
+ * @param {string} id The id of a segmented control (.apSegment).
+ * @param {function} [onChange] Called after the selection changes.
+ */
+function bindSegment(id, onChange){
+    for(const btn of document.getElementById(id).children){
+        btn.onclick = () => {
+            setSegment(id, btn.value)
+            onChange?.()
+        }
+    }
+}
+
+/**
  * Turn a settings group (.packGroup) between its own values and the inherited
  * ones, which are shown greyed out.
  */
@@ -737,7 +761,7 @@ const packView = {
     returnTo: VIEWS.landing,
     tab: 'packPanelOverview',
     // Groups the pack sets itself, as toggled on the Settings tab.
-    own: { memory: false, window: false, jvm: false },
+    own: { memory: false, window: false, gpu: false, jvm: false },
     // The pack's own values from when the view opened, shown again if a group
     // is turned off and back on.
     saved: {},
@@ -748,6 +772,10 @@ function memoryText(memory){
     return memory.minRAM === memory.maxRAM ? formatRAM(ConfigManager.ramGB(memory.maxRAM)) : `${formatRAM(ConfigManager.ramGB(memory.minRAM))} – ${formatRAM(ConfigManager.ramGB(memory.maxRAM))}`
 }
 
+function gpuText(gpu){
+    return Lang.queryEJS(`gpu.${gpu}`)
+}
+
 function windowText(win){
     return win.fullscreen ? Lang.queryJS('pack.windowFull') : `${win.resWidth} × ${win.resHeight}`
 }
@@ -755,7 +783,7 @@ function windowText(win){
 /**
  * Where a group's values come from while the pack doesn't set its own.
  *
- * @param {'memory' | 'window' | 'jvm'} group The group.
+ * @param {'memory' | 'window' | 'gpu' | 'jvm'} group The group.
  * @returns {'shared' | 'recommended'} The source.
  */
 function inheritedSource(group){
@@ -771,6 +799,7 @@ function inheritedText(group){
     const id = packView.serverId
     if(group === 'memory') return memoryText(ConfigManager.getInheritedMemory(id))
     if(group === 'window') return windowText(ConfigManager.getInheritedGameWindow())
+    if(group === 'gpu') return gpuText(ConfigManager.getDefaultGpu())
     return ''
 }
 
@@ -794,9 +823,10 @@ function renderPackGroupStates(){
     const summary = {
         packSumMemory: packView.own.memory ? memoryText(readMemoryControl(packMemory)) : inheritedText('memory'),
         packSumWindow: packView.own.window ? windowText(readPackWindow() ?? ConfigManager.getGameWindow(id)) : inheritedText('window'),
+        packSumGpu: packView.own.gpu ? gpuText(readSegment('packGpu')) : inheritedText('gpu'),
         packSumJvm: ''
     }
-    for(const [el, group] of [['packSumMemory', 'memory'], ['packSumWindow', 'window'], ['packSumJvm', 'jvm']]){
+    for(const [el, group] of [['packSumMemory', 'memory'], ['packSumWindow', 'window'], ['packSumGpu', 'gpu'], ['packSumJvm', 'jvm']]){
         const source = packView.own[group] ? 'pack.sumOwn' : inheritedSource(group) === 'shared' ? 'pack.sumShared' : 'pack.sumRecommended'
         const value = summary[el]
         document.getElementById(el).textContent = value ? `${value} · ${Lang.queryJS(source)}` : Lang.queryJS(source + 'Plain')
@@ -833,6 +863,8 @@ function showPackGroupValues(name){
         setMemoryControl(packMemory, ConfigManager.getRecommendedJava(id).floor, own && saved != null ? saved : ConfigManager.getInheritedMemory(id))
     } else if(name === 'window'){
         showPackWindow(own && saved != null ? saved : ConfigManager.getInheritedGameWindow())
+    } else if(name === 'gpu'){
+        setSegment('packGpu', own && saved != null ? saved : ConfigManager.getDefaultGpu())
     } else if(name === 'jvm'){
         packJvmInput.value = (own && saved != null ? saved : ConfigManager.getInheritedJVMOptions(id)).join(' ')
     }
@@ -844,7 +876,7 @@ for(const group of document.querySelectorAll('#packPanelSettings .packGroup[data
         packView.own[name] = e.target.checked
         // Turned back on, the group shows the values it had.
         if(!e.target.checked){
-            packView.saved[name] = name === 'memory' ? readMemoryControl(packMemory) : name === 'window' ? readPackWindow() : packJvmInput.value.trim().split(/\s+/).filter(Boolean)
+            packView.saved[name] = name === 'memory' ? readMemoryControl(packMemory) : name === 'window' ? readPackWindow() : name === 'gpu' ? readSegment('packGpu') : packJvmInput.value.trim().split(/\s+/).filter(Boolean)
         }
         showPackGroupValues(name)
         setGroupOwn(group, e.target.checked)
@@ -867,6 +899,7 @@ for(const id of ['packGameWidth', 'packGameHeight']){
     })
 }
 document.getElementById('packFullscreen').onchange = renderPackGroupStates
+bindSegment('packGpu', renderPackGroupStates)
 
 document.getElementById('packResetOwn').onclick = () => {
     for(const group of document.querySelectorAll('#packPanelSettings .packGroup[data-group]')){
@@ -889,6 +922,7 @@ async function preparePackSettings(server){
     packView.saved = {
         memory: packView.own.memory ? ConfigManager.getOwnMemory(id) : null,
         window: packView.own.window ? ConfigManager.getGameWindow(id) : null,
+        gpu: packView.own.gpu ? ConfigManager.getGameGpu(id) : null,
         jvm: packView.own.jvm ? ConfigManager.getOwnJVMOptions(id) : null
     }
     for(const group of document.querySelectorAll('#packPanelSettings .packGroup[data-group]')){
@@ -896,6 +930,9 @@ async function preparePackSettings(server){
         showPackGroupValues(name)
         setGroupOwn(group, packView.own[name])
     }
+    const hasGpuChoice = await GameGpu.detect() != null
+    document.getElementById('packGpuGroup').toggleAttribute('hidden', !hasGpuChoice)
+    document.getElementById('packSumGpuRow').toggleAttribute('hidden', !hasGpuChoice)
     // Compared as shown: an unset Java (null) shows as empty.
     packJavaInput.value = ConfigManager.getJavaExecutable(id) ?? ''
     packView.javaExec = packJavaInput.value
@@ -922,6 +959,9 @@ function savePackSettings(){
         // A size that isn't a number keeps the last good one.
         const win = readPackWindow() ?? ConfigManager.getGameWindow(id)
         ConfigManager.setOwnGameWindow(id, win)
+    }
+    if(packView.own.gpu){
+        ConfigManager.setOwnGameGpu(id, readSegment('packGpu'))
     }
     if(packView.own.jvm){
         ConfigManager.setJVMOptions(id, packJvmInput.value.trim() ? packJvmInput.value.trim().split(/\s+/) : [])
