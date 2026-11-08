@@ -52,16 +52,28 @@ jobs:
           TAG="v$VERSION"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
+          # Players read the release text in Settings -> About. Written notes
+          # (docs/releases/vX.Y.Z.md) win over GitHub's list of pull requests.
+          NOTES_FILE="docs/releases/$TAG.md"
+          if [ -f "$NOTES_FILE" ]; then
+            NOTES=(--notes-file "$NOTES_FILE")
+          else
+            NOTES=(--generate-notes)
+          fi
+
           if IS_DRAFT=$(gh release view "$TAG" --json isDraft --jq .isDraft 2>/dev/null); then
             if [ "$IS_DRAFT" = "true" ]; then
               echo "Reusing existing draft release $TAG"
+              if [ -f "$NOTES_FILE" ]; then
+                gh release edit "$TAG" --notes-file "$NOTES_FILE"
+              fi
               echo "publish=true" >> "$GITHUB_OUTPUT"
             else
               echo "::notice::Release $TAG is already published - building without uploading. Bump the version in package.json to release."
               echo "publish=false" >> "$GITHUB_OUTPUT"
             fi
           else
-            gh release create "$TAG" --draft --target "$RELEASE_SHA" --title "$TAG" --generate-notes
+            gh release create "$TAG" --draft --target "$RELEASE_SHA" --title "$TAG" "${NOTES[@]}"
             echo "publish=true" >> "$GITHUB_OUTPUT"
           fi
 
