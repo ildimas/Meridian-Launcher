@@ -37,6 +37,7 @@ const LocalPacks              = require('./assets/js/localpacks')
 const PackFolders             = require('./assets/js/packfolders')
 const PackCleanup             = require('./assets/js/packcleanup')
 const ServerList              = require('./assets/js/serverlist')
+const GameCrash               = require('./assets/js/gamecrash')
 const ServerLoader            = require('./assets/js/serverloader')
 
 // Launch Elements
@@ -1875,6 +1876,118 @@ function downloadFailureDesc(displayable, hint){
     return desc
 }
 
+/**
+ * The game process ended: if it crashed, say so, with what Minecraft reported
+ * and the end of its output (gamecrash.js).
+ *
+ * @param {Object} exit
+ * @param {Object} exit.serv The HeliosServer that ran.
+ * @param {string} exit.gameDir The pack folder.
+ * @param {string} [exit.accessToken] Hidden from reports.
+ * @param {{ lines: Function }} exit.output The kept end of the game's output.
+ * @param {number} exit.since When the game started.
+ * @param {number | null} exit.code The exit code.
+ * @param {string | null} exit.signal The signal that ended it.
+ */
+async function onGameExit({ serv, gameDir, accessToken, output, since, code, signal }){
+    const logger = LoggerUtil.getLogger('GameCrash')
+    const lines = output.lines()
+    const found = await GameCrash.findReport(gameDir, since)
+    if(!GameCrash.isCrash({ code, signal, reported: found != null, quitting: GameCrash.quitting(lines) })){
+        if(code !== 0 && code != null){
+            logger.info(`The game exited with code ${code} while quitting; not a crash.`)
+        }
+        return
+    }
+    const report = await GameCrash.readReport(found?.file)
+    const secrets = [accessToken]
+    const { reason, hint } = GameCrash.summarize(report, lines)
+    const text = GameCrash.buildReport({
+        pack: `${serv.rawServer.name} (${serv.rawServer.id})`,
+        minecraft: serv.rawServer.minecraftVersion,
+        launcher: remote.app.getVersion(),
+        java: ConfigManager.getJavaExecutable(serv.rawServer.id),
+        code, signal,
+        reportFile: found?.file ?? null,
+        report, lines, secrets
+    })
+    logger.warn(`The game crashed (${signal != null ? 'signal ' + signal : 'code ' + code})${found ? ', report: ' + found.file : ''}.`)
+    // Shown: the end of the output, or the start of the report when the game said nothing.
+    const shown = lines.length > 0 ? lines.slice(-GameCrash.SHOWN_LINES) : (report || '').split(/\r?\n/).slice(0, GameCrash.SHOWN_LINES)
+    showGameCrash({
+        exit: signal != null ? Lang.queryJS('landing.crash.exitSignal', { signal }) : Lang.queryJS('landing.crash.exit', { code }),
+        reason: reason != null ? GameCrash.redact(reason, secrets) : null,
+        hint,
+        log: GameCrash.redact(shown.join('\n'), secrets),
+        file: found?.file ?? null,
+        folder: found != null ? require('path').dirname(found.file) : require('path').join(gameDir, 'logs'),
+        gameDir,
+        text
+    })
+}
+
+/**
+ * Show the crash window.
+ *
+ * @param {Object} crash What onGameExit found.
+ */
+function showGameCrash(crash){
+    const { clipboard } = require('electron')
+    const L = (key, values) => Lang.queryJS('landing.crash.' + key, values)
+    const el = id => document.getElementById(id)
+    const status = el('crashStatus')
+    el('crashTitle').textContent = L('title')
+    el('crashExit').textContent = crash.exit
+    el('crashReason').textContent = crash.reason ?? L('noReason')
+    const hint = el('crashHint')
+    hint.textContent = crash.hint != null ? L('hint.' + crash.hint) : ''
+    hint.style.display = crash.hint != null ? '' : 'none'
+    const log = el('crashLog')
+    log.textContent = crash.log
+    el('crashFile').textContent = crash.file != null ? L('reportFile', { file: require('path').basename(crash.file) }) : ''
+    status.textContent = ''
+
+    const copy = el('crashCopy')
+    copy.textContent = L('copy')
+    copy.onclick = () => {
+        clipboard.writeText(crash.text)
+        status.textContent = L('copied')
+    }
+    const share = el('crashShare')
+    share.textContent = L('share')
+    share.title = L('shareNote')
+    share.disabled = false
+    share.onclick = async () => {
+        share.disabled = true
+        status.textContent = L('sharing')
+        try {
+            const url = await GameCrash.share(crash.text)
+            clipboard.writeText(url)
+            status.textContent = L('shared', { url })
+        } catch(err) {
+            status.textContent = L('shareFailed', { error: err.message })
+            share.disabled = false
+        }
+    }
+    const folder = el('crashOpenFolder')
+    folder.textContent = L('openFolder')
+    folder.onclick = async () => {
+        const target = await fs.pathExists(crash.folder) ? crash.folder : crash.gameDir
+        shell.openPath(target)
+    }
+    const close = el('crashClose')
+    close.textContent = L('close')
+    close.onclick = () => toggleOverlay(false)
+
+    toggleOverlay(true, true, 'crashContent')
+    log.scrollTop = log.scrollHeight
+    const win = remote.getCurrentWindow()
+    if(!win.isFocused()){
+        win.flashFrame(true)
+        win.once('focus', () => win.flashFrame(false))
+    }
+}
+
 async function dlAsync(login = launchTask !== 'update') {
 
     // Without login no account is needed: an update stops once the files are in place.
@@ -2094,9 +2207,12 @@ async function dlAsync(login = launchTask !== 'update') {
             }
         }
 
+        // That failure has its own message; no crash window over it.
+        let launchWrapperMissing = false
         const gameErrorListener = function(data){
             data = data.trim()
             if(data.indexOf('Could not find or load main class net.minecraft.launchwrapper.Launch') > -1){
+                launchWrapperMissing = true
                 loggerLaunchSuite.error('Game launch failed, LaunchWrapper was not downloaded properly.')
                 showLaunchFailure(Lang.queryJS('landing.dlAsync.errorDuringLaunchTitle'), Lang.queryJS('landing.dlAsync.launchWrapperNotDownloaded'))
             }
@@ -2114,8 +2230,16 @@ async function dlAsync(login = launchTask !== 'update') {
 
         try {
             // Build Minecraft process.
+            const gameStart = Date.now()
             proc = pb.build()
             trackRunningServer(serv.rawServer.id, proc)
+            // Keep the end of the game's output for the crash window.
+            const gameOutput = GameCrash.tail(proc)
+            proc.on('close', (code, signal) => {
+                if(launchWrapperMissing) return
+                onGameExit({ serv, gameDir: pb.gameDir, accessToken: authUser?.accessToken, output: gameOutput, since: gameStart, code, signal })
+                    .catch(err => loggerLaunchSuite.warn('Unable to check how the game exited.', err))
+            })
             // The game quit (or crashed) before it finished loading.
             proc.on('close', () => {
                 if(!loadComplete){

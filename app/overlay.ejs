@@ -37,5 +37,21 @@
             </div>
         </div>
     </div>
+    <div id="crashContent" style="display: none;" role="alertdialog" aria-labelledby="crashTitle" aria-describedby="crashReason">
+        <span id="crashTitle"></span>
+        <span id="crashExit"></span>
+        <span id="crashReason"></span>
+        <span id="crashHint" style="display: none;"></span>
+        <pre id="crashLog" tabindex="0"></pre>
+        <span id="crashFile"></span>
+        <span id="crashStatus" aria-live="polite"></span>
+        <div id="crashActions">
+            <button id="crashCopy" class="overlayKeybindEnter"></button>
+            <button id="crashShare" class="ghostButton"></button>
+            <button id="crashOpenFolder" class="ghostButton"></button>
+            <span class="crashSpacer"></span>
+            <button id="crashClose" class="ghostButton overlayKeybindEsc"></button>
+        </div>
+    </div>
     <script src="./assets/js/scripts/overlay.js"></script>
 </div>

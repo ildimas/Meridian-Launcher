@@ -783,3 +783,26 @@ noFolders = "Aún no hay carpetas. Crea una y mueve paquetes a ella desde la lis
 localLayout = "Se usan tus carpetas. Las actualizaciones de Studio no cambian esta organización."
 studioLayout = "La organización viene de Studio. Tu primer cambio aquí guardará tu propia organización de carpetas."
 noStudioLayout = "Studio no ha proporcionado carpetas. Crea tu propia organización o usa la que Studio proporcione más adelante."
+
+[js.landing.crash]
+title = "El juego se ha cerrado por un error"
+exit = "Código de salida {code}"
+exitSignal = "Detenido por el sistema ({signal})"
+noReason = "Minecraft no ha dicho por qué. Abajo está el final de su registro."
+reportFile = "Informe de error: {file}"
+copy = "Copiar informe"
+copied = "Informe copiado. Pégalo en un mensaje para quien lleve el servidor."
+share = "Compartir enlace"
+shareNote = "Sube el informe a mclo.gs, un sitio público para registros de Minecraft. El token de tu cuenta no se incluye."
+sharing = "Subiendo…"
+shared = "Enlace copiado: {url} Cualquiera con el enlace puede leer el informe."
+shareFailed = "No se pudo subir el informe: {error}"
+openFolder = "Abrir carpeta"
+close = "Cerrar"
+
+[js.landing.crash.hint]
+outOfMemory = "El juego se quedó sin memoria. Dale más al paquete en sus ajustes (Memoria) o cierra otros programas."
+heap = "Java no pudo obtener la memoria asignada. Reduce la memoria del paquete en sus ajustes (Memoria): el equipo no tiene tanta libre."
+javaVersion = "El paquete necesita otra versión de Java. En los ajustes del paquete (Java), deja que el launcher elija Java."
+graphics = "El controlador gráfico no pudo iniciar el juego. Actualiza el controlador gráfico; en un portátil, elige la tarjeta gráfica dedicada en los ajustes del paquete."
+mods = "Falta un mod, está duplicado o no encaja con los demás. En un paquete del servidor pulsa «Actualizar»; en uno propio, revisa sus mods."

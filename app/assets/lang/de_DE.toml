@@ -781,3 +781,26 @@ noFolders = "Noch keine Ordner. Erstelle einen und verschiebe Packs aus der List
 localLayout = "Deine Ordner werden verwendet. Updates aus Studio ändern diese Aufteilung nicht."
 studioLayout = "Die Aufteilung kommt aus Studio. Deine erste Änderung hier speichert eine eigene Ordneraufteilung."
 noStudioLayout = "Studio hat keine Ordner vorgegeben. Erstelle eine eigene Aufteilung oder nutze eine, die Studio später liefert."
+
+[js.landing.crash]
+title = "Das Spiel ist abgestürzt"
+exit = "Exit-Code {code}"
+exitSignal = "Vom System beendet ({signal})"
+noReason = "Minecraft hat keinen Grund genannt. Unten steht das Ende seines Logs."
+reportFile = "Absturzbericht: {file}"
+copy = "Bericht kopieren"
+copied = "Bericht kopiert. Füge ihn in eine Nachricht an den ein, der den Server betreibt."
+share = "Link teilen"
+shareNote = "Lädt den Bericht auf mclo.gs hoch, eine öffentliche Seite für Minecraft-Logs. Dein Konto-Token ist nicht enthalten."
+sharing = "Wird hochgeladen…"
+shared = "Link kopiert: {url} Jeder mit dem Link kann den Bericht lesen."
+shareFailed = "Der Bericht konnte nicht hochgeladen werden: {error}"
+openFolder = "Ordner öffnen"
+close = "Schließen"
+
+[js.landing.crash.hint]
+outOfMemory = "Dem Spiel ging der Speicher aus. Gib dem Pack in seinen Einstellungen mehr Arbeitsspeicher oder schließe andere Programme."
+heap = "Java konnte den zugewiesenen Speicher nicht bekommen. Verringere den Speicher des Packs in seinen Einstellungen (Arbeitsspeicher): So viel ist auf dem Rechner nicht frei."
+javaVersion = "Das Pack braucht eine andere Java-Version. Lass in den Einstellungen des Packs (Java) den Launcher Java wählen."
+graphics = "Der Grafiktreiber konnte das Spiel nicht starten. Aktualisiere den Grafiktreiber; auf einem Laptop wähle in den Einstellungen des Packs die dedizierte Grafikkarte."
+mods = "Ein Mod fehlt, ist doppelt oder passt nicht zu den anderen. Bei einem Server-Pack drücke „Aktualisieren“, bei einem eigenen prüfe seine Mods."

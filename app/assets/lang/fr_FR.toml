@@ -781,3 +781,26 @@ noFolders = "Aucun dossier pour l’instant. Créez-en un et déplacez-y des pac
 localLayout = "Vos dossiers sont utilisés. Les mises à jour de Studio ne modifient pas cette organisation."
 studioLayout = "L’organisation vient de Studio. Votre première modification ici enregistrera votre propre organisation des dossiers."
 noStudioLayout = "Studio n’a pas fourni de dossiers. Créez votre propre organisation ou utilisez celle que Studio fournira plus tard."
+
+[js.landing.crash]
+title = "Le jeu a planté"
+exit = "Code de sortie {code}"
+exitSignal = "Arrêté par le système ({signal})"
+noReason = "Minecraft n’a pas dit pourquoi. La fin de son journal est ci-dessous."
+reportFile = "Rapport de plantage : {file}"
+copy = "Copier le rapport"
+copied = "Rapport copié. Collez-le dans un message à la personne qui gère le serveur."
+share = "Partager un lien"
+shareNote = "Envoie le rapport sur mclo.gs, un site public pour les journaux Minecraft. Le jeton de votre compte n’y figure pas."
+sharing = "Envoi…"
+shared = "Lien copié : {url} Toute personne ayant le lien peut lire le rapport."
+shareFailed = "Impossible d’envoyer le rapport : {error}"
+openFolder = "Ouvrir le dossier"
+close = "Fermer"
+
+[js.landing.crash.hint]
+outOfMemory = "Le jeu a manqué de mémoire. Donnez-en davantage au pack dans ses paramètres (Mémoire) ou fermez d’autres programmes."
+heap = "Java n’a pas pu obtenir la mémoire demandée. Réduisez la mémoire du pack dans ses paramètres (Mémoire) : l’ordinateur n’en a pas autant de libre."
+javaVersion = "Le pack a besoin d’une autre version de Java. Dans les paramètres du pack (Java), laissez le launcher choisir Java."
+graphics = "Le pilote graphique n’a pas pu lancer le jeu. Mettez à jour le pilote graphique ; sur un portable, choisissez la carte graphique dédiée dans les paramètres du pack."
+mods = "Un mod manque, est en double ou ne s’accorde pas avec les autres. Pour un pack de serveur, appuyez sur « Mettre à jour » ; pour votre propre pack, vérifiez ses mods."
