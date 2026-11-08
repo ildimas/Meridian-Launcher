@@ -10,6 +10,7 @@ const DropinModUtil = require('./assets/js/dropinmodutil')
 const GameGpu       = require('./assets/js/gamegpu')
 const PackSize      = require('./assets/js/packsize')
 const WorldBackups  = require('./assets/js/worldbackups')
+const PackServers   = require('./assets/js/packservers')
 
 /**
  * Mods, resource packs and shaderpacks of the selected pack.
@@ -1069,101 +1070,181 @@ async function renderPackSize(){
     el.textContent = size > 0 ? `≈ ${PackSize.formatSize(size, Lang.getCurrent().tag)}` : Lang.queryJS('pack.sizeEmpty')
 }
 
-/* The pack's server (landing.js pings it: pingPackServer, serverPlayers) */
+/* Servers: the pack's in-game server list and who plays (packservers.js) */
 
-// A fresher answer than this is shown as it is; an older one is asked again.
+// Answers per host:port, shown again at once on the next visit.
+const packServerStatus = new Map()
+// An answer older than this is asked again; the tab also refreshes this often.
 const PACK_SERVER_FRESH = 60 * 1000
-let packServerRun = 0
+let packServersRun = 0
 
-/**
- * Fill the server card: address, whether it answers and who plays now.
- * Hidden for packs without a server.
- *
- * @param {boolean} force Ask the server even if the last answer is fresh.
- */
-async function renderPackServer(force = false){
-    const run = ++packServerRun
-    const id = packView.serverId
-    const card = document.getElementById('packServerCard')
-    const server = id != null ? (await DistroAPI.getDistribution()).getServerById(id) : null
-    if(run !== packServerRun) return
-    if(server == null || !packHasServer(server)){
-        card.hidden = true
-        return
-    }
-    card.hidden = false
-    const L = (key, values) => Lang.queryJS('pack.server.' + key, values)
-    const address = server.port === 25565 ? server.hostname : `${server.hostname}:${server.port}`
-    document.getElementById('packServerAddress').textContent = address
-    document.getElementById('packServerCopy').onclick = () => {
-        require('electron').clipboard.writeText(address)
-        document.getElementById('packServerNote').textContent = L('copied')
-    }
-
-    let info = serverPlayers.get(id)
-    const fresh = info != null && Date.now() - info.at < PACK_SERVER_FRESH
-    if(force || !fresh){
-        if(info === undefined || force) paintPackServer(undefined, L)
-        info = await pingPackServer(server)
-        if(run !== packServerRun || id !== packView.serverId) return
-        renderServerMenuStatus()
-    }
-    paintPackServer(info, L)
+function packServerKey(server){
+    return `${server.host.toLowerCase()}:${server.port}`
 }
 
 /**
- * Draw a server answer into the card.
+ * List the pack's servers, then ask each how it is. Cards fill in as the
+ * answers come.
  *
- * @param {Object | null | undefined} info The status; null offline, undefined while asking.
- * @param {Function} L Strings of pack.server.
+ * @param {boolean} force Ask every server again, even after a fresh answer.
  */
-function paintPackServer(info, L){
-    const state = document.getElementById('packServerState')
-    const players = document.getElementById('packServerPlayers')
-    const names = document.getElementById('packServerNames')
-    const note = document.getElementById('packServerNote')
-    names.replaceChildren()
-    document.getElementById('packServerPlayersRow').hidden = info == null
-    if(info === undefined){
-        state.removeAttribute('state')
+async function renderPackServers(force = false){
+    const run = ++packServersRun
+    const id = packView.serverId
+    if(id == null) return
+    const distroServer = (await DistroAPI.getDistribution()).getServerById(id)
+    if(distroServer == null) return
+    const own = packHasServer(distroServer) ? { name: distroServer.rawServer.name, address: distroServer.rawServer.address } : null
+    const servers = await PackServers.list(path.join(ConfigManager.getInstanceDirectory(), id), own)
+    if(run !== packServersRun || id !== packView.serverId) return
+
+    document.getElementById('packCountServers').textContent = servers.length || ''
+    const list = document.getElementById('packServerList')
+    list.replaceChildren(...servers.map(server => packServerCard(server)))
+    document.getElementById('packServersNote').textContent = servers.length === 0 ? Lang.queryJS('pack.server.empty') : ''
+
+    await Promise.all(servers.map(async (server, i) => {
+        const key = packServerKey(server)
+        let status = packServerStatus.get(key)
+        if(force || status === undefined || status === null || Date.now() - status.at >= PACK_SERVER_FRESH){
+            status = await PackServers.ping(server, getServerStatus)
+            if(status != null) packServerStatus.set(key, status)
+            else packServerStatus.set(key, null)
+        }
+        if(run !== packServersRun) return
+        paintPackServerCard(list.children[i], server, status)
+        // The pack's own server: the main screen's count follows.
+        if(server.pack && status != null){
+            serverPlayers.set(id, { online: status.online, max: status.max, names: status.players.map(p => p.name), version: status.version, latency: status.latency, at: status.at })
+            renderServerMenuStatus()
+        }
+    }))
+}
+
+/**
+ * A server's card, before it answers.
+ */
+function packServerCard(server){
+    const L = (key, values) => Lang.queryJS('pack.server.' + key, values)
+    const card = document.createElement('section')
+    card.className = 'packServer'
+    card.innerHTML = '<div class="packServerIcon"></div>'
+        + '<div class="packServerMain"><div class="packServerTitle"><span class="packServerName"></span></div>'
+        + '<div class="packServerAddress"><span></span><button class="apLink"></button></div>'
+        + '<div class="packServerMotd"></div></div>'
+        + '<div class="packServerStats"><span class="packServerState"></span><span class="packServerCount"></span><span class="packServerVersion"></span></div>'
+        + '<ul class="packServerPlayers"></ul><p class="packServerNote"></p>'
+    card.querySelector('.packServerName').textContent = server.name
+    card.querySelector('.packServerName').title = server.name
+    if(server.pack){
+        const badge = document.createElement('span')
+        badge.className = 'packChip'
+        badge.textContent = L('packBadge')
+        card.querySelector('.packServerTitle').appendChild(badge)
+    }
+    card.querySelector('.packServerAddress span').textContent = server.address
+    const copy = card.querySelector('.packServerAddress button')
+    copy.textContent = Lang.queryEJS('pack.serverCopy')
+    copy.onclick = () => {
+        require('electron').clipboard.writeText(server.address)
+        card.querySelector('.packServerNote').textContent = L('copied')
+    }
+    setPackServerIcon(card, server, null)
+    const cached = packServerStatus.get(packServerKey(server))
+    paintPackServerCard(card, server, cached !== undefined ? cached : undefined)
+    return card
+}
+
+/**
+ * The server's icon: what it sends, else what the game saved, else its
+ * initial.
+ */
+function setPackServerIcon(card, server, favicon){
+    const url = PackServers.iconUrl(favicon, server.icon)
+    const old = card.querySelector('.packServerIcon')
+    if(url == null){
+        if(old.tagName !== 'IMG') old.textContent = (server.name.trim()[0] || '?').toUpperCase()
+        return
+    }
+    if(old.tagName === 'IMG' && old.src === url) return
+    const img = document.createElement('img')
+    img.className = 'packServerIcon'
+    img.alt = ''
+    img.src = url
+    old.replaceWith(img)
+}
+
+/**
+ * Fill a card with a server's answer.
+ *
+ * @param {HTMLElement} card The card.
+ * @param {Object} server The listed server.
+ * @param {Object | null | undefined} status The answer; null offline, undefined while asking.
+ */
+function paintPackServerCard(card, server, status){
+    if(card == null) return
+    const L = (key, values) => Lang.queryJS('pack.server.' + key, values)
+    const state = card.querySelector('.packServerState')
+    const count = card.querySelector('.packServerCount')
+    const version = card.querySelector('.packServerVersion')
+    const players = card.querySelector('.packServerPlayers')
+    const note = card.querySelector('.packServerNote')
+    const motd = card.querySelector('.packServerMotd')
+    if(status === undefined){
+        card.setAttribute('state', 'checking')
         state.textContent = L('checking')
-        note.textContent = ''
         return
     }
-    if(info === null){
-        state.setAttribute('state', 'offline')
+    if(status === null){
+        card.setAttribute('state', 'offline')
         state.textContent = L('offline')
+        count.textContent = ''
+        version.textContent = ''
+        players.replaceChildren()
         note.textContent = ''
         return
     }
-    state.setAttribute('state', 'online')
-    state.textContent = L('online', { latency: info.latency })
-    players.textContent = L('players', { online: info.online, max: info.max })
-    for(const name of info.names){
-        const chip = document.createElement('li')
-        chip.className = 'packChip'
-        chip.textContent = name
-        names.appendChild(chip)
-    }
-    const rest = info.online - info.names.length
-    if(info.names.length > 0 && rest > 0){
+    card.setAttribute('state', 'online')
+    setPackServerIcon(card, server, status.favicon)
+    state.textContent = L('online', { latency: status.latency })
+    count.textContent = `${status.online} / ${status.max}`
+    version.textContent = status.version ?? ''
+    motd.textContent = status.motd
+    players.replaceChildren(...status.players.map(player => {
+        const cell = document.createElement('li')
+        cell.className = 'packPlayer'
+        const img = document.createElement('img')
+        img.alt = ''
+        img.referrerPolicy = 'no-referrer'
+        img.src = PackServers.avatarUrl(player, 56)
+        img.onerror = () => {
+            const initial = document.createElement('span')
+            initial.className = 'packPlayerInitial'
+            initial.textContent = player.name.replace(/^[.*]/, '')[0].toUpperCase()
+            img.replaceWith(initial)
+        }
+        const name = document.createElement('span')
+        name.textContent = player.name
+        cell.append(img, name)
+        return cell
+    }))
+    const rest = status.online - status.players.length
+    if(status.players.length > 0 && rest > 0){
         const more = document.createElement('li')
-        more.className = 'packChip'
+        more.className = 'packPlayer'
         more.setAttribute('more', '')
         more.textContent = L('more', { count: rest })
-        names.appendChild(more)
+        players.appendChild(more)
     }
-    const time = new Intl.DateTimeFormat(Lang.getCurrent().tag, { timeStyle: 'short' }).format(new Date(info.at))
-    const lead = info.online === 0 ? L('nobody') : info.names.length === 0 ? L('hidden') : ''
-    note.textContent = [lead, L('checked', { time })].filter(Boolean).join(' ')
+    note.textContent = status.online === 0 ? L('nobody') : status.players.length === 0 ? L('hidden') : ''
 }
 
-document.getElementById('packServerRefresh').onclick = () => renderPackServer(true)
+document.getElementById('packServersRefresh').onclick = () => renderPackServers(true)
 
-// Keep it current while the Overview is on screen.
+// Keep the tab current while it is on screen.
 setInterval(() => {
-    if(getCurrentView() === VIEWS.pack && packView.tab === 'packPanelOverview' && !document.hidden){
-        renderPackServer()
+    if(getCurrentView() === VIEWS.pack && packView.tab === 'packPanelServers' && !document.hidden){
+        renderPackServers()
     }
 }, PACK_SERVER_FRESH)
 
@@ -1333,9 +1414,9 @@ function selectPackTab(panelId, fade = true){
     packView.tab = panelId
     if(panelId === 'packPanelOverview'){
         renderPackSize()
-        renderPackServer()
         renderPackBackups()
     }
+    if(panelId === 'packPanelServers') renderPackServers()
     for(const tab of document.getElementsByClassName('packTabButton')){
         const on = tab.getAttribute('rSc') === panelId
         tab.toggleAttribute('selected', on)

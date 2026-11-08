@@ -7418,54 +7418,188 @@ input.mpFolderTitle { width: min(100%, 300px); height: 34px; }
     border-color: var(--danger);
 }
 
-/* The pack's server: status and who plays now. */
-.packCardHead {
-    align-self: stretch;
+/* Servers tab: the pack's in-game server list and who plays on each. */
+.packServersHead {
+    width: 88%;
+    margin-top: 22px;
     display: flex;
     align-items: baseline;
     justify-content: space-between;
+    gap: 16px;
+}
+.packServersHead .packPanelLead {
+    width: auto;
+    margin: 0px;
+}
+#packServerList {
+    width: 88%;
+    margin-top: 14px;
+    display: flex;
+    flex-direction: column;
     gap: 12px;
 }
-#packServerCard[hidden] {
+#packServersNote {
+    width: 88%;
+    margin-top: 12px;
+}
+#packServersNote:empty {
     display: none;
 }
-#packServerAddress {
+.packServer {
+    display: grid;
+    grid-template-columns: 56px minmax(0, 1fr) auto;
+    column-gap: 16px;
+    row-gap: 12px;
+    padding: 16px 18px;
+    border-radius: var(--radius-l);
+    background: var(--glass-sunk);
+    border: 1px solid var(--line);
+}
+.packServerIcon {
+    width: 56px;
+    height: 56px;
+    border-radius: 10px;
+    image-rendering: pixelated;
+    object-fit: cover;
+    background: var(--glass-hover);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text-2);
+}
+.packServerMain {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+.packServerTitle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+.packServerName {
+    font-size: 15px;
+    font-weight: 700;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.packServerAddress {
+    font-size: 12.5px;
+    color: var(--text-2);
     -webkit-user-select: text;
     user-select: text;
 }
-#packServerCopy {
+.packServerAddress .apLink {
     margin-left: 8px;
 }
-#packServerState[state="online"]::before,
-#packServerState[state="offline"]::before {
+.packServerMotd {
+    font-size: 12.5px;
+    line-height: 1.45;
+    color: var(--text-2);
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+}
+.packServerMotd:empty {
+    display: none;
+}
+.packServerStats {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+    font-size: 12.5px;
+    color: var(--text-2);
+    white-space: nowrap;
+}
+.packServerState {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-1);
+}
+.packServer[state="online"] .packServerState::before,
+.packServer[state="offline"] .packServerState::before {
     content: '';
     display: inline-block;
     width: 8px;
     height: 8px;
-    margin-right: 8px;
+    margin-right: 7px;
     border-radius: 50%;
     vertical-align: 1px;
-    background: var(--ok, #6fd39b);
+    background: var(--ok);
 }
-#packServerState[state="offline"]::before {
+.packServer[state="offline"] .packServerState::before {
     background: var(--danger);
 }
-.packServerNames {
+.packServerCount {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-1);
+}
+.packServerCount:empty {
+    display: none;
+}
+.packServerPlayers {
+    grid-column: 1 / -1;
     margin: 0px;
     padding: 0px;
     list-style: none;
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
     gap: 6px;
 }
-.packServerNames:empty {
+.packServerPlayers:empty {
     display: none;
 }
-.packServerNames .packChip[more] {
+.packPlayer {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    padding: 6px 10px 6px 6px;
+    border-radius: var(--radius-s);
     background: var(--glass-hover);
+    font-size: 13px;
+    font-weight: 600;
+}
+.packPlayer img,
+.packPlayer .packPlayerInitial {
+    flex: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    image-rendering: pixelated;
+}
+.packPlayerInitial {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--accent-soft);
+    color: var(--accent-hi);
+    font-size: 13px;
+}
+.packPlayer span:last-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.packPlayer[more] {
+    justify-content: center;
+    color: var(--text-2);
+    background: none;
+    border: 1px dashed var(--line-strong);
+}
+.packServerNote {
+    grid-column: 1 / -1;
+    margin: 0px;
+    font-size: 12.5px;
     color: var(--text-2);
 }
-#packServerNote:empty {
+.packServerNote:empty {
     display: none;
 }
 

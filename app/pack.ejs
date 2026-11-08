@@ -20,6 +20,7 @@
         <button class="packTabButton" role="tab" rSc="packPanelMods" aria-selected="false"><%- lang('pack.tabMods') %> <span class="packTabCount" id="packCountMods"></span></button>
         <button class="packTabButton" role="tab" rSc="packPanelResourcepacks" aria-selected="false"><%- lang('pack.tabResourcepacks') %> <span class="packTabCount" id="packCountResourcepacks"></span></button>
         <button class="packTabButton" role="tab" rSc="packPanelShaders" aria-selected="false"><%- lang('pack.tabShaders') %> <span class="packTabCount" id="packCountShaders"></span></button>
+        <button class="packTabButton" role="tab" rSc="packPanelServers" aria-selected="false"><%- lang('pack.tabServers') %> <span class="packTabCount" id="packCountServers"></span></button>
         <button class="packTabButton" role="tab" rSc="packPanelSettings" aria-selected="false"><%- lang('pack.tabSettings') %> <span class="packTabBadge" id="packOwnBadge" hidden><%- lang('pack.ownBadge') %></span></button>
     </nav>
     <div id="packBody">
@@ -43,19 +44,6 @@
                         <div><dt><%- lang('pack.groupJvm') %></dt><dd id="packSumJvm"></dd></div>
                     </dl>
                     <button class="apLink" id="packSumEdit"><%- lang('pack.settingsEdit') %></button>
-                </section>
-                <section class="packCard packCardWide" id="packServerCard" hidden>
-                    <div class="packCardHead">
-                        <h2 class="packCardTitle"><%- lang('pack.serverTitle') %></h2>
-                        <button class="apLink" id="packServerRefresh"><%- lang('pack.serverRefresh') %></button>
-                    </div>
-                    <dl class="packFacts">
-                        <div><dt><%- lang('pack.serverAddress') %></dt><dd><span id="packServerAddress"></span> <button class="apLink" id="packServerCopy"><%- lang('pack.serverCopy') %></button></dd></div>
-                        <div><dt><%- lang('pack.serverState') %></dt><dd id="packServerState"></dd></div>
-                        <div id="packServerPlayersRow"><dt><%- lang('pack.serverPlayers') %></dt><dd id="packServerPlayers"></dd></div>
-                    </dl>
-                    <ul class="packServerNames" id="packServerNames" aria-label="<%- lang('pack.serverPlayers') %>"></ul>
-                    <p class="packCardNote" id="packServerNote" aria-live="polite"></p>
                 </section>
                 <section class="packCard packCardWide">
                     <h2 class="packCardTitle"><%- lang('pack.filesTitle') %></h2>
@@ -132,6 +120,14 @@
 
                     </div>
                 </div>
+        </div>
+        <div id="packPanelServers" class="packPanel" role="tabpanel" hidden>
+            <div class="packServersHead">
+                <p class="packPanelLead"><%- lang('pack.serversLead') %></p>
+                <button class="apLink" id="packServersRefresh"><%- lang('pack.serverRefresh') %></button>
+            </div>
+            <div id="packServerList"></div>
+            <p class="packCardNote" id="packServersNote"></p>
         </div>
         <div id="packPanelSettings" class="packPanel" role="tabpanel" hidden>
             <p class="packPanelLead"><%- lang('pack.settingsLead') %></p>
