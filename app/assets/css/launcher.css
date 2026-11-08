@@ -7418,6 +7418,55 @@ input.mpFolderTitle { width: min(100%, 300px); height: 34px; }
     border-color: var(--danger);
 }
 
+/* World backups: one row per copy, newest first. */
+.packBackupList {
+    align-self: stretch;
+    margin: 0px;
+    padding: 0px;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.packBackupList:empty {
+    display: none;
+}
+.packBackupRow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 10px 8px 12px;
+    border-radius: var(--radius-m, 10px);
+    background: var(--glass-hover);
+}
+.packBackupInfo {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.packBackupWhen {
+    font-size: 13.5px;
+    font-weight: 600;
+}
+.packBackupWhat {
+    font-size: 12px;
+    color: var(--text-2);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.packBackupRow .mpButtonQuiet {
+    margin: 0px;
+}
+.packBackupRow .packBackupDelete {
+    color: var(--danger);
+}
+#packBackupStatus:empty {
+    display: none;
+}
+
 /* Title and a line about the view, next to the back button. */
 .sheetHeading {
     flex: 1;

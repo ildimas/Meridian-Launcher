@@ -9,6 +9,7 @@ const os            = require('os')
 const DropinModUtil = require('./assets/js/dropinmodutil')
 const GameGpu       = require('./assets/js/gamegpu')
 const PackSize      = require('./assets/js/packsize')
+const WorldBackups  = require('./assets/js/worldbackups')
 
 /**
  * Mods, resource packs and shaderpacks of the selected pack.
@@ -1068,6 +1069,152 @@ async function renderPackSize(){
     el.textContent = size > 0 ? `≈ ${PackSize.formatSize(size, Lang.getCurrent().tag)}` : Lang.queryJS('pack.sizeEmpty')
 }
 
+/* World backups (worldbackups.js) */
+
+// A backup or restore in progress: the card's buttons wait for it.
+let packBackupBusy = false
+let packBackupRun = 0
+
+function packBackupPaths(id = packView.serverId){
+    return {
+        packDir: path.join(ConfigManager.getInstanceDirectory(), id),
+        backupsDir: WorldBackups.backupsDir(ConfigManager.getDataDirectory(), id)
+    }
+}
+
+function packBackupStatus(text){
+    document.getElementById('packBackupStatus').textContent = text
+}
+
+/**
+ * Fill the backups card: what is kept and when, and one row per backup.
+ */
+async function renderPackBackups(){
+    const run = ++packBackupRun
+    const id = packView.serverId
+    if(id == null) return
+    const server = (await DistroAPI.getDistribution()).getServerById(id)
+    if(server == null) return
+    const { packDir, backupsDir } = packBackupPaths(id)
+    const [backups, worlds] = await Promise.all([WorldBackups.list(backupsDir), WorldBackups.worlds(packDir)])
+    if(run !== packBackupRun || id !== packView.serverId) return
+
+    const L = (key, values) => Lang.queryJS('pack.backups.' + key, values)
+    const tag = Lang.getCurrent().tag
+    const local = LocalPacks.isLocal(server.rawServer)
+    const note = local ? L('noteLocal') : ConfigManager.getBackupWorlds() ? L('noteAuto', { keep: WorldBackups.KEEP_UPDATE_BACKUPS }) : L('noteOff')
+    document.getElementById('packBackupsNote').textContent = worlds.length === 0 && backups.length === 0 ? `${note} ${L('noWorlds')}` : note
+
+    const blocked = packBackupBusy || isServerRunning(id)
+    const list = document.getElementById('packBackupList')
+    list.replaceChildren()
+    const when = new Intl.DateTimeFormat(tag, { dateStyle: 'medium', timeStyle: 'short' })
+    for(const backup of backups){
+        const row = document.createElement('li')
+        row.className = 'packBackupRow'
+        const info = document.createElement('div')
+        info.className = 'packBackupInfo'
+        const date = document.createElement('span')
+        date.className = 'packBackupWhen'
+        date.textContent = when.format(new Date(backup.created))
+        const what = document.createElement('span')
+        what.className = 'packBackupWhat'
+        const reason = backup.reason === 'update' ? L('reasonUpdate', { from: backup.from ?? '?', to: backup.to ?? '?' }) : L('reasonManual')
+        what.textContent = [reason, L('worlds', { count: backup.worlds.length }), PackSize.formatSize(backup.size || 0, tag)].join(' · ')
+        what.title = backup.worlds.join(', ')
+        info.append(date, what)
+
+        const restore = document.createElement('button')
+        restore.className = 'mpButton mpButtonQuiet mpButtonSmall'
+        restore.textContent = L('restore')
+        restore.disabled = blocked
+        restore.onclick = () => restorePackBackup(backup, date.textContent)
+        const remove = document.createElement('button')
+        remove.className = 'mpButton mpButtonQuiet mpButtonSmall packBackupDelete'
+        remove.textContent = L('delete')
+        remove.disabled = blocked
+        remove.onclick = () => deletePackBackup(backup, date.textContent)
+        row.append(info, restore, remove)
+        list.appendChild(row)
+    }
+    const now = document.getElementById('packBackupNow')
+    now.disabled = blocked || worlds.length === 0
+    now.title = isServerRunning(id) ? L('running') : ''
+}
+
+document.getElementById('packBackupNow').onclick = async () => {
+    const L = (key, values) => Lang.queryJS('pack.backups.' + key, values)
+    const id = packView.serverId
+    if(packBackupBusy || id == null || isServerRunning(id)) return
+    packBackupBusy = true
+    const button = document.getElementById('packBackupNow')
+    button.disabled = true
+    try {
+        const backup = await WorldBackups.create({ ...packBackupPaths(id), reason: 'manual', onProgress: p => packBackupStatus(L('copying', { percent: p })) })
+        packBackupStatus(backup != null ? L('made', { count: backup.worlds.length }) : L('noWorlds'))
+    } catch(err) {
+        packBackupStatus(packBackupError(err))
+    } finally {
+        packBackupBusy = false
+        renderPackBackups()
+    }
+}
+
+document.getElementById('packBackupFolder').onclick = async () => {
+    const { backupsDir } = packBackupPaths()
+    await fs.ensureDir(backupsDir)
+    shell.openPath(backupsDir)
+}
+
+function packBackupError(err){
+    return err.name === 'NoSpaceError'
+        ? Lang.queryJS('landing.backup.noSpace', { size: PackSize.formatSize(err.needed, Lang.getCurrent().tag) })
+        : Lang.queryJS('landing.backup.failed', { error: err.message })
+}
+
+async function restorePackBackup(backup, when){
+    const L = (key, values) => Lang.queryJS('pack.backups.' + key, values)
+    const id = packView.serverId
+    if(packBackupBusy || isServerRunning(id)) return
+    const yes = await askLaunchChoice(
+        L('restoreTitle', { when: escapeSettingsHTML(when) }),
+        L('restoreDesc', { worlds: escapeSettingsHTML(backup.worlds.join(', ')) }),
+        L('restoreConfirm'),
+        Lang.queryJS('settings.modpacks.removeCancel')
+    )
+    if(!yes || isServerRunning(id)) return
+    packBackupBusy = true
+    renderPackBackups()
+    try {
+        const result = await WorldBackups.restore({ ...packBackupPaths(id), id: backup.id, onProgress: p => packBackupStatus(L('restoring', { percent: p })) })
+        packBackupStatus(result.setAside.length > 0 ? L('restoredAside', { count: result.restored.length, aside: result.setAside.join(', ') }) : L('restored', { count: result.restored.length }))
+    } catch(err) {
+        packBackupStatus(packBackupError(err))
+    } finally {
+        packBackupBusy = false
+        renderPackBackups()
+    }
+}
+
+async function deletePackBackup(backup, when){
+    const L = (key, values) => Lang.queryJS('pack.backups.' + key, values)
+    if(packBackupBusy) return
+    const yes = await askLaunchChoice(
+        L('deleteTitle', { when: escapeSettingsHTML(when) }),
+        L('deleteDesc'),
+        L('deleteConfirm'),
+        Lang.queryJS('settings.modpacks.removeCancel')
+    )
+    if(!yes) return
+    try {
+        await WorldBackups.remove(packBackupPaths().backupsDir, backup.id)
+        packBackupStatus('')
+    } catch(err) {
+        packBackupStatus(Lang.queryJS('landing.backup.failed', { error: err.message }))
+    }
+    renderPackBackups()
+}
+
 /**
  * Item counts next to the tab names.
  */
@@ -1086,7 +1233,10 @@ function renderPackCounts(){
  */
 function selectPackTab(panelId, fade = true){
     packView.tab = panelId
-    if(panelId === 'packPanelOverview') renderPackSize()
+    if(panelId === 'packPanelOverview'){
+        renderPackSize()
+        renderPackBackups()
+    }
     for(const tab of document.getElementsByClassName('packTabButton')){
         const on = tab.getAttribute('rSc') === panelId
         tab.toggleAttribute('selected', on)

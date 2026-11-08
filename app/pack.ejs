@@ -58,6 +58,16 @@
                         <button class="mpButton mpButtonQuiet" data-open="saves"><%- lang('pack.openSaves') %></button>
                     </div>
                 </section>
+                <section class="packCard packCardWide" id="packBackupsCard">
+                    <h2 class="packCardTitle"><%- lang('pack.backupsTitle') %></h2>
+                    <p class="packCardNote" id="packBackupsNote"></p>
+                    <ul class="packBackupList" id="packBackupList"></ul>
+                    <div class="packFileButtons">
+                        <button class="mpButton mpButtonQuiet" id="packBackupNow"><%- lang('pack.backupNow') %></button>
+                        <button class="mpButton mpButtonQuiet" id="packBackupFolder"><%- lang('pack.backupFolder') %></button>
+                    </div>
+                    <p class="packCardNote" id="packBackupStatus" aria-live="polite"></p>
+                </section>
                 <section class="packCard packCardWide" id="packRemoveCard">
                     <h2 class="packCardTitle"><%- lang('pack.removeTitle') %></h2>
                     <div class="packRemoveRow">

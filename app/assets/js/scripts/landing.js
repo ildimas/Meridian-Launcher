@@ -303,6 +303,10 @@ function renderRunningState(){
         tile.toggleAttribute('running', isServerRunning(tile.getAttribute('data-id')))
         tile.toggleAttribute('update', packUpdateFor(tile.getAttribute('data-id')) != null)
     }
+    // Backups wait while the pack's game runs (pack.js).
+    if(typeof renderPackBackups === 'function' && getCurrentView() === VIEWS.pack){
+        renderPackBackups()
+    }
 }
 
 /* Pack updates */
@@ -1877,6 +1881,75 @@ function downloadFailureDesc(displayable, hint){
 }
 
 /**
+ * Copy a server pack's worlds before it updates (worldbackups.js), once per
+ * move between two versions. When the copy can't be made, the player decides
+ * whether to update anyway.
+ *
+ * @param {Object} serv The HeliosServer about to be updated.
+ * @param {Object} logger The launch logger.
+ * @returns {Promise.<boolean>} Whether to go on with the update.
+ */
+async function backupWorldsBeforeUpdate(serv, logger){
+    // WorldBackups comes from pack.js: the window's scripts share one scope.
+    const id = serv.rawServer.id
+    const to = packUpdateFor(id)
+    if(to == null || !ConfigManager.getBackupWorlds()){
+        return true
+    }
+    const from = ConfigManager.getPackVersion(id)
+    const packDir = require('path').join(ConfigManager.getInstanceDirectory(), id)
+    const backupsDir = WorldBackups.backupsDir(ConfigManager.getDataDirectory(), id)
+    try {
+        if(await WorldBackups.hasUpdateBackup(backupsDir, from, to)){
+            return true
+        }
+        setLaunchDetails(Lang.queryJS('landing.dlAsync.backingUpWorlds'))
+        setLaunchPercentage(0)
+        const backup = await WorldBackups.create({ packDir, backupsDir, reason: 'update', from, to, onProgress: setLaunchPercentage })
+        if(backup != null){
+            logger.info(`Backed up ${backup.worlds.length} world(s) before updating ${id} from ${from} to ${to}: ${backup.id}`)
+            await WorldBackups.prune(backupsDir)
+        }
+        return true
+    } catch(err) {
+        logger.warn('Unable to back up the worlds before the update.', err)
+        const reason = err.name === 'NoSpaceError'
+            ? Lang.queryJS('landing.backup.noSpace', { size: PackSize.formatSize(err.needed, Lang.getCurrent().tag) })
+            : Lang.queryJS('landing.backup.failed', { error: escapeLaunchHTML(err.message) })
+        return askLaunchChoice(
+            Lang.queryJS('landing.backup.failedTitle'),
+            `${reason}<br><br>${Lang.queryJS('landing.backup.failedQuestion')}`,
+            Lang.queryJS('landing.backup.updateAnyway'),
+            Lang.queryJS('landing.backup.cancel')
+        )
+    }
+}
+
+/**
+ * Ask a yes-or-no question in the overlay.
+ *
+ * @returns {Promise.<boolean>} Whether the first button was pressed.
+ */
+function askLaunchChoice(title, desc, yes, no){
+    return new Promise(resolve => {
+        setOverlayContent(title, desc, yes, no)
+        setOverlayHandler(() => {
+            toggleOverlay(false)
+            resolve(true)
+        })
+        setDismissHandler(() => {
+            toggleOverlay(false)
+            resolve(false)
+        })
+        toggleOverlay(true, true)
+    })
+}
+
+function escapeLaunchHTML(text){
+    return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+}
+
+/**
  * The game process ended: if it crashed, say so, with what Minecraft reported
  * and the end of its output (gamecrash.js).
  *
@@ -2065,6 +2138,14 @@ async function dlAsync(login = launchTask !== 'update') {
         return
     }
     
+
+    // A pack update can change or drop mods a world depends on: copy the
+    // worlds before its files arrive.
+    if(invalidFileCount > 0 && !await backupWorldsBeforeUpdate(serv, loggerLaunchSuite)){
+        fullRepairModule.destroyReceiver()
+        toggleLaunchArea(false)
+        return
+    }
 
     if(invalidFileCount > 0) {
         loggerLaunchSuite.info('Downloading files.')
