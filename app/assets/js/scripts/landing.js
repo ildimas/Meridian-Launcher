@@ -36,6 +36,7 @@ const PackIcons               = require('./assets/js/packicons')
 const LocalPacks              = require('./assets/js/localpacks')
 const PackFolders             = require('./assets/js/packfolders')
 const PackCleanup             = require('./assets/js/packcleanup')
+const ServerList              = require('./assets/js/serverlist')
 const ServerLoader            = require('./assets/js/serverloader')
 
 // Launch Elements
@@ -1991,6 +1992,9 @@ async function dlAsync(login = launchTask !== 'update') {
     } catch(err) {
         loggerLaunchSuite.warn('Unable to clean up the pack folder.', err)
     }
+
+    // The pack's servers join the player's own in the in-game list.
+    await ServerList.syncPack(serv, require('path').join(ConfigManager.getInstanceDirectory(), serv.rawServer.id), loggerLaunchSuite)
 
     // The pack's files now match this version (see Pack updates).
     if(serv.rawServer.version != null){

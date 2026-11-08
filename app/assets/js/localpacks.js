@@ -11,6 +11,7 @@ const fs   = require('fs')
 const path = require('path')
 const { Type } = require('helios-distribution-types')
 const LoaderRuntime = require('./loaderruntime')
+const PackFiles = require('./packfiles')
 
 const FILE = 'localpacks.json'
 
@@ -133,6 +134,9 @@ exports.patchDistributionAPI = function(DistributionAPI){
  * packs, and packs from before 1.6 that Meridian Studio publishes, carry the
  * manifest as a module, so it's read from there.
  *
+ * Files that hold the player's settings are put in place once and then left
+ * alone, and servers.dat is validated as the pack's copy (packfiles.js).
+ *
  * @param {Function} DistributionIndexProcessor helios-core's processor class.
  */
 exports.patchIndexProcessor = function(DistributionIndexProcessor){
@@ -146,6 +150,11 @@ exports.patchIndexProcessor = function(DistributionIndexProcessor){
         const server = this.distribution.getServerById(this.serverId)
         if(server != null) await LoaderRuntime.prepare(server.modules, this.commonDir)
         return validate.apply(this, args)
+    }
+    // Seed files (the player's settings) and the server list: packfiles.js.
+    const validateModules = proto.validateModules
+    proto.validateModules = function(modules, accumulator){
+        return PackFiles.validateModules(modules, accumulator, (m, a) => validateModules.call(this, m, a))
     }
     const postDownload = proto.postDownload
     proto.postDownload = async function(...args){
