@@ -1002,9 +1002,53 @@ function applyPackIcons(){
 }
 
 
-// Players per server id: { online, max }, null when offline, absent while unknown.
+// Server status per server id: { online, max, names, version, latency, at },
+// null when offline, absent while unknown.
 const serverPlayers = new Map()
 let serverPlayersAt = 0
+
+/**
+ * Whether a pack has a server to ask: local modpacks don't, and neither do
+ * server packs published without an address (single-player packs).
+ *
+ * @param {Object} serv A HeliosServer.
+ * @returns {boolean}
+ */
+function packHasServer(serv){
+    const address = serv?.rawServer.address
+    return serv != null && !LocalPacks.isLocal(serv.rawServer) && typeof address === 'string' && address.trim() !== ''
+}
+
+/**
+ * Ask a pack's server how it is and who plays, and remember the answer.
+ *
+ * @param {Object} serv A HeliosServer with an address.
+ * @returns {Promise.<Object | null>} The status, or null when it didn't answer.
+ */
+async function pingPackServer(serv){
+    const id = serv.rawServer.id
+    const start = Date.now()
+    try {
+        const stat = await getServerStatus(47, serv.hostname, serv.port)
+        // Only real player names: servers fill the sample with messages too.
+        const names = (Array.isArray(stat.players?.sample) ? stat.players.sample : [])
+            .map(p => p?.name)
+            .filter(n => typeof n === 'string' && /^[.*]?\w{1,16}$/.test(n))
+        const info = {
+            online: stat.players.online,
+            max: stat.players.max,
+            names,
+            version: stat.version?.name ?? null,
+            latency: Date.now() - start,
+            at: Date.now()
+        }
+        serverPlayers.set(id, info)
+        return info
+    } catch {
+        serverPlayers.set(id, null)
+        return null
+    }
+}
 
 /**
  * Ping every server in the distribution and update the list as answers come in.
@@ -1020,14 +1064,9 @@ async function refreshAllServerPlayers(force = false){
     if(distro == null){
         return
     }
-    // Local modpacks have no server to ask.
-    await Promise.all(distro.servers.filter(s => !LocalPacks.isLocal(s.rawServer)).map(async s => {
-        try {
-            const stat = await getServerStatus(47, s.hostname, s.port)
-            serverPlayers.set(s.rawServer.id, { online: stat.players.online, max: stat.players.max })
-        } catch {
-            serverPlayers.set(s.rawServer.id, null)
-        }
+    // Local modpacks and packs without an address have no server to ask.
+    await Promise.all(distro.servers.filter(packHasServer).map(async s => {
+        await pingPackServer(s)
         renderServerMenuStatus()
     }))
 }
@@ -1040,7 +1079,7 @@ function renderServerMenuStatus(){
         const cell = row.querySelector('.serverListStatus')
         const id = row.getAttribute('data-id')
         const p = serverPlayers.get(id)
-        if(row.hasAttribute('local')){
+        if(row.hasAttribute('noserver')){
             cell.removeAttribute('state')
             cell.textContent = ''
         } else if(p === undefined){
@@ -1120,7 +1159,7 @@ async function renderServerPicker(){
                 row.className = 'serverListRow'
                 row.setAttribute('role', 'option')
                 row.setAttribute('data-id', s.rawServer.id)
-                row.toggleAttribute('local', LocalPacks.isLocal(s.rawServer))
+                row.toggleAttribute('noserver', !packHasServer(s))
                 row.innerHTML = '<span class="serverListTile"></span>'
                     + '<span class="serverListText"><span class="serverListName"></span><span class="serverListMeta"></span></span>'
                     + '<span class="serverListRunning"></span>'
@@ -1628,25 +1667,16 @@ const refreshServerStatus = async (fade = false) => {
     loggerLanding.info('Refreshing Server Status')
     const serv = (await DistroAPI.getDistribution()).getServerById(ConfigManager.getSelectedServer())
 
-    // Local modpacks have no server, so there is no status to show.
-    const local = serv != null && LocalPacks.isLocal(serv.rawServer)
-    document.getElementById('statusCard').hidden = local
-    if(local){
+    // Local modpacks and packs without an address have no status to show.
+    const serverless = serv != null && !packHasServer(serv)
+    document.getElementById('statusCard').hidden = serverless
+    if(serverless || serv == null){
         return
     }
 
-    let players = null
-
-    try {
-
-        const servStat = await getServerStatus(47, serv.hostname, serv.port)
-        players = { online: servStat.players.online, max: servStat.players.max }
-        serverPlayers.set(serv.rawServer.id, players)
-
-    } catch (err) {
+    const players = await pingPackServer(serv)
+    if(players == null){
         loggerLanding.warn('Unable to refresh server status, assuming offline.')
-        loggerLanding.debug(err)
-        if(serv != null) serverPlayers.set(serv.rawServer.id, null)
     }
     const online = players != null
     // Offline, or the player count while the server answers.

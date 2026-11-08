@@ -7418,6 +7418,57 @@ input.mpFolderTitle { width: min(100%, 300px); height: 34px; }
     border-color: var(--danger);
 }
 
+/* The pack's server: status and who plays now. */
+.packCardHead {
+    align-self: stretch;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+}
+#packServerCard[hidden] {
+    display: none;
+}
+#packServerAddress {
+    -webkit-user-select: text;
+    user-select: text;
+}
+#packServerCopy {
+    margin-left: 8px;
+}
+#packServerState[state="online"]::before,
+#packServerState[state="offline"]::before {
+    content: '';
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    margin-right: 8px;
+    border-radius: 50%;
+    vertical-align: 1px;
+    background: var(--ok, #6fd39b);
+}
+#packServerState[state="offline"]::before {
+    background: var(--danger);
+}
+.packServerNames {
+    margin: 0px;
+    padding: 0px;
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+.packServerNames:empty {
+    display: none;
+}
+.packServerNames .packChip[more] {
+    background: var(--glass-hover);
+    color: var(--text-2);
+}
+#packServerNote:empty {
+    display: none;
+}
+
 /* World backups: one row per copy, newest first. */
 .packBackupList {
     align-self: stretch;

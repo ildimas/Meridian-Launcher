@@ -44,6 +44,19 @@
                     </dl>
                     <button class="apLink" id="packSumEdit"><%- lang('pack.settingsEdit') %></button>
                 </section>
+                <section class="packCard packCardWide" id="packServerCard" hidden>
+                    <div class="packCardHead">
+                        <h2 class="packCardTitle"><%- lang('pack.serverTitle') %></h2>
+                        <button class="apLink" id="packServerRefresh"><%- lang('pack.serverRefresh') %></button>
+                    </div>
+                    <dl class="packFacts">
+                        <div><dt><%- lang('pack.serverAddress') %></dt><dd><span id="packServerAddress"></span> <button class="apLink" id="packServerCopy"><%- lang('pack.serverCopy') %></button></dd></div>
+                        <div><dt><%- lang('pack.serverState') %></dt><dd id="packServerState"></dd></div>
+                        <div id="packServerPlayersRow"><dt><%- lang('pack.serverPlayers') %></dt><dd id="packServerPlayers"></dd></div>
+                    </dl>
+                    <ul class="packServerNames" id="packServerNames" aria-label="<%- lang('pack.serverPlayers') %>"></ul>
+                    <p class="packCardNote" id="packServerNote" aria-live="polite"></p>
+                </section>
                 <section class="packCard packCardWide">
                     <h2 class="packCardTitle"><%- lang('pack.filesTitle') %></h2>
                     <dl class="packFacts packFactsInline">

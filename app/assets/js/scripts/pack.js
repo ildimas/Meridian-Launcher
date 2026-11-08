@@ -1069,6 +1069,104 @@ async function renderPackSize(){
     el.textContent = size > 0 ? `≈ ${PackSize.formatSize(size, Lang.getCurrent().tag)}` : Lang.queryJS('pack.sizeEmpty')
 }
 
+/* The pack's server (landing.js pings it: pingPackServer, serverPlayers) */
+
+// A fresher answer than this is shown as it is; an older one is asked again.
+const PACK_SERVER_FRESH = 60 * 1000
+let packServerRun = 0
+
+/**
+ * Fill the server card: address, whether it answers and who plays now.
+ * Hidden for packs without a server.
+ *
+ * @param {boolean} force Ask the server even if the last answer is fresh.
+ */
+async function renderPackServer(force = false){
+    const run = ++packServerRun
+    const id = packView.serverId
+    const card = document.getElementById('packServerCard')
+    const server = id != null ? (await DistroAPI.getDistribution()).getServerById(id) : null
+    if(run !== packServerRun) return
+    if(server == null || !packHasServer(server)){
+        card.hidden = true
+        return
+    }
+    card.hidden = false
+    const L = (key, values) => Lang.queryJS('pack.server.' + key, values)
+    const address = server.port === 25565 ? server.hostname : `${server.hostname}:${server.port}`
+    document.getElementById('packServerAddress').textContent = address
+    document.getElementById('packServerCopy').onclick = () => {
+        require('electron').clipboard.writeText(address)
+        document.getElementById('packServerNote').textContent = L('copied')
+    }
+
+    let info = serverPlayers.get(id)
+    const fresh = info != null && Date.now() - info.at < PACK_SERVER_FRESH
+    if(force || !fresh){
+        if(info === undefined || force) paintPackServer(undefined, L)
+        info = await pingPackServer(server)
+        if(run !== packServerRun || id !== packView.serverId) return
+        renderServerMenuStatus()
+    }
+    paintPackServer(info, L)
+}
+
+/**
+ * Draw a server answer into the card.
+ *
+ * @param {Object | null | undefined} info The status; null offline, undefined while asking.
+ * @param {Function} L Strings of pack.server.
+ */
+function paintPackServer(info, L){
+    const state = document.getElementById('packServerState')
+    const players = document.getElementById('packServerPlayers')
+    const names = document.getElementById('packServerNames')
+    const note = document.getElementById('packServerNote')
+    names.replaceChildren()
+    document.getElementById('packServerPlayersRow').hidden = info == null
+    if(info === undefined){
+        state.removeAttribute('state')
+        state.textContent = L('checking')
+        note.textContent = ''
+        return
+    }
+    if(info === null){
+        state.setAttribute('state', 'offline')
+        state.textContent = L('offline')
+        note.textContent = ''
+        return
+    }
+    state.setAttribute('state', 'online')
+    state.textContent = L('online', { latency: info.latency })
+    players.textContent = L('players', { online: info.online, max: info.max })
+    for(const name of info.names){
+        const chip = document.createElement('li')
+        chip.className = 'packChip'
+        chip.textContent = name
+        names.appendChild(chip)
+    }
+    const rest = info.online - info.names.length
+    if(info.names.length > 0 && rest > 0){
+        const more = document.createElement('li')
+        more.className = 'packChip'
+        more.setAttribute('more', '')
+        more.textContent = L('more', { count: rest })
+        names.appendChild(more)
+    }
+    const time = new Intl.DateTimeFormat(Lang.getCurrent().tag, { timeStyle: 'short' }).format(new Date(info.at))
+    const lead = info.online === 0 ? L('nobody') : info.names.length === 0 ? L('hidden') : ''
+    note.textContent = [lead, L('checked', { time })].filter(Boolean).join(' ')
+}
+
+document.getElementById('packServerRefresh').onclick = () => renderPackServer(true)
+
+// Keep it current while the Overview is on screen.
+setInterval(() => {
+    if(getCurrentView() === VIEWS.pack && packView.tab === 'packPanelOverview' && !document.hidden){
+        renderPackServer()
+    }
+}, PACK_SERVER_FRESH)
+
 /* World backups (worldbackups.js) */
 
 // A backup or restore in progress: the card's buttons wait for it.
@@ -1235,6 +1333,7 @@ function selectPackTab(panelId, fade = true){
     packView.tab = panelId
     if(panelId === 'packPanelOverview'){
         renderPackSize()
+        renderPackServer()
         renderPackBackups()
     }
     for(const tab of document.getElementsByClassName('packTabButton')){
