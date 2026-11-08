@@ -1,8 +1,9 @@
 name: Build & Release
 
-# Builds run only when a pull request from dev is merged into master (or by
-# hand from the Actions tab, on master). Direct pushes to master, Dependabot
-# PRs merged into master and pushes to dev never trigger it.
+# Builds run only when a pull request from dev or from a release candidate
+# branch (release/<version>) is merged into master (or by hand from the
+# Actions tab, on master). Direct pushes to master, Dependabot PRs merged into
+# master and pushes to dev never trigger it.
 on:
   pull_request:
     types: [closed]
@@ -26,7 +27,8 @@ jobs:
     if: >-
       (github.event_name == 'pull_request'
         && github.event.pull_request.merged == true
-        && github.event.pull_request.head.ref == 'dev'
+        && (github.event.pull_request.head.ref == 'dev'
+          || startsWith(github.event.pull_request.head.ref, 'release/'))
         && github.event.pull_request.head.repo.full_name == github.repository)
       || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/master')
     runs-on: ubuntu-latest
@@ -106,7 +108,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
           # electron-builder skips publishing on pull_request events. This
-          # only runs for PRs from dev that are already merged into master.
+          # only runs for PRs from dev or release/* already merged into master.
           PUBLISH_FOR_PULL_REQUEST: 'true'
         shell: bash
         run: >
