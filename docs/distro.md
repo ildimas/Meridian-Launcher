@@ -74,7 +74,11 @@ Global settings for [Discord Rich Presence](https://discordapp.com/developers/do
 
 ### `DistroIndex.rss: string/url`
 
-A URL to a RSS feed. Used for loading news.
+A URL to a RSS feed. Helios loaded news from it; Meridian no longer reads it (see `news`).
+
+### `DistroIndex.news: string/url`
+
+Meridian: a URL to the `news.json` feed Meridian Studio publishes. It lists `articles`, each with `id`, `title`, `summary`, `date`, `author`, `body` (a URL to a JSON file whose `content` is the article in Markdown) and optionally `cover`, `servers` (shown only for these server ids) and `pinned`. Relative URLs resolve against the feed's.
 
 ---
 
