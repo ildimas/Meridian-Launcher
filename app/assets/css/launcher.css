@@ -196,6 +196,7 @@ select:focus-visible,
 #launch_button,
 #welcomeButton,
 #overlayAcknowledge,
+#crashCopy,
 #serverSelectConfirm,
 #accountSelectConfirm,
 #settingsNavDone {
@@ -221,6 +222,7 @@ select:focus-visible,
 #launch_button:hover,
 #welcomeButton:hover,
 #overlayAcknowledge:hover,
+#crashCopy:hover,
 #serverSelectConfirm:hover,
 #accountSelectConfirm:hover,
 #settingsNavDone:hover {
@@ -231,6 +233,7 @@ select:focus-visible,
 #launch_button:active,
 #welcomeButton:active,
 #overlayAcknowledge:active,
+#crashCopy:active,
 #serverSelectConfirm:active,
 #accountSelectConfirm:active,
 #settingsNavDone:active {
@@ -241,6 +244,7 @@ select:focus-visible,
 #launch_button:disabled,
 #welcomeButton:disabled,
 #overlayAcknowledge:disabled,
+#crashCopy:disabled,
 #serverSelectConfirm:disabled,
 #accountSelectConfirm:disabled,
 #settingsNavDone:disabled {
@@ -6402,6 +6406,105 @@ input.mpFolderTitle { width: min(100%, 300px); height: 34px; }
     font-size: 12.5px;
 }
 
+/* The game crashed: what happened, the end of its log, and ways to pass it on. */
+#crashContent {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    width: min(620px, calc(100% - 48px));
+    max-height: 86%;
+    box-sizing: border-box;
+    padding: 24px 24px 18px;
+    text-align: left;
+    border-radius: var(--radius-panel);
+    background: var(--glass-strong);
+    backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--line);
+    box-shadow: var(--sheen), var(--shadow-float);
+    animation: riseIn 360ms var(--ease-out) both;
+}
+#crashTitle {
+    font-size: 19px;
+    font-weight: var(--display-weight);
+    letter-spacing: var(--display-tracking);
+    line-height: 1.3;
+}
+#crashExit,
+#crashFile {
+    font-size: 12px;
+    color: var(--text-3);
+    -webkit-user-select: text;
+    user-select: text;
+}
+#crashReason {
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: var(--text-1);
+    white-space: pre-wrap;
+    word-break: break-word;
+    -webkit-user-select: text;
+    user-select: text;
+}
+#crashHint {
+    padding: 10px 12px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text-1);
+    background: var(--glass-hover);
+    border-left: 3px solid var(--accent);
+    border-radius: 6px;
+}
+#crashLog {
+    flex: 1 1 auto;
+    min-height: 80px;
+    max-height: 220px;
+    margin: 0;
+    padding: 10px 12px;
+    overflow: auto;
+    font-family: ui-monospace, Menlo, Consolas, monospace;
+    font-size: 11.5px;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    word-break: break-all;
+    color: var(--text-2);
+    background: rgba(0, 0, 0, 0.35);
+    border-radius: 6px;
+    -webkit-user-select: text;
+    user-select: text;
+}
+#crashLog:empty {
+    display: none;
+}
+#crashStatus {
+    min-height: 1.4em;
+    font-size: 12.5px;
+    color: var(--text-2);
+    word-break: break-all;
+    -webkit-user-select: text;
+    user-select: text;
+}
+#crashActions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin-top: 4px;
+}
+#crashActions .crashSpacer {
+    flex: 1 1 auto;
+}
+#crashCopy {
+    height: 38px;
+    padding: 0px 18px;
+    font-size: 12.5px;
+}
+#crashShare:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+
 /* Server selection + account selection: glass sheets. */
 #serverSelectContent,
 #accountSelectContent {
@@ -7313,6 +7416,240 @@ input.mpFolderTitle { width: min(100%, 300px); height: 34px; }
 .packRemoveButton:focus-visible {
     background: var(--danger-soft);
     border-color: var(--danger);
+}
+
+/* Servers tab: the pack's in-game server list and who plays on each. */
+.packServersHead {
+    width: 88%;
+    margin-top: 22px;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+}
+.packServersHead .packPanelLead {
+    width: auto;
+    margin: 0px;
+}
+#packServerList {
+    width: 88%;
+    margin-top: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+#packServersNote {
+    width: 88%;
+    margin-top: 12px;
+}
+#packServersNote:empty {
+    display: none;
+}
+.packServer {
+    display: grid;
+    grid-template-columns: 56px minmax(0, 1fr) auto;
+    column-gap: 16px;
+    row-gap: 12px;
+    padding: 16px 18px;
+    border-radius: var(--radius-l);
+    background: var(--glass-sunk);
+    border: 1px solid var(--line);
+}
+.packServerIcon {
+    width: 56px;
+    height: 56px;
+    border-radius: 10px;
+    image-rendering: pixelated;
+    object-fit: cover;
+    background: var(--glass-hover);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text-2);
+}
+.packServerMain {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+.packServerTitle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+.packServerName {
+    font-size: 15px;
+    font-weight: 700;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.packServerAddress {
+    font-size: 12.5px;
+    color: var(--text-2);
+    -webkit-user-select: text;
+    user-select: text;
+}
+.packServerAddress .apLink {
+    margin-left: 8px;
+}
+.packServerMotd {
+    font-size: 12.5px;
+    line-height: 1.45;
+    color: var(--text-2);
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+}
+.packServerMotd:empty {
+    display: none;
+}
+.packServerStats {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+    font-size: 12.5px;
+    color: var(--text-2);
+    white-space: nowrap;
+}
+.packServerState {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-1);
+}
+.packServer[state="online"] .packServerState::before,
+.packServer[state="offline"] .packServerState::before {
+    content: '';
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    margin-right: 7px;
+    border-radius: 50%;
+    vertical-align: 1px;
+    background: var(--ok);
+}
+.packServer[state="offline"] .packServerState::before {
+    background: var(--danger);
+}
+.packServerCount {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-1);
+}
+.packServerCount:empty {
+    display: none;
+}
+.packServerPlayers {
+    grid-column: 1 / -1;
+    margin: 0px;
+    padding: 0px;
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 6px;
+}
+.packServerPlayers:empty {
+    display: none;
+}
+.packPlayer {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    padding: 6px 10px 6px 6px;
+    border-radius: var(--radius-s);
+    background: var(--glass-hover);
+    font-size: 13px;
+    font-weight: 600;
+}
+.packPlayer img,
+.packPlayer .packPlayerInitial {
+    flex: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    image-rendering: pixelated;
+}
+.packPlayerInitial {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--accent-soft);
+    color: var(--accent-hi);
+    font-size: 13px;
+}
+.packPlayer span:last-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.packPlayer[more] {
+    justify-content: center;
+    color: var(--text-2);
+    background: none;
+    border: 1px dashed var(--line-strong);
+}
+.packServerNote {
+    grid-column: 1 / -1;
+    margin: 0px;
+    font-size: 12.5px;
+    color: var(--text-2);
+}
+.packServerNote:empty {
+    display: none;
+}
+
+/* World backups: one row per copy, newest first. */
+.packBackupList {
+    align-self: stretch;
+    margin: 0px;
+    padding: 0px;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.packBackupList:empty {
+    display: none;
+}
+.packBackupRow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 10px 8px 12px;
+    border-radius: var(--radius-m, 10px);
+    background: var(--glass-hover);
+}
+.packBackupInfo {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.packBackupWhen {
+    font-size: 13.5px;
+    font-weight: 600;
+}
+.packBackupWhat {
+    font-size: 12px;
+    color: var(--text-2);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.packBackupRow .mpButtonQuiet {
+    margin: 0px;
+}
+.packBackupRow .packBackupDelete {
+    color: var(--danger);
+}
+#packBackupStatus:empty {
+    display: none;
 }
 
 /* Title and a line about the view, next to the back button. */

@@ -64,6 +64,12 @@ test('offline, a missing file fails the launch with the network error', async ()
     assert.deepEqual(sent, [])
 })
 
+test('offline, a missing copy of the pack\'s server list doesn\'t stop the launch', async () => {
+    await receiver(`${UNREACHABLE}/servers.dat`, '.meridian-servers.dat').download({})
+    assert.equal(fs.existsSync(path.join(dir, '.meridian-servers.dat')), false)
+    assert.deepEqual(sent, ['downloadComplete'])
+})
+
 test('online, the file is replaced and nothing is left aside', async () => {
     fs.writeFileSync(path.join(dir, 'pack.txt'), 'old')
     await receiver(`${base}/pack.txt`, 'pack.txt').download({})

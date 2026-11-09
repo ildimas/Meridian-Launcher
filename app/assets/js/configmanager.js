@@ -83,6 +83,7 @@ const DEFAULT_CONFIG = {
             fullscreen: false,
             autoConnect: true,
             launchDetached: true,
+            backupWorlds: true, // Copy a server pack's worlds before it updates (worldbackups.js).
             // Defaults for every pack that doesn't set its own (javaConfig[id].own).
             // null follows what each pack recommends.
             memory: null, // { minRAM, maxRAM }
@@ -1045,6 +1046,25 @@ exports.getLaunchDetached = function(def = false){
  */
 exports.setLaunchDetached = function(launchDetached){
     config.settings.game.launchDetached = launchDetached
+}
+
+/**
+ * Whether a server pack's worlds are copied before the pack updates.
+ *
+ * @param {boolean} def Optional. If true, the default value will be returned.
+ * @returns {boolean}
+ */
+exports.getBackupWorlds = function(def = false){
+    return !def ? config.settings.game.backupWorlds : DEFAULT_CONFIG.settings.game.backupWorlds
+}
+
+/**
+ * Turn the copies of worlds before pack updates on or off.
+ *
+ * @param {boolean} backupWorlds Whether to make them.
+ */
+exports.setBackupWorlds = function(backupWorlds){
+    config.settings.game.backupWorlds = backupWorlds
 }
 
 // Launcher Settings

@@ -384,7 +384,8 @@ class ProcessBuilder {
     }
 
     _processAutoConnectArg(args){
-        if(ConfigManager.getAutoConnect() && this.server.rawServer.autoconnect){
+        // A pack without an address has no server to join.
+        if(ConfigManager.getAutoConnect() && this.server.rawServer.autoconnect && this.server.hostname){
             if(mcVersionAtLeast('1.20', this.server.rawServer.minecraftVersion)){
                 args.push('--quickPlayMultiplayer')
                 args.push(`${this.server.hostname}:${this.server.port}`)

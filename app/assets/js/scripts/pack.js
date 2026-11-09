@@ -9,6 +9,8 @@ const os            = require('os')
 const DropinModUtil = require('./assets/js/dropinmodutil')
 const GameGpu       = require('./assets/js/gamegpu')
 const PackSize      = require('./assets/js/packsize')
+const WorldBackups  = require('./assets/js/worldbackups')
+const PackServers   = require('./assets/js/packservers')
 
 /**
  * Mods, resource packs and shaderpacks of the selected pack.
@@ -1068,6 +1070,330 @@ async function renderPackSize(){
     el.textContent = size > 0 ? `≈ ${PackSize.formatSize(size, Lang.getCurrent().tag)}` : Lang.queryJS('pack.sizeEmpty')
 }
 
+/* Servers: the pack's in-game server list and who plays (packservers.js) */
+
+// Answers per host:port, shown again at once on the next visit.
+const packServerStatus = new Map()
+// An answer older than this is asked again; the tab also refreshes this often.
+const PACK_SERVER_FRESH = 60 * 1000
+let packServersRun = 0
+
+function packServerKey(server){
+    return `${server.host.toLowerCase()}:${server.port}`
+}
+
+/**
+ * List the pack's servers, then ask each how it is. Cards fill in as the
+ * answers come.
+ *
+ * @param {boolean} force Ask every server again, even after a fresh answer.
+ */
+async function renderPackServers(force = false){
+    const run = ++packServersRun
+    const id = packView.serverId
+    if(id == null) return
+    const distroServer = (await DistroAPI.getDistribution()).getServerById(id)
+    if(distroServer == null) return
+    const own = packHasServer(distroServer) ? { name: distroServer.rawServer.name, address: distroServer.rawServer.address } : null
+    const servers = await PackServers.list(path.join(ConfigManager.getInstanceDirectory(), id), own)
+    if(run !== packServersRun || id !== packView.serverId) return
+
+    document.getElementById('packCountServers').textContent = servers.length || ''
+    const list = document.getElementById('packServerList')
+    list.replaceChildren(...servers.map(server => packServerCard(server)))
+    document.getElementById('packServersNote').textContent = servers.length === 0 ? Lang.queryJS('pack.server.empty') : ''
+
+    await Promise.all(servers.map(async (server, i) => {
+        const key = packServerKey(server)
+        let status = packServerStatus.get(key)
+        if(force || status === undefined || status === null || Date.now() - status.at >= PACK_SERVER_FRESH){
+            status = await PackServers.ping(server, getServerStatus)
+            if(status != null) packServerStatus.set(key, status)
+            else packServerStatus.set(key, null)
+        }
+        if(run !== packServersRun) return
+        paintPackServerCard(list.children[i], server, status)
+        // The pack's own server: the main screen's count follows.
+        if(server.pack && status != null){
+            serverPlayers.set(id, { online: status.online, max: status.max, names: status.players.map(p => p.name), version: status.version, latency: status.latency, at: status.at })
+            renderServerMenuStatus()
+        }
+    }))
+}
+
+/**
+ * A server's card, before it answers.
+ */
+function packServerCard(server){
+    const L = (key, values) => Lang.queryJS('pack.server.' + key, values)
+    const card = document.createElement('section')
+    card.className = 'packServer'
+    card.innerHTML = '<div class="packServerIcon"></div>'
+        + '<div class="packServerMain"><div class="packServerTitle"><span class="packServerName"></span></div>'
+        + '<div class="packServerAddress"><span></span><button class="apLink"></button></div>'
+        + '<div class="packServerMotd"></div></div>'
+        + '<div class="packServerStats"><span class="packServerState"></span><span class="packServerCount"></span><span class="packServerVersion"></span></div>'
+        + '<ul class="packServerPlayers"></ul><p class="packServerNote"></p>'
+    card.querySelector('.packServerName').textContent = server.name
+    card.querySelector('.packServerName').title = server.name
+    if(server.pack){
+        const badge = document.createElement('span')
+        badge.className = 'packChip'
+        badge.textContent = L('packBadge')
+        card.querySelector('.packServerTitle').appendChild(badge)
+    }
+    card.querySelector('.packServerAddress span').textContent = server.address
+    const copy = card.querySelector('.packServerAddress button')
+    copy.textContent = Lang.queryEJS('pack.serverCopy')
+    copy.onclick = () => {
+        require('electron').clipboard.writeText(server.address)
+        card.querySelector('.packServerNote').textContent = L('copied')
+    }
+    setPackServerIcon(card, server, null)
+    const cached = packServerStatus.get(packServerKey(server))
+    paintPackServerCard(card, server, cached !== undefined ? cached : undefined)
+    return card
+}
+
+/**
+ * The server's icon: what it sends, else what the game saved, else its
+ * initial.
+ */
+function setPackServerIcon(card, server, favicon){
+    const url = PackServers.iconUrl(favicon, server.icon)
+    const old = card.querySelector('.packServerIcon')
+    if(url == null){
+        if(old.tagName !== 'IMG') old.textContent = (server.name.trim()[0] || '?').toUpperCase()
+        return
+    }
+    if(old.tagName === 'IMG' && old.src === url) return
+    const img = document.createElement('img')
+    img.className = 'packServerIcon'
+    img.alt = ''
+    img.src = url
+    old.replaceWith(img)
+}
+
+/**
+ * Fill a card with a server's answer.
+ *
+ * @param {HTMLElement} card The card.
+ * @param {Object} server The listed server.
+ * @param {Object | null | undefined} status The answer; null offline, undefined while asking.
+ */
+function paintPackServerCard(card, server, status){
+    if(card == null) return
+    const L = (key, values) => Lang.queryJS('pack.server.' + key, values)
+    const state = card.querySelector('.packServerState')
+    const count = card.querySelector('.packServerCount')
+    const version = card.querySelector('.packServerVersion')
+    const players = card.querySelector('.packServerPlayers')
+    const note = card.querySelector('.packServerNote')
+    const motd = card.querySelector('.packServerMotd')
+    if(status === undefined){
+        card.setAttribute('state', 'checking')
+        state.textContent = L('checking')
+        return
+    }
+    if(status === null){
+        card.setAttribute('state', 'offline')
+        state.textContent = L('offline')
+        count.textContent = ''
+        version.textContent = ''
+        players.replaceChildren()
+        note.textContent = ''
+        return
+    }
+    card.setAttribute('state', 'online')
+    setPackServerIcon(card, server, status.favicon)
+    state.textContent = L('online', { latency: status.latency })
+    count.textContent = `${status.online} / ${status.max}`
+    version.textContent = status.version ?? ''
+    motd.textContent = status.motd
+    players.replaceChildren(...status.players.map(player => {
+        const cell = document.createElement('li')
+        cell.className = 'packPlayer'
+        const img = document.createElement('img')
+        img.alt = ''
+        img.referrerPolicy = 'no-referrer'
+        img.src = PackServers.avatarUrl(player, 56)
+        img.onerror = () => {
+            const initial = document.createElement('span')
+            initial.className = 'packPlayerInitial'
+            initial.textContent = player.name.replace(/^[.*]/, '')[0].toUpperCase()
+            img.replaceWith(initial)
+        }
+        const name = document.createElement('span')
+        name.textContent = player.name
+        cell.append(img, name)
+        return cell
+    }))
+    const rest = status.online - status.players.length
+    if(status.players.length > 0 && rest > 0){
+        const more = document.createElement('li')
+        more.className = 'packPlayer'
+        more.setAttribute('more', '')
+        more.textContent = L('more', { count: rest })
+        players.appendChild(more)
+    }
+    note.textContent = status.online === 0 ? L('nobody') : status.players.length === 0 ? L('hidden') : ''
+}
+
+document.getElementById('packServersRefresh').onclick = () => renderPackServers(true)
+
+// Keep the tab current while it is on screen.
+setInterval(() => {
+    if(getCurrentView() === VIEWS.pack && packView.tab === 'packPanelServers' && !document.hidden){
+        renderPackServers()
+    }
+}, PACK_SERVER_FRESH)
+
+/* World backups (worldbackups.js) */
+
+// A backup or restore in progress: the card's buttons wait for it.
+let packBackupBusy = false
+let packBackupRun = 0
+
+function packBackupPaths(id = packView.serverId){
+    return {
+        packDir: path.join(ConfigManager.getInstanceDirectory(), id),
+        backupsDir: WorldBackups.backupsDir(ConfigManager.getDataDirectory(), id)
+    }
+}
+
+function packBackupStatus(text){
+    document.getElementById('packBackupStatus').textContent = text
+}
+
+/**
+ * Fill the backups card: what is kept and when, and one row per backup.
+ */
+async function renderPackBackups(){
+    const run = ++packBackupRun
+    const id = packView.serverId
+    if(id == null) return
+    const server = (await DistroAPI.getDistribution()).getServerById(id)
+    if(server == null) return
+    const { packDir, backupsDir } = packBackupPaths(id)
+    const [backups, worlds] = await Promise.all([WorldBackups.list(backupsDir), WorldBackups.worlds(packDir)])
+    if(run !== packBackupRun || id !== packView.serverId) return
+
+    const L = (key, values) => Lang.queryJS('pack.backups.' + key, values)
+    const tag = Lang.getCurrent().tag
+    const local = LocalPacks.isLocal(server.rawServer)
+    const note = local ? L('noteLocal') : ConfigManager.getBackupWorlds() ? L('noteAuto', { keep: WorldBackups.KEEP_UPDATE_BACKUPS }) : L('noteOff')
+    document.getElementById('packBackupsNote').textContent = worlds.length === 0 && backups.length === 0 ? `${note} ${L('noWorlds')}` : note
+
+    const blocked = packBackupBusy || isServerRunning(id)
+    const list = document.getElementById('packBackupList')
+    list.replaceChildren()
+    const when = new Intl.DateTimeFormat(tag, { dateStyle: 'medium', timeStyle: 'short' })
+    for(const backup of backups){
+        const row = document.createElement('li')
+        row.className = 'packBackupRow'
+        const info = document.createElement('div')
+        info.className = 'packBackupInfo'
+        const date = document.createElement('span')
+        date.className = 'packBackupWhen'
+        date.textContent = when.format(new Date(backup.created))
+        const what = document.createElement('span')
+        what.className = 'packBackupWhat'
+        const reason = backup.reason === 'update' ? L('reasonUpdate', { from: backup.from ?? '?', to: backup.to ?? '?' }) : L('reasonManual')
+        what.textContent = [reason, L('worlds', { count: backup.worlds.length }), PackSize.formatSize(backup.size || 0, tag)].join(' · ')
+        what.title = backup.worlds.join(', ')
+        info.append(date, what)
+
+        const restore = document.createElement('button')
+        restore.className = 'mpButton mpButtonQuiet mpButtonSmall'
+        restore.textContent = L('restore')
+        restore.disabled = blocked
+        restore.onclick = () => restorePackBackup(backup, date.textContent)
+        const remove = document.createElement('button')
+        remove.className = 'mpButton mpButtonQuiet mpButtonSmall packBackupDelete'
+        remove.textContent = L('delete')
+        remove.disabled = blocked
+        remove.onclick = () => deletePackBackup(backup, date.textContent)
+        row.append(info, restore, remove)
+        list.appendChild(row)
+    }
+    const now = document.getElementById('packBackupNow')
+    now.disabled = blocked || worlds.length === 0
+    now.title = isServerRunning(id) ? L('running') : ''
+}
+
+document.getElementById('packBackupNow').onclick = async () => {
+    const L = (key, values) => Lang.queryJS('pack.backups.' + key, values)
+    const id = packView.serverId
+    if(packBackupBusy || id == null || isServerRunning(id)) return
+    packBackupBusy = true
+    const button = document.getElementById('packBackupNow')
+    button.disabled = true
+    try {
+        const backup = await WorldBackups.create({ ...packBackupPaths(id), reason: 'manual', onProgress: p => packBackupStatus(L('copying', { percent: p })) })
+        packBackupStatus(backup != null ? L('made', { count: backup.worlds.length }) : L('noWorlds'))
+    } catch(err) {
+        packBackupStatus(packBackupError(err))
+    } finally {
+        packBackupBusy = false
+        renderPackBackups()
+    }
+}
+
+document.getElementById('packBackupFolder').onclick = async () => {
+    const { backupsDir } = packBackupPaths()
+    await fs.ensureDir(backupsDir)
+    shell.openPath(backupsDir)
+}
+
+function packBackupError(err){
+    return err.name === 'NoSpaceError'
+        ? Lang.queryJS('landing.backup.noSpace', { size: PackSize.formatSize(err.needed, Lang.getCurrent().tag) })
+        : Lang.queryJS('landing.backup.failed', { error: err.message })
+}
+
+async function restorePackBackup(backup, when){
+    const L = (key, values) => Lang.queryJS('pack.backups.' + key, values)
+    const id = packView.serverId
+    if(packBackupBusy || isServerRunning(id)) return
+    const yes = await askLaunchChoice(
+        L('restoreTitle', { when: escapeSettingsHTML(when) }),
+        L('restoreDesc', { worlds: escapeSettingsHTML(backup.worlds.join(', ')) }),
+        L('restoreConfirm'),
+        Lang.queryJS('settings.modpacks.removeCancel')
+    )
+    if(!yes || isServerRunning(id)) return
+    packBackupBusy = true
+    renderPackBackups()
+    try {
+        const result = await WorldBackups.restore({ ...packBackupPaths(id), id: backup.id, onProgress: p => packBackupStatus(L('restoring', { percent: p })) })
+        packBackupStatus(result.setAside.length > 0 ? L('restoredAside', { count: result.restored.length, aside: result.setAside.join(', ') }) : L('restored', { count: result.restored.length }))
+    } catch(err) {
+        packBackupStatus(packBackupError(err))
+    } finally {
+        packBackupBusy = false
+        renderPackBackups()
+    }
+}
+
+async function deletePackBackup(backup, when){
+    const L = (key, values) => Lang.queryJS('pack.backups.' + key, values)
+    if(packBackupBusy) return
+    const yes = await askLaunchChoice(
+        L('deleteTitle', { when: escapeSettingsHTML(when) }),
+        L('deleteDesc'),
+        L('deleteConfirm'),
+        Lang.queryJS('settings.modpacks.removeCancel')
+    )
+    if(!yes) return
+    try {
+        await WorldBackups.remove(packBackupPaths().backupsDir, backup.id)
+        packBackupStatus('')
+    } catch(err) {
+        packBackupStatus(Lang.queryJS('landing.backup.failed', { error: err.message }))
+    }
+    renderPackBackups()
+}
+
 /**
  * Item counts next to the tab names.
  */
@@ -1086,7 +1412,11 @@ function renderPackCounts(){
  */
 function selectPackTab(panelId, fade = true){
     packView.tab = panelId
-    if(panelId === 'packPanelOverview') renderPackSize()
+    if(panelId === 'packPanelOverview'){
+        renderPackSize()
+        renderPackBackups()
+    }
+    if(panelId === 'packPanelServers') renderPackServers()
     for(const tab of document.getElementsByClassName('packTabButton')){
         const on = tab.getAttribute('rSc') === panelId
         tab.toggleAttribute('selected', on)

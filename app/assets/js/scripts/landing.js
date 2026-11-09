@@ -36,6 +36,8 @@ const PackIcons               = require('./assets/js/packicons')
 const LocalPacks              = require('./assets/js/localpacks')
 const PackFolders             = require('./assets/js/packfolders')
 const PackCleanup             = require('./assets/js/packcleanup')
+const ServerList              = require('./assets/js/serverlist')
+const GameCrash               = require('./assets/js/gamecrash')
 const ServerLoader            = require('./assets/js/serverloader')
 
 // Launch Elements
@@ -300,6 +302,10 @@ function renderRunningState(){
     for(const tile of document.getElementById('serverDialTiles').children){
         tile.toggleAttribute('running', isServerRunning(tile.getAttribute('data-id')))
         tile.toggleAttribute('update', packUpdateFor(tile.getAttribute('data-id')) != null)
+    }
+    // Backups wait while the pack's game runs (pack.js).
+    if(typeof renderPackBackups === 'function' && getCurrentView() === VIEWS.pack){
+        renderPackBackups()
     }
 }
 
@@ -996,9 +1002,53 @@ function applyPackIcons(){
 }
 
 
-// Players per server id: { online, max }, null when offline, absent while unknown.
+// Server status per server id: { online, max, names, version, latency, at },
+// null when offline, absent while unknown.
 const serverPlayers = new Map()
 let serverPlayersAt = 0
+
+/**
+ * Whether a pack has a server to ask: local modpacks don't, and neither do
+ * server packs published without an address (single-player packs).
+ *
+ * @param {Object} serv A HeliosServer.
+ * @returns {boolean}
+ */
+function packHasServer(serv){
+    const address = serv?.rawServer.address
+    return serv != null && !LocalPacks.isLocal(serv.rawServer) && typeof address === 'string' && address.trim() !== ''
+}
+
+/**
+ * Ask a pack's server how it is and who plays, and remember the answer.
+ *
+ * @param {Object} serv A HeliosServer with an address.
+ * @returns {Promise.<Object | null>} The status, or null when it didn't answer.
+ */
+async function pingPackServer(serv){
+    const id = serv.rawServer.id
+    const start = Date.now()
+    try {
+        const stat = await getServerStatus(47, serv.hostname, serv.port)
+        // Only real player names: servers fill the sample with messages too.
+        const names = (Array.isArray(stat.players?.sample) ? stat.players.sample : [])
+            .map(p => p?.name)
+            .filter(n => typeof n === 'string' && /^[.*]?\w{1,16}$/.test(n))
+        const info = {
+            online: stat.players.online,
+            max: stat.players.max,
+            names,
+            version: stat.version?.name ?? null,
+            latency: Date.now() - start,
+            at: Date.now()
+        }
+        serverPlayers.set(id, info)
+        return info
+    } catch {
+        serverPlayers.set(id, null)
+        return null
+    }
+}
 
 /**
  * Ping every server in the distribution and update the list as answers come in.
@@ -1014,14 +1064,9 @@ async function refreshAllServerPlayers(force = false){
     if(distro == null){
         return
     }
-    // Local modpacks have no server to ask.
-    await Promise.all(distro.servers.filter(s => !LocalPacks.isLocal(s.rawServer)).map(async s => {
-        try {
-            const stat = await getServerStatus(47, s.hostname, s.port)
-            serverPlayers.set(s.rawServer.id, { online: stat.players.online, max: stat.players.max })
-        } catch {
-            serverPlayers.set(s.rawServer.id, null)
-        }
+    // Local modpacks and packs without an address have no server to ask.
+    await Promise.all(distro.servers.filter(packHasServer).map(async s => {
+        await pingPackServer(s)
         renderServerMenuStatus()
     }))
 }
@@ -1034,7 +1079,7 @@ function renderServerMenuStatus(){
         const cell = row.querySelector('.serverListStatus')
         const id = row.getAttribute('data-id')
         const p = serverPlayers.get(id)
-        if(row.hasAttribute('local')){
+        if(row.hasAttribute('noserver')){
             cell.removeAttribute('state')
             cell.textContent = ''
         } else if(p === undefined){
@@ -1114,7 +1159,7 @@ async function renderServerPicker(){
                 row.className = 'serverListRow'
                 row.setAttribute('role', 'option')
                 row.setAttribute('data-id', s.rawServer.id)
-                row.toggleAttribute('local', LocalPacks.isLocal(s.rawServer))
+                row.toggleAttribute('noserver', !packHasServer(s))
                 row.innerHTML = '<span class="serverListTile"></span>'
                     + '<span class="serverListText"><span class="serverListName"></span><span class="serverListMeta"></span></span>'
                     + '<span class="serverListRunning"></span>'
@@ -1622,25 +1667,16 @@ const refreshServerStatus = async (fade = false) => {
     loggerLanding.info('Refreshing Server Status')
     const serv = (await DistroAPI.getDistribution()).getServerById(ConfigManager.getSelectedServer())
 
-    // Local modpacks have no server, so there is no status to show.
-    const local = serv != null && LocalPacks.isLocal(serv.rawServer)
-    document.getElementById('statusCard').hidden = local
-    if(local){
+    // Local modpacks and packs without an address have no status to show.
+    const serverless = serv != null && !packHasServer(serv)
+    document.getElementById('statusCard').hidden = serverless
+    if(serverless || serv == null){
         return
     }
 
-    let players = null
-
-    try {
-
-        const servStat = await getServerStatus(47, serv.hostname, serv.port)
-        players = { online: servStat.players.online, max: servStat.players.max }
-        serverPlayers.set(serv.rawServer.id, players)
-
-    } catch (err) {
+    const players = await pingPackServer(serv)
+    if(players == null){
         loggerLanding.warn('Unable to refresh server status, assuming offline.')
-        loggerLanding.debug(err)
-        if(serv != null) serverPlayers.set(serv.rawServer.id, null)
     }
     const online = players != null
     // Offline, or the player count while the server answers.
@@ -1874,6 +1910,187 @@ function downloadFailureDesc(displayable, hint){
     return desc
 }
 
+/**
+ * Copy a server pack's worlds before it updates (worldbackups.js), once per
+ * move between two versions. When the copy can't be made, the player decides
+ * whether to update anyway.
+ *
+ * @param {Object} serv The HeliosServer about to be updated.
+ * @param {Object} logger The launch logger.
+ * @returns {Promise.<boolean>} Whether to go on with the update.
+ */
+async function backupWorldsBeforeUpdate(serv, logger){
+    // WorldBackups comes from pack.js: the window's scripts share one scope.
+    const id = serv.rawServer.id
+    const to = packUpdateFor(id)
+    if(to == null || !ConfigManager.getBackupWorlds()){
+        return true
+    }
+    const from = ConfigManager.getPackVersion(id)
+    const packDir = require('path').join(ConfigManager.getInstanceDirectory(), id)
+    const backupsDir = WorldBackups.backupsDir(ConfigManager.getDataDirectory(), id)
+    try {
+        if(await WorldBackups.hasUpdateBackup(backupsDir, from, to)){
+            return true
+        }
+        setLaunchDetails(Lang.queryJS('landing.dlAsync.backingUpWorlds'))
+        setLaunchPercentage(0)
+        const backup = await WorldBackups.create({ packDir, backupsDir, reason: 'update', from, to, onProgress: setLaunchPercentage })
+        if(backup != null){
+            logger.info(`Backed up ${backup.worlds.length} world(s) before updating ${id} from ${from} to ${to}: ${backup.id}`)
+            await WorldBackups.prune(backupsDir)
+        }
+        return true
+    } catch(err) {
+        logger.warn('Unable to back up the worlds before the update.', err)
+        const reason = err.name === 'NoSpaceError'
+            ? Lang.queryJS('landing.backup.noSpace', { size: PackSize.formatSize(err.needed, Lang.getCurrent().tag) })
+            : Lang.queryJS('landing.backup.failed', { error: escapeLaunchHTML(err.message) })
+        return askLaunchChoice(
+            Lang.queryJS('landing.backup.failedTitle'),
+            `${reason}<br><br>${Lang.queryJS('landing.backup.failedQuestion')}`,
+            Lang.queryJS('landing.backup.updateAnyway'),
+            Lang.queryJS('landing.backup.cancel')
+        )
+    }
+}
+
+/**
+ * Ask a yes-or-no question in the overlay.
+ *
+ * @returns {Promise.<boolean>} Whether the first button was pressed.
+ */
+function askLaunchChoice(title, desc, yes, no){
+    return new Promise(resolve => {
+        setOverlayContent(title, desc, yes, no)
+        setOverlayHandler(() => {
+            toggleOverlay(false)
+            resolve(true)
+        })
+        setDismissHandler(() => {
+            toggleOverlay(false)
+            resolve(false)
+        })
+        toggleOverlay(true, true)
+    })
+}
+
+function escapeLaunchHTML(text){
+    return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+}
+
+/**
+ * The game process ended: if it crashed, say so, with what Minecraft reported
+ * and the end of its output (gamecrash.js).
+ *
+ * @param {Object} exit
+ * @param {Object} exit.serv The HeliosServer that ran.
+ * @param {string} exit.gameDir The pack folder.
+ * @param {string} [exit.accessToken] Hidden from reports.
+ * @param {{ lines: Function }} exit.output The kept end of the game's output.
+ * @param {number} exit.since When the game started.
+ * @param {number | null} exit.code The exit code.
+ * @param {string | null} exit.signal The signal that ended it.
+ */
+async function onGameExit({ serv, gameDir, accessToken, output, since, code, signal }){
+    const logger = LoggerUtil.getLogger('GameCrash')
+    const lines = output.lines()
+    const found = await GameCrash.findReport(gameDir, since)
+    if(!GameCrash.isCrash({ code, signal, reported: found != null, quitting: GameCrash.quitting(lines) })){
+        if(code !== 0 && code != null){
+            logger.info(`The game exited with code ${code} while quitting; not a crash.`)
+        }
+        return
+    }
+    const report = await GameCrash.readReport(found?.file)
+    const secrets = [accessToken]
+    const { reason, hint } = GameCrash.summarize(report, lines)
+    const text = GameCrash.buildReport({
+        pack: `${serv.rawServer.name} (${serv.rawServer.id})`,
+        minecraft: serv.rawServer.minecraftVersion,
+        launcher: remote.app.getVersion(),
+        java: ConfigManager.getJavaExecutable(serv.rawServer.id),
+        code, signal,
+        reportFile: found?.file ?? null,
+        report, lines, secrets
+    })
+    logger.warn(`The game crashed (${signal != null ? 'signal ' + signal : 'code ' + code})${found ? ', report: ' + found.file : ''}.`)
+    // Shown: the end of the output, or the start of the report when the game said nothing.
+    const shown = lines.length > 0 ? lines.slice(-GameCrash.SHOWN_LINES) : (report || '').split(/\r?\n/).slice(0, GameCrash.SHOWN_LINES)
+    showGameCrash({
+        exit: signal != null ? Lang.queryJS('landing.crash.exitSignal', { signal }) : Lang.queryJS('landing.crash.exit', { code }),
+        reason: reason != null ? GameCrash.redact(reason, secrets) : null,
+        hint,
+        log: GameCrash.redact(shown.join('\n'), secrets),
+        file: found?.file ?? null,
+        folder: found != null ? require('path').dirname(found.file) : require('path').join(gameDir, 'logs'),
+        gameDir,
+        text
+    })
+}
+
+/**
+ * Show the crash window.
+ *
+ * @param {Object} crash What onGameExit found.
+ */
+function showGameCrash(crash){
+    const { clipboard } = require('electron')
+    const L = (key, values) => Lang.queryJS('landing.crash.' + key, values)
+    const el = id => document.getElementById(id)
+    const status = el('crashStatus')
+    el('crashTitle').textContent = L('title')
+    el('crashExit').textContent = crash.exit
+    el('crashReason').textContent = crash.reason ?? L('noReason')
+    const hint = el('crashHint')
+    hint.textContent = crash.hint != null ? L('hint.' + crash.hint) : ''
+    hint.style.display = crash.hint != null ? '' : 'none'
+    const log = el('crashLog')
+    log.textContent = crash.log
+    el('crashFile').textContent = crash.file != null ? L('reportFile', { file: require('path').basename(crash.file) }) : ''
+    status.textContent = ''
+
+    const copy = el('crashCopy')
+    copy.textContent = L('copy')
+    copy.onclick = () => {
+        clipboard.writeText(crash.text)
+        status.textContent = L('copied')
+    }
+    const share = el('crashShare')
+    share.textContent = L('share')
+    share.title = L('shareNote')
+    share.disabled = false
+    share.onclick = async () => {
+        share.disabled = true
+        status.textContent = L('sharing')
+        try {
+            const url = await GameCrash.share(crash.text)
+            clipboard.writeText(url)
+            status.textContent = L('shared', { url })
+        } catch(err) {
+            status.textContent = L('shareFailed', { error: err.message })
+            share.disabled = false
+        }
+    }
+    const folder = el('crashOpenFolder')
+    folder.textContent = L('openFolder')
+    folder.onclick = async () => {
+        const target = await fs.pathExists(crash.folder) ? crash.folder : crash.gameDir
+        shell.openPath(target)
+    }
+    const close = el('crashClose')
+    close.textContent = L('close')
+    close.onclick = () => toggleOverlay(false)
+
+    toggleOverlay(true, true, 'crashContent')
+    log.scrollTop = log.scrollHeight
+    const win = remote.getCurrentWindow()
+    if(!win.isFocused()){
+        win.flashFrame(true)
+        win.once('focus', () => win.flashFrame(false))
+    }
+}
+
 async function dlAsync(login = launchTask !== 'update') {
 
     // Without login no account is needed: an update stops once the files are in place.
@@ -1952,6 +2169,14 @@ async function dlAsync(login = launchTask !== 'update') {
     }
     
 
+    // A pack update can change or drop mods a world depends on: copy the
+    // worlds before its files arrive.
+    if(invalidFileCount > 0 && !await backupWorldsBeforeUpdate(serv, loggerLaunchSuite)){
+        fullRepairModule.destroyReceiver()
+        toggleLaunchArea(false)
+        return
+    }
+
     if(invalidFileCount > 0) {
         loggerLaunchSuite.info('Downloading files.')
         markLaunchDownload()
@@ -1991,6 +2216,9 @@ async function dlAsync(login = launchTask !== 'update') {
     } catch(err) {
         loggerLaunchSuite.warn('Unable to clean up the pack folder.', err)
     }
+
+    // The pack's servers join the player's own in the in-game list.
+    await ServerList.syncPack(serv, require('path').join(ConfigManager.getInstanceDirectory(), serv.rawServer.id), loggerLaunchSuite)
 
     // The pack's files now match this version (see Pack updates).
     if(serv.rawServer.version != null){
@@ -2090,9 +2318,12 @@ async function dlAsync(login = launchTask !== 'update') {
             }
         }
 
+        // That failure has its own message; no crash window over it.
+        let launchWrapperMissing = false
         const gameErrorListener = function(data){
             data = data.trim()
             if(data.indexOf('Could not find or load main class net.minecraft.launchwrapper.Launch') > -1){
+                launchWrapperMissing = true
                 loggerLaunchSuite.error('Game launch failed, LaunchWrapper was not downloaded properly.')
                 showLaunchFailure(Lang.queryJS('landing.dlAsync.errorDuringLaunchTitle'), Lang.queryJS('landing.dlAsync.launchWrapperNotDownloaded'))
             }
@@ -2110,8 +2341,16 @@ async function dlAsync(login = launchTask !== 'update') {
 
         try {
             // Build Minecraft process.
+            const gameStart = Date.now()
             proc = pb.build()
             trackRunningServer(serv.rawServer.id, proc)
+            // Keep the end of the game's output for the crash window.
+            const gameOutput = GameCrash.tail(proc)
+            proc.on('close', (code, signal) => {
+                if(launchWrapperMissing) return
+                onGameExit({ serv, gameDir: pb.gameDir, accessToken: authUser?.accessToken, output: gameOutput, since: gameStart, code, signal })
+                    .catch(err => loggerLaunchSuite.warn('Unable to check how the game exited.', err))
+            })
             // The game quit (or crashed) before it finished loading.
             proc.on('close', () => {
                 if(!loadComplete){

@@ -99,7 +99,9 @@ function describeError(err, assets){
 // a timeout apart): offline that was ten seconds or more of nothing. One quick
 // request first tells whether the network is there at all.
 const fs = require('fs')
+const path = require('path')
 const got = require('got')
+const PackFiles = require('./packfiles')
 const { LoggerUtil } = require('helios-core')
 const ASIDE = '.meridian-old'
 // The quick request: a few seconds to connect, no retry.
@@ -156,14 +158,17 @@ async function probe(url){
 }
 
 /**
- * Offline: start on the files on disk when every one is there, else fail
- * with the network error.
+ * Offline: start on the files on disk when every one the game needs is
+ * there, else fail with the network error.
  *
  * @param {Array.<Object>} assets The files that would be downloaded.
  * @param {Error} err Why they can't be.
  */
 function keepOnDisk(assets, err){
-    if(!assets.every(asset => fs.existsSync(asset.path))){
+    // The pack's copy of servers.dat only feeds the merge into the player's
+    // list (serverlist.js): the game starts without it.
+    const needed = assets.filter(asset => path.basename(asset.path) !== PackFiles.PACK_SERVER_LIST)
+    if(!needed.every(asset => fs.existsSync(asset.path))){
         throw err
     }
     const log = LoggerUtil.getLogger('DownloadChild')
