@@ -23,6 +23,12 @@ updates:
           - "minor"
           - "patch"
     open-pull-requests-limit: 5
+    # got 12+ is an ES module only: require('got') then gives a namespace
+    # object and every request fails at run time (1.2.0). Stay on 11 until
+    # the launcher loads it differently. test/dependencies.test.js guards it.
+    ignore:
+      - dependency-name: "got"
+        versions: [">=12"]
     commit-message:
       prefix: "deps"
 
