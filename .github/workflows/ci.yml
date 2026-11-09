@@ -1,12 +1,13 @@
 name: CI
 
-# Checks every pull request and every push to dev and testing (where work
-# collects before dev), so a broken build shows up before the release
-# workflow (build.yml) runs on master. Nothing is published.
+# Checks every pull request and every push to dev, testing (where work
+# collects before dev) and release/* (release candidates), so a broken build
+# shows up before the release workflow (build.yml) runs on master. Nothing is
+# published.
 on:
   pull_request:
   push:
-    branches: [dev, testing]
+    branches: [dev, testing, 'release/**']
   workflow_dispatch:
 
 concurrency:

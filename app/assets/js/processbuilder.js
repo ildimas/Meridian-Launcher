@@ -9,6 +9,7 @@ const os                    = require('os')
 const path                  = require('path')
 
 const ConfigManager            = require('./configmanager')
+const GameGpu                  = require('./gamegpu')
 const LocalPacks               = require('./localpacks')
 const ProxyManager             = require('./proxymanager')
 
@@ -89,10 +90,16 @@ class ProcessBuilder {
 
         logger.info('Launch Arguments:', loggableArgs)
 
-        const child = child_process.spawn(ConfigManager.getJavaExecutable(this.server.rawServer.id), args, {
+        const javaExe = ConfigManager.getJavaExecutable(this.server.rawServer.id)
+        const env = {
+            ...GameGpu.applyChoice(ConfigManager.getGameGpu(this.server.rawServer.id), javaExe),
+            ...(this.modManifest.jarMod && process.platform === 'win32' ? { APPDATA: this.gameDir } : {})
+        }
+
+        const child = child_process.spawn(javaExe, args, {
             cwd: this.gameDir,
             detached: ConfigManager.getLaunchDetached(),
-            ...(this.modManifest.jarMod && process.platform === 'win32' ? { env: { ...process.env, APPDATA: this.gameDir } } : {})
+            ...(Object.keys(env).length > 0 ? { env: { ...process.env, ...env } } : {})
         })
 
         if(ConfigManager.getLaunchDetached()){
@@ -377,7 +384,8 @@ class ProcessBuilder {
     }
 
     _processAutoConnectArg(args){
-        if(ConfigManager.getAutoConnect() && this.server.rawServer.autoconnect){
+        // A pack without an address has no server to join.
+        if(ConfigManager.getAutoConnect() && this.server.rawServer.autoconnect && this.server.hostname){
             if(mcVersionAtLeast('1.20', this.server.rawServer.minecraftVersion)){
                 args.push('--quickPlayMultiplayer')
                 args.push(`${this.server.hostname}:${this.server.port}`)
@@ -520,7 +528,7 @@ class ProcessBuilder {
                 }
 
                 if(allowed){
-                    if(args[i].rules.some(rule => rule.features?.has_custom_resolution === true) && ConfigManager.getFullscreen()){
+                    if(args[i].rules.some(rule => rule.features?.has_custom_resolution === true) && ConfigManager.getGameWindow(this.server.rawServer.id).fullscreen){
                         args[i].value = ['--fullscreen', 'true']
                     }
                     if(typeof args[i].value === 'string'){
@@ -569,10 +577,10 @@ class ProcessBuilder {
                             val = this.vanillaManifest.type
                             break
                         case 'resolution_width':
-                            val = ConfigManager.getGameWidth()
+                            val = ConfigManager.getGameWindow(this.server.rawServer.id).resWidth
                             break
                         case 'resolution_height':
-                            val = ConfigManager.getGameHeight()
+                            val = ConfigManager.getGameWindow(this.server.rawServer.id).resHeight
                             break
                         case 'natives_directory':
                             val = tempNativePath
@@ -679,14 +687,15 @@ class ProcessBuilder {
         mcArgs.push(...ProxyManager.getGameArgs(ConfigManager.getProxy()))
 
         // Prepare game resolution
-        if(ConfigManager.getFullscreen()){
+        const gameWindow = ConfigManager.getGameWindow(this.server.rawServer.id)
+        if(gameWindow.fullscreen){
             mcArgs.push('--fullscreen')
             mcArgs.push(true)
         } else {
             mcArgs.push('--width')
-            mcArgs.push(ConfigManager.getGameWidth())
+            mcArgs.push(gameWindow.resWidth)
             mcArgs.push('--height')
-            mcArgs.push(ConfigManager.getGameHeight())
+            mcArgs.push(gameWindow.resHeight)
         }
         
         // Mod List File Argument (Forge only, from 1.5.2)

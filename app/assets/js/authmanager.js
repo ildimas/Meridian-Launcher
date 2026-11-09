@@ -16,6 +16,7 @@ const { MojangRestAPI, MojangErrorCode } = require('helios-core/mojang')
 const { MicrosoftAuth, MicrosoftErrorCode } = require('helios-core/microsoft')
 const { AZURE_CLIENT_ID }    = require('./ipcconstants')
 const Lang = require('./langloader')
+const got = require('got')
 
 const log = LoggerUtil.getLogger('AuthManager')
 
@@ -248,6 +249,31 @@ exports.removeOfflineAccount = async function(uuid){
 const AUTH_MODE = { FULL: 0, MS_REFRESH: 1, MC_REFRESH: 2 }
 
 /**
+ * Token request for a sign-in made in the system browser (browserlogin.js).
+ * helios-core always sends the embedded window's redirect URI and no PKCE
+ * verifier: Microsoft redeems a code only with the redirect URI and verifier
+ * it was issued for. A refresh sends neither, as the token endpoint expects.
+ *
+ * @param {string} entryCode The auth code, or the refresh token when there is no login.
+ * @param {{redirectUri: string, codeVerifier: string}} [login] The browser sign-in the code comes from.
+ */
+async function getBrowserAccessToken(entryCode, login) {
+    const form = {
+        client_id: AZURE_CLIENT_ID,
+        scope: 'XboxLive.signin offline_access',
+        ...(login
+            ? { grant_type: 'authorization_code', code: entryCode, redirect_uri: login.redirectUri, code_verifier: login.codeVerifier }
+            : { grant_type: 'refresh_token', refresh_token: entryCode })
+    }
+    try {
+        const res = await got.post(MicrosoftAuth.TOKEN_ENDPOINT, { form, responseType: 'json' })
+        return { data: res.body, responseStatus: RestResponseStatus.SUCCESS }
+    } catch(error) {
+        return MicrosoftAuth.handleGotError(`Get ${login ? 'Auth' : 'Refresh'} Token`, error, () => null)
+    }
+}
+
+/**
  * Perform the full MS Auth flow in a given mode.
  * 
  * AUTH_MODE.FULL = Full authorization for a new account.
@@ -256,15 +282,19 @@ const AUTH_MODE = { FULL: 0, MS_REFRESH: 1, MC_REFRESH: 2 }
  * 
  * @param {string} entryCode FULL-AuthCode. MS_REFRESH=refreshToken, MC_REFRESH=accessToken
  * @param {*} authMode The auth mode.
+ * @param {Object|boolean} [browser] FULL: the browser sign-in ({redirectUri, codeVerifier}).
+ * MS_REFRESH: true for an account added in the browser.
  * @returns An object with all auth data. AccessToken object will be null when mode is MC_REFRESH.
  */
-async function fullMicrosoftAuthFlow(entryCode, authMode) {
+async function fullMicrosoftAuthFlow(entryCode, authMode, browser) {
     try {
 
         let accessTokenRaw
         let accessToken
         if(authMode !== AUTH_MODE.MC_REFRESH) {
-            const accessTokenResponse = await MicrosoftAuth.getAccessToken(entryCode, authMode === AUTH_MODE.MS_REFRESH, AZURE_CLIENT_ID)
+            const accessTokenResponse = browser
+                ? await getBrowserAccessToken(entryCode, authMode === AUTH_MODE.FULL ? browser : null)
+                : await MicrosoftAuth.getAccessToken(entryCode, authMode === AUTH_MODE.MS_REFRESH, AZURE_CLIENT_ID)
             if(accessTokenResponse.responseStatus === RestResponseStatus.ERROR) {
                 return Promise.reject(microsoftFailure(accessTokenResponse))
             }
@@ -321,11 +351,12 @@ function calculateExpiryDate(nowMs, epiresInS) {
  * The resultant data will be stored as an auth account in the configuration database.
  * 
  * @param {string} authCode The authCode obtained from microsoft.
+ * @param {{redirectUri: string, codeVerifier: string}} [browserLogin] The system browser sign-in the code comes from.
  * @returns {Promise.<Object>} Promise which resolves the resolved authenticated account object.
  */
-exports.addMicrosoftAccount = async function(authCode) {
+exports.addMicrosoftAccount = async function(authCode, browserLogin) {
 
-    const fullAuth = await fullMicrosoftAuthFlow(authCode, AUTH_MODE.FULL)
+    const fullAuth = await fullMicrosoftAuthFlow(authCode, AUTH_MODE.FULL, browserLogin)
 
     // Advance expiry by 10 seconds to avoid close calls.
     const now = new Date().getTime()
@@ -339,6 +370,9 @@ exports.addMicrosoftAccount = async function(authCode) {
         fullAuth.accessToken.refresh_token,
         calculateExpiryDate(now, fullAuth.accessToken.expires_in)
     )
+    if(browserLogin) {
+        ret.microsoft.browser = true
+    }
     ConfigManager.save()
 
     return ret
@@ -463,7 +497,7 @@ async function validateSelectedMicrosoftAccount(){
     if(msExpired) {
         // MS expired, do full refresh.
         try {
-            const res = await fullMicrosoftAuthFlow(current.microsoft.refresh_token, AUTH_MODE.MS_REFRESH)
+            const res = await fullMicrosoftAuthFlow(current.microsoft.refresh_token, AUTH_MODE.MS_REFRESH, current.microsoft.browser === true)
 
             ConfigManager.updateMicrosoftAuthAccount(
                 current.uuid,

@@ -6,16 +6,11 @@
             </div>
             <div id="settingsNavItemsContainer">
                 <div id="settingsNavItemsContent">
-                    <button class="settingsNavItem" rSc="settingsTabAppearance" id="settingsNavAppearance"><%- lang('settings.navAppearance') %></button>
                     <button class="settingsNavItem" rSc="settingsTabAccount" id="settingsNavAccount" selected><%- lang('settings.navAccount') %></button>
-                    <button class="settingsNavItem" rSc="settingsTabMinecraft"><%- lang('settings.navMinecraft') %></button>
-                    <button class="settingsNavItem" rSc="settingsTabMods"><%- lang('settings.navMods') %></button>
                     <button class="settingsNavItem" rSc="settingsTabModpacks"><%- lang('settings.navModpacks') %></button>
-                    <button class="settingsNavItem" rSc="settingsTabFolders"><%- lang('settings.foldersTitle') %></button>
-                    <button class="settingsNavItem" rSc="settingsTabJava"><%- lang('settings.navJava') %></button>
+                    <button class="settingsNavItem" rSc="settingsTabMinecraft"><%- lang('settings.navMinecraft') %></button>
+                    <button class="settingsNavItem" rSc="settingsTabAppearance" id="settingsNavAppearance"><%- lang('settings.navAppearance') %></button>
                     <button class="settingsNavItem" rSc="settingsTabLauncher"><%- lang('settings.navLauncher') %></button>
-                    <button class="settingsNavItem" rSc="settingsTabLanguage" id="settingsNavLanguage"><%- lang('settings.navLanguage') %></button>
-                    <button class="settingsNavItem" rSc="settingsTabProxy"><%- lang('settings.navProxy') %></button>
                     <div class="settingsNavSpacer"></div>
                     <button class="settingsNavItem" rSc="settingsTabAbout" id="settingsNavAbout"><%- lang('settings.navAbout') %></button>
                     <div id="settingsNavContentBottom">
@@ -27,64 +22,6 @@
         </div>
     </div>
     <div id="settingsContainerRight">
-        <div id="settingsTabAppearance" class="settingsTab" style="display: none;">
-            <div class="settingsTabHeader">
-                <span class="settingsTabHeaderText"><%- lang('settings.appearanceHeaderText') %></span>
-                <span class="settingsTabHeaderDesc"><%- lang('settings.appearanceHeaderDesc') %></span>
-            </div>
-            <div class="apLayout">
-                <div class="apMain">
-                    <div class="apField">
-                        <div class="apFieldRow">
-                            <span class="settingsFieldTitle"><%- lang('settings.appearanceIntervalTitle') %></span>
-                            <div class="apSegment" id="apInterval">
-                                <button value="15"><%- lang('settings.appearanceInterval15') %></button>
-                                <button value="30"><%- lang('settings.appearanceInterval30') %></button>
-                                <button value="60"><%- lang('settings.appearanceInterval60') %></button>
-                                <button value="300"><%- lang('settings.appearanceInterval300') %></button>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="apField">
-                        <div class="apFieldRow">
-                            <div class="settingsFieldLeft">
-                                <span class="settingsFieldTitle"><%- lang('settings.appearanceMotionTitle') %></span>
-                                <span class="settingsFieldDesc"><%- lang('settings.appearanceMotionDesc') %></span>
-                            </div>
-                            <label class="toggleSwitch">
-                                <input type="checkbox" id="apMotion">
-                                <span class="toggleSwitchSlider"></span>
-                            </label>
-                        </div>
-                    </div>
-                    <div class="apField">
-                        <div class="apFieldRow">
-                            <div class="settingsFieldLeft">
-                                <span class="settingsFieldTitle"><%- lang('settings.appearanceSplashTitle') %></span>
-                                <span class="settingsFieldDesc"><%- lang('settings.appearanceSplashDesc') %></span>
-                            </div>
-                            <label class="toggleSwitch">
-                                <input type="checkbox" id="apSplash">
-                                <span class="toggleSwitchSlider"></span>
-                            </label>
-                        </div>
-                    </div>
-                    <span class="apCaps"><%- lang('settings.appearancePacksTitle') %></span>
-                    <div class="apPackList" id="apPackList" role="list">
-                        <!-- One row per modpack. -->
-                    </div>
-                </div>
-                <div class="apPreview">
-                    <div class="apPreviewFrame" id="apPreviewFrame">
-                        <span class="apPreviewLabel" id="apPreviewLabel" hidden></span>
-                    </div>
-                    <div class="apPreviewFoot">
-                        <span class="apPreviewCaption" id="apPreviewCaption"></span>
-                        <span class="apDots" id="apPreviewDots"></span>
-                    </div>
-                </div>
-            </div>
-        </div>
         <div id="settingsTabAccount" class="settingsTab">
             <div class="settingsTabHeader">
                 <span class="settingsTabHeaderText"><%- lang('settings.tabAccountHeaderText') %></span>
@@ -149,10 +86,109 @@
                 </div>
             </div>
         </div>
+        <div id="settingsTabModpacks" class="settingsTab" style="display: none;">
+            <div class="settingsTabHeader">
+                <span class="settingsTabHeaderText"><%- lang('settings.modpacksHeaderText') %></span>
+                <span class="settingsTabHeaderDesc"><%- lang('settings.modpacksHeaderDesc') %></span>
+            </div>
+            <div id="mpContainer">
+                <div id="mpTask" hidden>
+                    <div class="mpTaskHead">
+                        <span id="mpTaskTitle"></span>
+                        <span id="mpTaskPercent"></span>
+                    </div>
+                    <div class="mpTaskBar"><span id="mpTaskFill"></span></div>
+                    <div class="mpTaskFoot">
+                        <div id="mpTaskDetail"></div>
+                        <button class="apLink" id="mpTaskSecondary" hidden></button>
+                        <button class="apLink" id="mpTaskAction" hidden></button>
+                    </div>
+                </div>
+
+                <div class="settingsModsHeader"><%- lang('settings.modpacksBrowse') %></div>
+                <div id="mpBrowseBar">
+                    <div class="apSegment" id="mpSource">
+                        <button value="modrinth" selected>Modrinth</button>
+                        <button value="curseforge">CurseForge</button>
+                    </div>
+                    <label id="mpSearch">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 18a7 7 0 1 0 0-14a7 7 0 0 0 0 14z M20 20l-4-4"/></svg>
+                        <input type="text" id="mpSearchInput" spellcheck="false" placeholder="<%- lang('settings.modpacksSearch') %>">
+                    </label>
+                    <button id="mpImport" class="mpButton mpButtonQuiet" title="<%- lang('settings.modpacksImportDesc') %>">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 19h14"/></svg>
+                        <span><%- lang('settings.modpacksImportButton') %></span>
+                    </button>
+                </div>
+                <div id="mpCategoryBar">
+                    <div id="mpCategories" role="group"></div>
+                    <div id="mpLinks">
+                        <button id="mpKeyEdit" class="apLink" hidden></button>
+                        <button id="mpSite" class="apLink"></button>
+                    </div>
+                </div>
+                <div id="mpCurseForgeKey" class="mpCard" hidden>
+                    <span class="mpCardTitle"><%- lang('settings.modpacksCfKeyTitle') %></span>
+                    <span class="mpCardDesc"><%- lang('settings.modpacksCfKeyDesc') %></span>
+                    <div class="mpFormRow">
+                        <input type="text" id="mpCurseForgeKeyInput" class="mpFieldGrow" spellcheck="false" placeholder="$2a$10$…">
+                        <button id="mpCurseForgeKeySave" class="mpButton"><%- lang('settings.modpacksCfKeySave') %></button>
+                    </div>
+                </div>
+                <div id="mpResults" class="settingsPackList" role="list"></div>
+                <button id="mpMore" class="mpButton mpButtonQuiet" hidden><%- lang('settings.modpacksMore') %></button>
+            </div>
+        </div>
         <div id="settingsTabMinecraft" class="settingsTab" style="display: none;">
             <div class="settingsTabHeader">
                 <span class="settingsTabHeaderText"><%- lang('settings.minecraftTabHeaderText') %></span>
                 <span class="settingsTabHeaderDesc"><%- lang('settings.minecraftTabHeaderDesc') %></span>
+            </div>
+            <section class="packGroup" data-game-group="memory">
+                <div class="packGroupHead">
+                    <div class="settingsFieldLeft">
+                        <span class="settingsFieldTitle"><%- lang('settings.gameMemoryTitle') %></span>
+                        <span class="settingsFieldDesc packGroupState"></span>
+                    </div>
+                    <label class="packOwn">
+                        <span><%- lang('settings.gameDefaultOwn') %></span>
+                        <span class="toggleSwitch">
+                            <input type="checkbox" class="packOwnToggle">
+                            <span class="toggleSwitchSlider"></span>
+                        </span>
+                    </label>
+                </div>
+                <div class="packGroupBody">
+                    <%- include('memoryControl', { id: 'gameMemory' }) %>
+                </div>
+            </section>
+            <section class="packGroup" data-game-group="jvm">
+                <div class="packGroupHead">
+                    <div class="settingsFieldLeft">
+                        <span class="settingsFieldTitle"><%- lang('settings.gameJvmTitle') %></span>
+                        <span class="settingsFieldDesc packGroupState"></span>
+                    </div>
+                    <label class="packOwn">
+                        <span><%- lang('settings.gameDefaultOwn') %></span>
+                        <span class="toggleSwitch">
+                            <input type="checkbox" class="packOwnToggle">
+                            <span class="toggleSwitchSlider"></span>
+                        </span>
+                    </label>
+                </div>
+                <div class="packGroupBody">
+                    <input type="text" id="gameJVMOptsVal" class="gameJvmInput" spellcheck="false" aria-label="<%- lang('settings.gameJvmTitle') %>">
+                    <span class="settingsFieldDesc"><%- lang('settings.jvmOptsDesc') %></span>
+                </div>
+            </section>
+            <div class="settingsFieldContainer" id="gameGpuField">
+                <div class="settingsFieldLeft">
+                    <span class="settingsFieldTitle"><%- lang('gpu.title') %></span>
+                    <span class="settingsFieldDesc"><%- lang('gpu.desc') %></span>
+                </div>
+                <div class="settingsFieldRight">
+                    <%- include('gpuControl', { id: 'gameGpu' }) %>
+                </div>
             </div>
             <div id="settingsGameResolutionContainer">
                 <span class="settingsFieldTitle"><%- lang('settings.gameResolutionTitle') %></span>
@@ -196,294 +232,158 @@
                     </label>
                 </div>
             </div>
-        </div>
-        <div id="settingsTabMods" class="settingsTab" style="display: none;">
-            <div class="settingsTabHeader">
-                <span class="settingsTabHeaderText"><%- lang('settings.tabModsHeaderText') %></span>
-                <span class="settingsTabHeaderDesc"><%- lang('settings.tabModsHeaderDesc') %></span>
-            </div>
-            <div class="settingsSelServContainer">
-                <div class="settingsSelServContent">
-
+            <div class="settingsFieldContainer">
+                <div class="settingsFieldLeft">
+                    <span class="settingsFieldTitle"><%- lang('settings.backupWorldsTitle') %></span>
+                    <span class="settingsFieldDesc"><%- lang('settings.backupWorldsDesc') %></span>
                 </div>
-                <div class="settingsSwitchServerContainer">
-                    <div class="settingsSwitchServerContent">
-                        <button class="settingsSwitchServerButton"><%- lang('settings.switchServerButton') %></button>
-                    </div>
-                </div>
-            </div>
-            <div id="settingsModsContainer">
-                <div id="settingsReqModsContainer">
-                    <div class="settingsModsHeader"><%- lang('settings.requiredMods') %></div>
-                    <div id="settingsReqModsContent">
-
-                    </div>
-                </div>
-                <div id="settingsOptModsContainer">
-                    <div class="settingsModsHeader"><%- lang('settings.optionalMods') %></div>
-                    <div id="settingsOptModsContent">
-                        
-                    </div>
-                </div>
-                <div id="settingsDropinModsContainer">
-                    <div class="settingsModsHeader"><%- lang('settings.dropinMods') %></div>
-                    <button id="settingsDropinFileSystemButton" class="settingsPackAddButton"><%- lang('settings.addMods') %> <span id="settingsDropinRefreshNote"><%- lang('settings.dropinRefreshNote') %></span></button>
-                    <div id="settingsDropinModsContent">
-                        
-                    </div>
-                </div>
-                <div id="settingsShadersContainer">
-                    <div class="settingsModsHeader"><%- lang('settings.shaderpacks') %></div>
-                    <div class="settingsPackDesc"><%- lang('settings.shaderpackDesc') %></div>
-                    <button id="settingsShaderpackButton" class="settingsPackAddButton"><%- lang('settings.addShaderpacks') %> <span class="settingsPackAddNote"><%- lang('settings.packDropNote') %></span></button>
-                    <div id="settingsShadersContent" class="settingsPackList">
-
-                    </div>
-                </div>
-                <div id="settingsResourcepacksContainer">
-                    <div class="settingsModsHeader"><%- lang('settings.resourcepacks') %></div>
-                    <div class="settingsPackDesc"><%- lang('settings.resourcepackDesc') %></div>
-                    <button id="settingsResourcepackButton" class="settingsPackAddButton"><%- lang('settings.addResourcepacks') %> <span class="settingsPackAddNote"><%- lang('settings.packDropNote') %></span></button>
-                    <div id="settingsResourcepacksContent" class="settingsPackList">
-
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div id="settingsTabFolders" class="settingsTab" style="display: none;">
-            <div class="settingsTabHeader">
-                <span class="settingsTabHeaderText" id="mpFoldersTitle"><%- lang('settings.foldersTitle') %></span>
-                <span class="settingsTabHeaderDesc"><%- lang('settings.foldersSubtitle') %></span>
-            </div>
-            <section id="mpFolders" aria-labelledby="mpFoldersTitle">
-                <form id="mpFolderCreate" class="mpFormRow">
-                    <label class="mpField mpFieldGrow" for="mpFolderName">
-                        <span id="mpFolderCreateLabel"><%- lang('settings.folderNew') %></span>
-                        <input id="mpFolderName" type="text" maxlength="60" required aria-label="<%- lang('settings.folderName') %>" placeholder="<%- lang('settings.folderPlaceholder') %>">
+                <div class="settingsFieldRight">
+                    <label class="toggleSwitch">
+                        <input type="checkbox" cValue="BackupWorlds">
+                        <span class="toggleSwitchSlider"></span>
                     </label>
-                    <button class="mpButton" id="mpFolderCreateButton" type="submit" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><%- lang('settings.folderCreate') %></button>
-                </form>
-                <p id="mpFolderSource" class="mpFolderHint"></p>
-                <p id="mpFolderError" role="alert" hidden></p>
-                <div class="mpFolderSummary"><span id="mpFolderHeading"></span><span id="mpFolderTotal"></span></div>
-                <div id="mpFolderList"></div>
-                <p class="mpFolderHint"><%- lang('settings.foldersHint') %></p>
+                </div>
+            </div>
+        </div>
+        <div id="settingsTabAppearance" class="settingsTab" style="display: none;">
+            <div class="settingsTabHeader">
+                <span class="settingsTabHeaderText"><%- lang('settings.appearanceHeaderText') %></span>
+                <span class="settingsTabHeaderDesc"><%- lang('settings.appearanceHeaderDesc') %></span>
+            </div>
+            <div class="apLayout">
+                <div class="apMain">
+                    <div class="apField">
+                        <div class="apFieldRow">
+                            <span class="settingsFieldTitle"><%- lang('settings.appearanceIntervalTitle') %></span>
+                            <div class="apSegment" id="apInterval">
+                                <button value="15"><%- lang('settings.appearanceInterval15') %></button>
+                                <button value="30"><%- lang('settings.appearanceInterval30') %></button>
+                                <button value="60"><%- lang('settings.appearanceInterval60') %></button>
+                                <button value="300"><%- lang('settings.appearanceInterval300') %></button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="apField">
+                        <div class="apFieldRow">
+                            <div class="settingsFieldLeft">
+                                <span class="settingsFieldTitle"><%- lang('settings.appearanceMotionTitle') %></span>
+                                <span class="settingsFieldDesc"><%- lang('settings.appearanceMotionDesc') %></span>
+                            </div>
+                            <label class="toggleSwitch">
+                                <input type="checkbox" id="apMotion">
+                                <span class="toggleSwitchSlider"></span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="apField">
+                        <div class="apFieldRow">
+                            <div class="settingsFieldLeft">
+                                <span class="settingsFieldTitle"><%- lang('settings.appearanceSplashTitle') %></span>
+                                <span class="settingsFieldDesc"><%- lang('settings.appearanceSplashDesc') %></span>
+                            </div>
+                            <label class="toggleSwitch">
+                                <input type="checkbox" id="apSplash">
+                                <span class="toggleSwitchSlider"></span>
+                            </label>
+                        </div>
+                    </div>
+                    <span class="apCaps"><%- lang('settings.appearancePacksTitle') %></span>
+                    <div class="apPackList" id="apPackList" role="list">
+                        <!-- One row per modpack. -->
+                    </div>
+                </div>
+                <div class="apPreview">
+                    <div class="apPreviewFrame" id="apPreviewFrame">
+                        <span class="apPreviewLabel" id="apPreviewLabel" hidden></span>
+                    </div>
+                    <div class="apPreviewFoot">
+                        <span class="apPreviewCaption" id="apPreviewCaption"></span>
+                        <span class="apDots" id="apPreviewDots"></span>
+                    </div>
+                </div>
+            </div>
+            <section class="settingsSection" id="settingsSectionFolders" aria-labelledby="mpFoldersTitle">
+                <div class="settingsSectionHeader">
+                    <span class="settingsSectionTitle" id="mpFoldersTitle"><%- lang('settings.foldersTitle') %></span>
+                    <span class="settingsSectionDesc"><%- lang('settings.foldersSubtitle') %></span>
+                </div>
+                <div id="mpFolders">
+                    <form id="mpFolderCreate" class="mpFormRow">
+                        <label class="mpField mpFieldGrow" for="mpFolderName">
+                            <span id="mpFolderCreateLabel"><%- lang('settings.folderNew') %></span>
+                            <input id="mpFolderName" type="text" maxlength="60" required aria-label="<%- lang('settings.folderName') %>" placeholder="<%- lang('settings.folderPlaceholder') %>">
+                        </label>
+                        <button class="mpButton" id="mpFolderCreateButton" type="submit" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><%- lang('settings.folderCreate') %></button>
+                    </form>
+                    <p id="mpFolderSource" class="mpFolderHint"></p>
+                    <p id="mpFolderError" role="alert" hidden></p>
+                    <div class="mpFolderSummary"><span id="mpFolderHeading"></span><span id="mpFolderTotal"></span></div>
+                    <div id="mpFolderList"></div>
+                    <p class="mpFolderHint"><%- lang('settings.foldersHint') %></p>
+                </div>
             </section>
-        </div>
-        <div id="settingsTabModpacks" class="settingsTab" style="display: none;">
-            <div class="settingsTabHeader">
-                <span class="settingsTabHeaderText"><%- lang('settings.modpacksHeaderText') %></span>
-                <span class="settingsTabHeaderDesc"><%- lang('settings.modpacksHeaderDesc') %></span>
-            </div>
-            <div id="mpContainer">
-                <div id="mpTask" hidden>
-                    <div class="mpTaskHead">
-                        <span id="mpTaskTitle"></span>
-                        <span id="mpTaskPercent"></span>
-                    </div>
-                    <div class="mpTaskBar"><span id="mpTaskFill"></span></div>
-                    <div class="mpTaskFoot">
-                        <div id="mpTaskDetail"></div>
-                        <button class="apLink" id="mpTaskSecondary" hidden></button>
-                        <button class="apLink" id="mpTaskAction" hidden></button>
-                    </div>
+            <section class="settingsSection" id="settingsSectionLanguage">
+                <div class="settingsSectionHeader">
+                    <span class="settingsSectionTitle"><%- lang('settings.languageHeaderText') %></span>
+                    <span class="settingsSectionDesc"><%- lang('settings.languageHeaderDesc') %></span>
                 </div>
-
-                <div id="mpInstalledSection">
-                    <div class="settingsModsHeader"><%- lang('settings.modpacksInstalled') %></div>
-                    <div id="mpInstalled" class="mpPackCards" role="list"></div>
-                </div>
-
-                <div class="settingsModsHeader"><%- lang('settings.modpacksAdd') %></div>
-                <div id="mpAddGrid">
-                    <button id="mpImport" class="mpCard mpImport">
-                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 19h14"/></svg>
-                        <span class="mpCardTitle"><%- lang('settings.modpacksImportTitle') %></span>
-                        <span class="mpCardDesc"><%- lang('settings.modpacksImportDesc') %></span>
-                    </button>
-                    <div class="mpCard" id="mpVersion">
-                        <span class="mpCardTitle"><%- lang('settings.modpacksVersionTitle') %></span>
-                        <div class="apSegment" id="mpLoader">
-                            <button value="vanilla" selected>Vanilla</button>
-                            <button value="fabric">Fabric</button>
-                            <button value="quilt">Quilt</button>
-                            <button value="forge">Forge</button>
-                            <button value="neoforge">NeoForge</button>
+                <div id="langCurrent">
+                    <img id="langCurrentFlag" class="langFlag" alt="">
+                    <div id="langCurrentText">
+                        <div id="langCurrentTitle">
+                            <span id="langCurrentName"></span>
+                            <span id="langCurrentMeta"></span>
                         </div>
-                        <div class="mpFiles" id="mpFiles">
-                            <button type="button" class="apLink" id="mpFilesPick"><%- lang('settings.modpacksFilesAdd') %></button>
-                            <div class="mpFilesChip" id="mpFilesChip" hidden>
-                                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/></svg>
-                                <span class="mpFilesText">
-                                    <span id="mpFilesName"></span>
-                                    <span id="mpFilesNote"></span>
-                                </span>
-                                <button type="button" id="mpFilesClear" title="<%- lang('settings.modpacksFilesClear') %>" aria-label="<%- lang('settings.modpacksFilesClear') %>">
-                                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"/></svg>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="mpFormRow">
-                            <label class="mpField">
-                                <span><%- lang('settings.modpacksMinecraft') %></span>
-                                <select id="mpMinecraft" class="mpSelect"></select>
-                            </label>
-                            <label class="mpField" id="mpLoaderVersionField" hidden>
-                                <span><%- lang('settings.modpacksLoaderVersion') %></span>
-                                <select id="mpLoaderVersion" class="mpSelect"></select>
-                            </label>
-                        </div>
-                        <div class="mpFormRow">
-                            <label class="mpField mpFieldGrow">
-                                <span><%- lang('settings.modpacksName') %></span>
-                                <input type="text" id="mpName" spellcheck="false">
-                            </label>
-                            <button id="mpVersionInstall" class="mpButton"><%- lang('settings.modpacksInstall') %></button>
+                        <div id="langCurrentStatus">
+                            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5"/></svg>
+                            <span id="langCurrentStatusText"><%- lang('settings.languageApplied') %></span>
                         </div>
                     </div>
                 </div>
-
-                <div class="settingsModsHeader"><%- lang('settings.modpacksBrowse') %></div>
-                <div id="mpBrowseBar">
-                    <div class="apSegment" id="mpSource">
-                        <button value="modrinth" selected>Modrinth</button>
-                        <button value="curseforge">CurseForge</button>
+                <div id="langOptions">
+                    <div class="settingsFieldContainer">
+                        <div class="settingsFieldLeft">
+                            <span class="settingsFieldTitle"><%- lang('settings.languageSystemTitle') %></span>
+                            <span class="settingsFieldDesc" id="langSystemDesc"></span>
+                        </div>
+                        <label class="toggleSwitch">
+                            <input type="checkbox" id="langSystemToggle">
+                            <span class="toggleSwitchSlider"></span>
+                        </label>
                     </div>
-                    <label id="mpSearch">
-                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 18a7 7 0 1 0 0-14a7 7 0 0 0 0 14z M20 20l-4-4"/></svg>
-                        <input type="text" id="mpSearchInput" spellcheck="false" placeholder="<%- lang('settings.modpacksSearch') %>">
+                    <div class="settingsFieldContainer">
+                        <div class="settingsFieldLeft">
+                            <span class="settingsFieldTitle"><%- lang('settings.languageMinecraftTitle') %></span>
+                            <span class="settingsFieldDesc" id="langMinecraftDesc"></span>
+                        </div>
+                        <label class="toggleSwitch">
+                            <input type="checkbox" id="langMinecraftToggle">
+                            <span class="toggleSwitchSlider"></span>
+                        </label>
+                    </div>
+                </div>
+                <div id="langAllHead">
+                    <div class="settingsFieldLeft">
+                        <span class="apSectionTitle"><%- lang('settings.languageAllTitle') %></span>
+                        <span class="settingsFieldDesc"><%- lang('settings.languageAllDesc') %></span>
+                    </div>
+                    <label id="langSearch">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>
+                        <input type="search" id="langSearchInput" placeholder="<%- lang('settings.languageSearch') %>" spellcheck="false">
                     </label>
                 </div>
-                <div id="mpCurseForgeKey" class="mpCard" hidden>
-                    <span class="mpCardTitle"><%- lang('settings.modpacksCfKeyTitle') %></span>
-                    <span class="mpCardDesc"><%- lang('settings.modpacksCfKeyDesc') %></span>
-                    <div class="mpFormRow">
-                        <input type="text" id="mpCurseForgeKeyInput" class="mpFieldGrow" spellcheck="false" placeholder="$2a$10$…">
-                        <button id="mpCurseForgeKeySave" class="mpButton"><%- lang('settings.modpacksCfKeySave') %></button>
-                    </div>
+                <div id="langList" role="radiogroup" aria-label="<%- lang('settings.languageAllTitle') %>"></div>
+                <div id="langEmpty"></div>
+                <div id="langFooter">
+                    <span><%- lang('settings.languageFooter') %></span>
+                    <a id="langHelpButton" href="<%- lang('settings.sourceGithubLink') %>/tree/master/app/assets/lang"><%- lang('settings.languageHelp') %></a>
                 </div>
-                <div id="mpResults" class="settingsPackList" role="list"></div>
-                <button id="mpMore" class="mpButton mpButtonQuiet" hidden><%- lang('settings.modpacksMore') %></button>
-            </div>
-        </div>
-        <div id="settingsTabJava" class="settingsTab" style="display: none;">
-            <div class="settingsTabHeader">
-                <span class="settingsTabHeaderText"><%- lang('settings.tabJavaHeaderText') %></span>
-                <span class="settingsTabHeaderDesc"><%- lang('settings.tabJavaHeaderDesc') %></span>
-            </div>
-            <div class="settingsSelServContainer">
-                <div class="settingsSelServContent">
-
-                </div>
-                <div class="settingsSwitchServerContainer">
-                    <div class="settingsSwitchServerContent">
-                        <button class="settingsSwitchServerButton"><%- lang('settings.switchServerButton') %></button>
-                    </div>
-                </div>
-            </div>
-            <div id="settingsMemoryContainer">
-                <div id="settingsMemoryTitle"><%- lang('settings.memoryTitle') %></div>
-                <div id="settingsMemoryContent">
-                    <div id="settingsMemoryContentLeft">
-                        <div class="settingsMemoryContentItem">
-                            <span class="settingsMemoryHeader"><%- lang('settings.maxRAM') %></span>
-                            <div class="settingsMemoryActionContainer">
-                                <div id="settingsMaxRAMRange" class="rangeSlider" cValue="MaxRAM" serverDependent min="3" max="8" value="3" step="0.5">
-                                    <div class="rangeSliderBar"></div>
-                                    <div class="rangeSliderTrack"></div>
-                                </div>
-                                <span id="settingsMaxRAMLabel" class="settingsMemoryLabel">3G</span>
-                            </div>
-                        </div>
-                        <div class="settingsMemoryContentItem">
-                            <span class="settingsMemoryHeader"><%- lang('settings.minRAM') %></span>
-                            <div class="settingsMemoryActionContainer">
-                                <div id="settingsMinRAMRange" class="rangeSlider" cValue="MinRAM" serverDependent min="3" max="8" value="3" step="0.5">
-                                    <div class="rangeSliderBar"></div>
-                                    <div class="rangeSliderTrack"></div>
-                                </div>
-                                <span id="settingsMinRAMLabel" class="settingsMemoryLabel">3G</span>
-                            </div>
-                        </div>
-                        <div id="settingsMemoryDesc"><%- lang('settings.memoryDesc') %></div>
-                    </div>
-                    <div id="settingsMemoryContentRight">
-                        <div id="settingsMemoryStatus">
-                            <div class="settingsMemoryStatusContainer">
-                                <span class="settingsMemoryStatusTitle"><%- lang('settings.memoryTotalTitle') %></span>
-                                <span id="settingsMemoryTotal" class="settingsMemoryStatusValue">16G</span>
-                            </div>
-                            <div class="settingsMemoryStatusContainer">
-                                <span class="settingsMemoryStatusTitle"><%- lang('settings.memoryAvailableTitle') %></span>
-                                <span id="settingsMemoryAvail" class="settingsMemoryStatusValue">7.3G</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="settingsFileSelContainer">
-                <div class="settingsFileSelTitle"><%- lang('settings.javaExecutableTitle') %></div>
-                <div class="settingsFileSelContent">
-                    <div id="settingsJavaExecDetails"><!-- Invalid Selection --></div>
-                    <div class="settingsFileSelActions">
-                        <div class="settingsFileSelIcon">
-                            <svg class="settingsFileSelSVG" x="0px" y="0px" viewBox="0 0 305.001 305.001">
-                                <g>
-                                    <path d="M150.99,56.513c-14.093,9.912-30.066,21.147-38.624,39.734c-14.865,32.426,30.418,67.798,32.353,69.288c0.45,0.347,0.988,0.519,1.525,0.519c0.57,0,1.141-0.195,1.605-0.583c0.899-0.752,1.154-2.029,0.614-3.069c-0.164-0.316-16.418-31.888-15.814-54.539c0.214-7.888,11.254-16.837,22.942-26.312c10.705-8.678,22.839-18.514,29.939-30.02c15.586-25.327-1.737-50.231-1.914-50.479c-0.688-0.966-1.958-1.317-3.044-0.84c-1.085,0.478-1.686,1.652-1.438,2.811c0.035,0.164,3.404,16.633-5.97,33.6C169.301,43.634,160.816,49.603,150.99,56.513z"></path>
-                                    <path d="M210.365,67.682c0.994-0.749,1.286-2.115,0.684-3.205c-0.602-1.09-1.913-1.571-3.077-1.129c-2.394,0.91-58.627,22.585-58.627,48.776c0,18.053,7.712,27.591,13.343,34.556c2.209,2.731,4.116,5.09,4.744,7.104c1.769,5.804-2.422,16.294-4.184,19.846c-0.508,1.022-0.259,2.259,0.605,3.005c0.467,0.403,1.05,0.607,1.634,0.607c0.497,0,0.996-0.148,1.427-0.448c0.967-0.673,23.63-16.696,19.565-36.001c-1.514-7.337-5.12-12.699-8.302-17.43c-4.929-7.329-8.489-12.624-3.088-22.403C181.419,89.556,210.076,67.899,210.365,67.682z"></path>
-                                    <path d="M63.99,177.659c-0.964,2.885-0.509,5.75,1.315,8.283c6.096,8.462,27.688,13.123,60.802,13.123c0.002,0,0.003,0,0.004,0c4.487,0,9.224-0.088,14.076-0.262c52.943-1.896,72.58-18.389,73.39-19.09c0.883-0.764,1.119-2.037,0.57-3.067c-0.549-1.029-1.733-1.546-2.864-1.235c-18.645,5.091-53.463,6.898-77.613,6.898c-27.023,0-40.785-1.946-44.154-3.383c1.729-2.374,12.392-6.613,25.605-9.212c1.263-0.248,2.131-1.414,2.006-2.695c-0.125-1.281-1.201-2.258-2.488-2.258C106.893,164.762,68.05,165.384,63.99,177.659z"></path>
-                                    <path d="M241.148,160.673c-10.92,0-21.275,5.472-21.711,5.705c-1.01,0.541-1.522,1.699-1.245,2.811c0.278,1.111,1.277,1.892,2.423,1.893c0.232,0.001,23.293,0.189,25.382,13.365c1.85,11.367-21.82,29.785-31.097,35.923c-1.002,0.663-1.391,1.945-0.926,3.052c0.395,0.943,1.314,1.533,2.304,1.533c0.173,0,0.348-0.018,0.522-0.056c2.202-0.47,53.855-11.852,48.394-41.927C261.862,164.541,250.278,160.673,241.148,160.673z"></path>
-                                    <path d="M205.725,216.69c0.18-0.964-0.221-1.944-1.023-2.506l-12.385-8.675c-0.604-0.423-1.367-0.556-2.076-0.368c-0.129,0.034-13.081,3.438-31.885,5.526c-7.463,0.837-15.822,1.279-24.175,1.279c-18.799,0-31.091-2.209-32.881-3.829c-0.237-0.455-0.162-0.662-0.12-0.777c0.325-0.905,2.068-1.98,3.192-2.405c1.241-0.459,1.91-1.807,1.524-3.073c-0.385-1.266-1.69-2.012-2.978-1.702c-12.424,2.998-18.499,7.191-18.057,12.461c0.785,9.343,22.428,14.139,40.725,15.408c2.631,0.18,5.477,0.272,8.456,0.272c0.002,0,0.003,0,0.005,0c30.425,0,69.429-9.546,69.819-9.643C204.818,218.423,205.544,217.654,205.725,216.69z"></path>
-                                    <path d="M112.351,236.745c0.938-0.611,1.354-1.77,1.021-2.838c-0.332-1.068-1.331-1.769-2.453-1.755c-1.665,0.044-16.292,0.704-17.316,10.017c-0.31,2.783,0.487,5.325,2.37,7.556c5.252,6.224,19.428,9.923,43.332,11.31c2.828,0.169,5.7,0.254,8.539,0.254c30.39,0,50.857-9.515,51.714-9.92c0.831-0.393,1.379-1.209,1.428-2.127c0.049-0.917-0.409-1.788-1.193-2.267l-15.652-9.555c-0.543-0.331-1.193-0.441-1.813-0.314c-0.099,0.021-10.037,2.082-25.035,4.119c-2.838,0.385-6.392,0.581-10.562,0.581c-14.982,0-31.646-2.448-34.842-4.05C111.843,237.455,111.902,237.075,112.351,236.745z"></path>
-                                    <path d="M133.681,290.018c69.61-0.059,106.971-12.438,114.168-20.228c2.548-2.757,2.823-5.366,2.606-7.07c-0.535-4.194-4.354-6.761-4.788-7.04c-1.045-0.672-2.447-0.496-3.262,0.444c-0.813,0.941-0.832,2.314-0.016,3.253c0.439,0.565,0.693,1.51-0.591,2.795c-2.877,2.687-31.897,10.844-80.215,13.294c-6.619,0.345-13.561,0.519-20.633,0.52c-43.262,0-74.923-5.925-79.079-9.379c1.603-2.301,12.801-5.979,24.711-8.058c1.342-0.234,2.249-1.499,2.041-2.845c-0.208-1.346-1.449-2.273-2.805-2.096c-0.336,0.045-1.475,0.115-2.796,0.195c-19.651,1.2-42.36,3.875-43.545,13.999c-0.36,3.086,0.557,5.886,2.726,8.324c5.307,5.963,20.562,13.891,91.475,13.891C133.68,290.018,133.68,290.018,133.681,290.018z"></path>
-                                    <path d="M261.522,271.985c-0.984-0.455-2.146-0.225-2.881,0.567c-0.103,0.11-10.568,11.054-42.035,17.48c-12.047,2.414-34.66,3.638-67.211,3.638c-32.612,0-63.643-1.283-63.953-1.296c-1.296-0.063-2.405,0.879-2.581,2.155c-0.177,1.276,0.645,2.477,1.897,2.775c0.323,0.077,32.844,7.696,77.31,7.696c21.327,0,42.08-1.733,61.684-5.151c36.553-6.408,39.112-24.533,39.203-25.301C263.082,273.474,262.504,272.44,261.522,271.985z"></path>
-                                </g>
-                            </svg>
-                        </div>
-                        <input class="settingsFileSelVal" id="settingsJavaExecVal" type="text" value="null" cValue="JavaExecutable" serverDependent disabled>
-                        <button class="settingsFileSelButton" id="settingsJavaExecSel" dialogTitle="<%- lang('settings.javaExecSelDialogTitle') %>" dialogDirectory="false"><%- lang('settings.javaExecSelButtonText') %></button>
-                    </div>
-                </div>
-                <div class="settingsFileSelDesc"><%- lang('settings.javaExecDesc') %> <strong id="settingsJavaReqDesc"><!-- Requires Java 8 x64. --></strong><br><%- lang('settings.javaPathDesc', {'pathSuffix': `bin${process.platform === 'win32' ? '\\javaw.exe' : '/java'}`}) %></div>
-            </div>
-            <div id="settingsJVMOptsContainer">
-                <div id="settingsJVMOptsTitle"><%- lang('settings.jvmOptsTitle') %></div>
-                <div id="settingsJVMOptsContent">
-                    <div class="settingsFileSelIcon">
-                        <svg class="settingsFileSelSVG" x="0px" y="0px" viewBox="0 0 305.001 305.001">
-                            <g>
-                                <path d="M150.99,56.513c-14.093,9.912-30.066,21.147-38.624,39.734c-14.865,32.426,30.418,67.798,32.353,69.288c0.45,0.347,0.988,0.519,1.525,0.519c0.57,0,1.141-0.195,1.605-0.583c0.899-0.752,1.154-2.029,0.614-3.069c-0.164-0.316-16.418-31.888-15.814-54.539c0.214-7.888,11.254-16.837,22.942-26.312c10.705-8.678,22.839-18.514,29.939-30.02c15.586-25.327-1.737-50.231-1.914-50.479c-0.688-0.966-1.958-1.317-3.044-0.84c-1.085,0.478-1.686,1.652-1.438,2.811c0.035,0.164,3.404,16.633-5.97,33.6C169.301,43.634,160.816,49.603,150.99,56.513z"></path>
-                                <path d="M210.365,67.682c0.994-0.749,1.286-2.115,0.684-3.205c-0.602-1.09-1.913-1.571-3.077-1.129c-2.394,0.91-58.627,22.585-58.627,48.776c0,18.053,7.712,27.591,13.343,34.556c2.209,2.731,4.116,5.09,4.744,7.104c1.769,5.804-2.422,16.294-4.184,19.846c-0.508,1.022-0.259,2.259,0.605,3.005c0.467,0.403,1.05,0.607,1.634,0.607c0.497,0,0.996-0.148,1.427-0.448c0.967-0.673,23.63-16.696,19.565-36.001c-1.514-7.337-5.12-12.699-8.302-17.43c-4.929-7.329-8.489-12.624-3.088-22.403C181.419,89.556,210.076,67.899,210.365,67.682z"></path>
-                                <path d="M63.99,177.659c-0.964,2.885-0.509,5.75,1.315,8.283c6.096,8.462,27.688,13.123,60.802,13.123c0.002,0,0.003,0,0.004,0c4.487,0,9.224-0.088,14.076-0.262c52.943-1.896,72.58-18.389,73.39-19.09c0.883-0.764,1.119-2.037,0.57-3.067c-0.549-1.029-1.733-1.546-2.864-1.235c-18.645,5.091-53.463,6.898-77.613,6.898c-27.023,0-40.785-1.946-44.154-3.383c1.729-2.374,12.392-6.613,25.605-9.212c1.263-0.248,2.131-1.414,2.006-2.695c-0.125-1.281-1.201-2.258-2.488-2.258C106.893,164.762,68.05,165.384,63.99,177.659z"></path>
-                                <path d="M241.148,160.673c-10.92,0-21.275,5.472-21.711,5.705c-1.01,0.541-1.522,1.699-1.245,2.811c0.278,1.111,1.277,1.892,2.423,1.893c0.232,0.001,23.293,0.189,25.382,13.365c1.85,11.367-21.82,29.785-31.097,35.923c-1.002,0.663-1.391,1.945-0.926,3.052c0.395,0.943,1.314,1.533,2.304,1.533c0.173,0,0.348-0.018,0.522-0.056c2.202-0.47,53.855-11.852,48.394-41.927C261.862,164.541,250.278,160.673,241.148,160.673z"></path>
-                                <path d="M205.725,216.69c0.18-0.964-0.221-1.944-1.023-2.506l-12.385-8.675c-0.604-0.423-1.367-0.556-2.076-0.368c-0.129,0.034-13.081,3.438-31.885,5.526c-7.463,0.837-15.822,1.279-24.175,1.279c-18.799,0-31.091-2.209-32.881-3.829c-0.237-0.455-0.162-0.662-0.12-0.777c0.325-0.905,2.068-1.98,3.192-2.405c1.241-0.459,1.91-1.807,1.524-3.073c-0.385-1.266-1.69-2.012-2.978-1.702c-12.424,2.998-18.499,7.191-18.057,12.461c0.785,9.343,22.428,14.139,40.725,15.408c2.631,0.18,5.477,0.272,8.456,0.272c0.002,0,0.003,0,0.005,0c30.425,0,69.429-9.546,69.819-9.643C204.818,218.423,205.544,217.654,205.725,216.69z"></path>
-                                <path d="M112.351,236.745c0.938-0.611,1.354-1.77,1.021-2.838c-0.332-1.068-1.331-1.769-2.453-1.755c-1.665,0.044-16.292,0.704-17.316,10.017c-0.31,2.783,0.487,5.325,2.37,7.556c5.252,6.224,19.428,9.923,43.332,11.31c2.828,0.169,5.7,0.254,8.539,0.254c30.39,0,50.857-9.515,51.714-9.92c0.831-0.393,1.379-1.209,1.428-2.127c0.049-0.917-0.409-1.788-1.193-2.267l-15.652-9.555c-0.543-0.331-1.193-0.441-1.813-0.314c-0.099,0.021-10.037,2.082-25.035,4.119c-2.838,0.385-6.392,0.581-10.562,0.581c-14.982,0-31.646-2.448-34.842-4.05C111.843,237.455,111.902,237.075,112.351,236.745z"></path>
-                                <path d="M133.681,290.018c69.61-0.059,106.971-12.438,114.168-20.228c2.548-2.757,2.823-5.366,2.606-7.07c-0.535-4.194-4.354-6.761-4.788-7.04c-1.045-0.672-2.447-0.496-3.262,0.444c-0.813,0.941-0.832,2.314-0.016,3.253c0.439,0.565,0.693,1.51-0.591,2.795c-2.877,2.687-31.897,10.844-80.215,13.294c-6.619,0.345-13.561,0.519-20.633,0.52c-43.262,0-74.923-5.925-79.079-9.379c1.603-2.301,12.801-5.979,24.711-8.058c1.342-0.234,2.249-1.499,2.041-2.845c-0.208-1.346-1.449-2.273-2.805-2.096c-0.336,0.045-1.475,0.115-2.796,0.195c-19.651,1.2-42.36,3.875-43.545,13.999c-0.36,3.086,0.557,5.886,2.726,8.324c5.307,5.963,20.562,13.891,91.475,13.891C133.68,290.018,133.68,290.018,133.681,290.018z"></path>
-                                <path d="M261.522,271.985c-0.984-0.455-2.146-0.225-2.881,0.567c-0.103,0.11-10.568,11.054-42.035,17.48c-12.047,2.414-34.66,3.638-67.211,3.638c-32.612,0-63.643-1.283-63.953-1.296c-1.296-0.063-2.405,0.879-2.581,2.155c-0.177,1.276,0.645,2.477,1.897,2.775c0.323,0.077,32.844,7.696,77.31,7.696c21.327,0,42.08-1.733,61.684-5.151c36.553-6.408,39.112-24.533,39.203-25.301C263.082,273.474,262.504,272.44,261.522,271.985z"></path>
-                            </g>
-                        </svg>
-                    </div>
-                    <input id="settingsJVMOptsVal" cValue="JVMOptions" serverDependent type="text">
-                </div>
-                <div id="settingsJVMOptsDesc"><%- lang('settings.jvmOptsDesc') %><br><a href="#" id="settingsJvmOptsLink"><!-- Available Options --></a></div>
-            </div>
+            </section>
         </div>
         <div id="settingsTabLauncher" class="settingsTab" style="display: none;">
             <div class="settingsTabHeader">
                 <span class="settingsTabHeaderText"><%- lang('settings.launcherTabHeaderText') %></span>
                 <span class="settingsTabHeaderDesc"><%- lang('settings.launcherTabHeaderDesc') %></span>
-            </div>
-            <div class="settingsFieldContainer">
-                <div class="settingsFieldLeft">
-                    <span class="settingsFieldTitle"><%- lang('settings.allowPrereleaseTitle') %></span>
-                    <span class="settingsFieldDesc"><%- lang('settings.allowPrereleaseDesc') %></span>
-                </div>
-                <div class="settingsFieldRight">
-                    <label class="toggleSwitch">
-                        <input type="checkbox" cValue="AllowPrerelease">
-                        <span class="toggleSwitchSlider"></span>
-                    </label>
-                </div>
             </div>
             <div class="settingsFieldContainer">
                 <div class="settingsFieldLeft">
@@ -530,72 +430,15 @@
                 </div>
                 <span id="settingsDistroUrlStatus" class="settingsDistroUrlStatus" hidden></span>
             </div>
-        </div>
-        <div id="settingsTabLanguage" class="settingsTab" style="display: none;">
-            <div class="settingsTabHeader">
-                <span class="settingsTabHeaderText"><%- lang('settings.languageHeaderText') %></span>
-                <span class="settingsTabHeaderDesc"><%- lang('settings.languageHeaderDesc') %></span>
-            </div>
-            <div id="langCurrent">
-                <img id="langCurrentFlag" class="langFlag" alt="">
-                <div id="langCurrentText">
-                    <div id="langCurrentTitle">
-                        <span id="langCurrentName"></span>
-                        <span id="langCurrentMeta"></span>
-                    </div>
-                    <div id="langCurrentStatus">
-                        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5"/></svg>
-                        <span id="langCurrentStatusText"><%- lang('settings.languageApplied') %></span>
-                    </div>
+            <section class="settingsSection" id="settingsSectionProxy">
+                <div class="settingsSectionHeader">
+                    <span class="settingsSectionTitle"><%- lang('settings.navProxy') %></span>
+                    <span class="settingsSectionDesc"><%- lang('settings.proxyTabHeaderDesc') %></span>
                 </div>
-            </div>
-            <div id="langOptions">
-                <div class="settingsFieldContainer">
-                    <div class="settingsFieldLeft">
-                        <span class="settingsFieldTitle"><%- lang('settings.languageSystemTitle') %></span>
-                        <span class="settingsFieldDesc" id="langSystemDesc"></span>
-                    </div>
-                    <label class="toggleSwitch">
-                        <input type="checkbox" id="langSystemToggle">
-                        <span class="toggleSwitchSlider"></span>
-                    </label>
+                <div class="settingsProxyContainer">
+                    <%- include('proxyForm', { formId: 'settingsProxyForm' }) %>
                 </div>
-                <div class="settingsFieldContainer">
-                    <div class="settingsFieldLeft">
-                        <span class="settingsFieldTitle"><%- lang('settings.languageMinecraftTitle') %></span>
-                        <span class="settingsFieldDesc" id="langMinecraftDesc"></span>
-                    </div>
-                    <label class="toggleSwitch">
-                        <input type="checkbox" id="langMinecraftToggle">
-                        <span class="toggleSwitchSlider"></span>
-                    </label>
-                </div>
-            </div>
-            <div id="langAllHead">
-                <div class="settingsFieldLeft">
-                    <span class="apSectionTitle"><%- lang('settings.languageAllTitle') %></span>
-                    <span class="settingsFieldDesc"><%- lang('settings.languageAllDesc') %></span>
-                </div>
-                <label id="langSearch">
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>
-                    <input type="search" id="langSearchInput" placeholder="<%- lang('settings.languageSearch') %>" spellcheck="false">
-                </label>
-            </div>
-            <div id="langList" role="radiogroup" aria-label="<%- lang('settings.languageAllTitle') %>"></div>
-            <div id="langEmpty"></div>
-            <div id="langFooter">
-                <span><%- lang('settings.languageFooter') %></span>
-                <a id="langHelpButton" href="<%- lang('settings.sourceGithubLink') %>/tree/master/app/assets/lang"><%- lang('settings.languageHelp') %></a>
-            </div>
-        </div>
-        <div id="settingsTabProxy" class="settingsTab" style="display: none;">
-            <div class="settingsTabHeader">
-                <span class="settingsTabHeaderText"><%- lang('settings.proxyTabHeaderText') %></span>
-                <span class="settingsTabHeaderDesc"><%- lang('settings.proxyTabHeaderDesc') %></span>
-            </div>
-            <div class="settingsProxyContainer">
-                <%- include('proxyForm', { formId: 'settingsProxyForm' }) %>
-            </div>
+            </section>
         </div>
         <div id="settingsTabAbout" class="settingsTab" style="display: none;">
             <div class="settingsTabHeader">
@@ -629,6 +472,18 @@
                     <!-- <a href="https://github.com/dscalzi/HeliosLauncher" id="settingsAboutSourceButton" class="settingsAboutButton">Original Source</a> -->
                     <a href="<%- lang('settings.supportLink') %>" id="settingsAboutSupportButton" class="settingsAboutButton"><%- lang('settings.support') %></a>
                     <a href="#" id="settingsAboutDevToolsButton" class="settingsAboutButton"><%- lang('settings.devToolsConsole') %></a>
+                </div>
+            </div>
+            <div class="settingsFieldContainer" id="settingsPrereleaseField">
+                <div class="settingsFieldLeft">
+                    <span class="settingsFieldTitle"><%- lang('settings.allowPrereleaseTitle') %></span>
+                    <span class="settingsFieldDesc"><%- lang('settings.allowPrereleaseDesc') %></span>
+                </div>
+                <div class="settingsFieldRight">
+                    <label class="toggleSwitch">
+                        <input type="checkbox" cValue="AllowPrerelease">
+                        <span class="toggleSwitchSlider"></span>
+                    </label>
                 </div>
             </div>
             <div class="settingsChangelogContainer">

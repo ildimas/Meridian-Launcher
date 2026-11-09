@@ -74,7 +74,11 @@ Global settings for [Discord Rich Presence](https://discordapp.com/developers/do
 
 ### `DistroIndex.rss: string/url`
 
-A URL to a RSS feed. Used for loading news.
+A URL to a RSS feed. Helios loaded news from it; Meridian no longer reads it (see `news`).
+
+### `DistroIndex.news: string/url`
+
+Meridian: a URL to the `news.json` feed Meridian Studio publishes. It lists `articles`, each with `id`, `title`, `summary`, `date`, `author`, `body` (a URL to a JSON file whose `content` is the article in Markdown) and optionally `cover`, `servers` (shown only for these server ids) and `pinned`. Relative URLs resolve against the feed's.
 
 ---
 
@@ -624,5 +628,23 @@ Ex.
         "path": "resourcepacks/WesterosCraft.zip",
         "url": "http://mc.westeroscraft.com/WesterosCraftLauncher/prod-1.11.2/resourcepacks/WesterosCraft.zip"
     }
+}
+```
+
+#### Player settings and the server list (Meridian)
+
+Before each launch every file is checked against its MD5 and downloaded again when it differs. Meridian makes two exceptions, so a launch doesn't undo what the player changed:
+
+- **Seed files** are put in place only when they are missing; after that the file is the player's. By default these are `options*.txt` at the top of the pack folder (`options.txt`, `optionsof.txt`, `optionsshaders.txt`, `smart_moving_options.txt`...), `config/sodium-options.json`, `config/embeddium-options.json`, `config/iris.properties`, `config/oculus.properties`, and client configs in `config/` whose name ends in `client` (`config/ae2-client.toml`, `config/Mekanism/client.toml`, `config/NoChatReports/NCR-Client.json`).
+- **`servers.dat`** at the top of the pack folder is merged. The pack's copy is downloaded to `.meridian-servers.dat` next to it, and each launch puts the pack's servers first (with the pack's name and address) and keeps the servers the player added. A server the pack drops or moves to another address leaves the player's list too: `.meridian-servers.json` remembers the pack's addresses from the last launch.
+
+A `file` module can set `meridianSeed` to decide for itself: `true` makes the file a seed file (`servers.dat` included, which then isn't merged), `false` keeps it in step with the pack even when the rules above match it.
+
+```json
+{
+    "id": "rules.toml",
+    "type": "File",
+    "meridianSeed": false,
+    "artifact": { "path": "config/mymod-client.toml", "size": 120, "MD5": "...", "url": "..." }
 }
 ```

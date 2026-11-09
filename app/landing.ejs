@@ -42,11 +42,20 @@
                         <svg id="settingsSVG" class="topButtonIcon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15a3 3 0 1 0 0-6a3 3 0 0 0 0 6z"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
                         <span id="settingsTooltip"><%- lang('landing.settingsTooltip') %></span>
                     </button>
-                    <div id="user_content">
-                        <div id="avatarContainer">
-                            <button id="avatarOverlay" aria-label="<%- lang('landing.usernameEditButton') %>" title="<%- lang('landing.usernameEditButton') %>"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z M13.5 6.5l4 4"/></svg></button>
+                    <div id="accountPicker">
+                        <button id="user_content" aria-haspopup="menu" aria-expanded="false" aria-controls="accountMenu" title="<%- lang('landing.accountsLabel') %>">
+                            <span id="avatarContainer"></span>
+                            <span id="user_text"><%- lang('landing.usernamePlaceholder') %></span>
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+                        </button>
+                        <div id="accountMenu" role="menu" tabindex="-1" aria-label="<%- lang('landing.accountsHeading') %>">
+                            <div class="serverMenuHeading"><span><%- lang('landing.accountsHeading') %></span><button type="button" id="accountMenuManage" class="apLink"><%- lang('landing.accountsManage') %></button></div>
+                            <div id="accountMenuList"></div>
+                            <button type="button" id="accountMenuAdd" class="menuAddButton" role="menuitem">
+                                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                                <span><%- lang('landing.accountsAdd') %></span>
+                            </button>
                         </div>
-                        <span id="user_text"><%- lang('landing.usernamePlaceholder') %></span>
                     </div>
                 </div>
                 <!-- Every gallery wallpaper is credited to the player who took it. -->
@@ -122,6 +131,7 @@
         <div id="serverHero">
             <span id="serverHeroLabel"><%- lang('landing.serverHeroLabel') %></span>
             <span id="serverHeroName"><%- lang('landing.serverHeroLoading') %></span>
+            <span id="serverHeroAddHint"><%- lang('landing.addHint') %></span>
             <div id="serverHeroMeta">
                 <span class="heroChip" id="serverHeroVersion"></span>
                 <span class="heroChip" id="serverHeroLoader"></span>
@@ -195,19 +205,44 @@
                 </span>
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg>
             </button>
+            <button id="packSettingsButton" aria-label="<%- lang('landing.packSettingsLabel') %>" title="<%- lang('landing.packSettingsLabel') %>">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/></svg>
+            </button>
             <div id="serverMenu" role="listbox" tabindex="-1" aria-label="<%- lang('landing.serverDialLabel') %>">
                 <div class="serverMenuHeading"><span><%- lang('landing.serverMenuHeading') %></span><button type="button" id="managePackFolders" class="apLink"><%- lang('settings.foldersTitle') %></button></div>
                 <div id="serverMenuList">
                     <!-- Server rows are populated here. -->
                 </div>
+                <button type="button" id="serverMenuAdd" class="menuAddButton">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                    <span><%- lang('landing.addTile') %></span>
+                </button>
             </div>
+        </div>
+        <%# Opens from the dial's + tile, the list's last row and Play while + is turned to. %>
+        <div id="addMenu" role="menu" tabindex="-1" aria-label="<%- lang('landing.addHeading') %>">
+            <div class="serverMenuHeading"><%- lang('landing.addHeading') %></div>
+            <button type="button" class="addMenuItem" role="menuitem" data-add="modpack">
+                <span class="addMenuIcon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z M4 7.5l8 4.5 8-4.5 M12 12v9"/></svg></span>
+                <span class="serverListText">
+                    <span class="serverListName"><%- lang('landing.addModpack') %></span>
+                    <span class="serverListMeta"><%- lang('landing.addModpackDesc') %></span>
+                </span>
+            </button>
+            <button type="button" class="addMenuItem" role="menuitem" data-add="version">
+                <span class="addMenuIcon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4z M4 10h16 M10 10v10"/></svg></span>
+                <span class="serverListText">
+                    <span class="serverListName"><%- lang('landing.addVersion') %></span>
+                    <span class="serverListMeta"><%- lang('landing.addVersionDesc') %></span>
+                </span>
+            </button>
         </div>
         <button id="launch_button">
             <span id="launch_content">
                 <span class="launchLabel" id="launchButtonLabel"><%- lang('landing.launchButton') %></span>
             </span>
             <span id="launch_details">
-                <span class="launchLabel"><%- lang('landing.launchingButton') %></span>
+                <span class="launchLabel" id="launchBusyLabel"><%- lang('landing.launchingButton') %></span>
                 <span class="launchSub" id="launch_progress_label">0%</span>
             </span>
             <!-- Launch progress, drawn around the pill (see setLaunchPercentage). -->

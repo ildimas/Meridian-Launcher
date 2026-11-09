@@ -11,6 +11,9 @@ const ServerLoader = require('../app/assets/js/serverloader')
 const ForgeInstaller = require('../app/assets/js/forgeinstaller')
 const LoaderRuntime = require('../app/assets/js/loaderruntime')
 const AdmZip = require('adm-zip')
+const child_process = require('child_process')
+const { EventEmitter } = require('events')
+const GameGpu = require('../app/assets/js/gamegpu')
 
 // ProcessBuilder's settings and proxy live in Electron; exercise command
 // construction in Node with only those two application boundaries replaced.
@@ -21,7 +24,11 @@ const config = {
     getCommonDirectory: () => path.join(os.tmpdir(), 'meridian-test', 'common'),
     getMaxRAM: () => '4G', getMinRAM: () => '2G', getJVMOptions: () => [],
     getAutoConnect: () => false, getProxy: () => ({ enabled: false }),
-    getFullscreen: () => false
+    // The game window of the pack being launched (configmanager.getGameWindow).
+    getGameWindow: () => ({ resWidth: 1280, resHeight: 720, fullscreen: false }),
+    getGameGpu: () => 'discrete',
+    getJavaExecutable: () => '/java', getLaunchDetached: () => false,
+    getTempNativeFolder: () => 'natives', getModConfiguration: () => ({ mods: {} })
 }
 const savedConfig = require.cache[configPath]
 const savedProxy = require.cache[proxyPath]
@@ -127,6 +134,28 @@ test('Studio files validate to the shared runtime and instance mods paths and lo
     await processor.postDownload()
     await fs.remove(server.modules[0].getPath())
     await assert.rejects(processor.postDownload(), /files failed verification/)
+})
+
+test('the game process gets the environment of the chosen graphics card', t => {
+    const spawn = t.mock.method(child_process, 'spawn', () => {
+        const child = Object.assign(new EventEmitter(), { stdout: new EventEmitter(), stderr: new EventEmitter() })
+        child.stdout.setEncoding = child.stderr.setEncoding = () => {}
+        return child
+    })
+    const applyChoice = t.mock.method(GameGpu, 'applyChoice', () => ({ DRI_PRIME: '1' }))
+    const launch = builder()
+    launch.setupLiteLoader = () => {}
+    launch.resolveModConfiguration = () => ({ fMods: [], lMods: [] })
+    launch.constructJVMArguments = () => []
+    launch.constructModList = () => []
+    launch.build()
+    assert.deepEqual(applyChoice.mock.calls[0].arguments, ['discrete', '/java'])
+    assert.equal(spawn.mock.calls[0].arguments[2].env.DRI_PRIME, '1')
+    assert.equal(spawn.mock.calls[0].arguments[2].env.PATH, process.env.PATH)
+
+    applyChoice.mock.mockImplementation(() => ({}))
+    launch.build()
+    assert.equal(spawn.mock.calls[1].arguments[2].env, undefined)
 })
 
 test('NeoForge BootstrapLauncher keeps Minecraft and processor outputs off the classpath', () => {
@@ -280,7 +309,7 @@ test('Nebula NeoForge conditional arguments resolve on Windows, macOS and Linux 
         pb.vanillaManifest.arguments.game.push('--version', '${version_name}')
         pb.vanillaManifest.arguments.game.push({ rules: [{ action: 'allow', features: { has_custom_resolution: true } }], value: ['--width', '${resolution_width}'] })
         const original = structuredClone({ vanilla: pb.vanillaManifest, loader: pb.modManifest })
-        const fullscreen = t.mock.method(config, 'getFullscreen', () => true)
+        const fullscreen = t.mock.method(config, 'getGameWindow', () => ({ resWidth: 1280, resHeight: 720, fullscreen: true }))
         const nativeDir = path.join(os.tmpdir(), 'neo natives')
         const args = pb.constructJVMArguments([], nativeDir)
         assert.ok(args.includes(`${pb.libPath}/a.jar${separator}${pb.libPath}/b.jar`))
@@ -310,7 +339,7 @@ test('NeoForge argument rules match OS version, architecture and disabled featur
         { rules: [{ action: 'allow', features: { is_demo_user: false } }], value: '-DfullGame=true' },
         { rules: [{ action: 'allow', features: { is_demo_user: true } }], value: '-Ddemo=true' }
     )
-    t.mock.method(config, 'getFullscreen', () => false)
+    t.mock.method(config, 'getGameWindow', () => ({ resWidth: 1280, resHeight: 720, fullscreen: false }))
     const args = pb.constructJVMArguments([], os.tmpdir())
     assert.ok(args.includes('-DmatchingHost=true'))
     assert.ok(args.includes('-DfullGame=true'))

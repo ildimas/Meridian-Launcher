@@ -82,7 +82,13 @@ const DEFAULT_CONFIG = {
             resHeight: 720,
             fullscreen: false,
             autoConnect: true,
-            launchDetached: true
+            launchDetached: true,
+            backupWorlds: true, // Copy a server pack's worlds before it updates (worldbackups.js).
+            // Defaults for every pack that doesn't set its own (javaConfig[id].own).
+            // null follows what each pack recommends.
+            memory: null, // { minRAM, maxRAM }
+            jvmOptions: null,
+            gpu: 'auto' // auto | integrated | discrete
         },
         launcher: {
             allowPrerelease: false,
@@ -594,13 +600,227 @@ function defaultJavaConfig17(ram) {
  * @param {*} mcVersion The minecraft version of the server.
  */
 exports.ensureJavaConfig = function(serverid, effectiveJavaOptions, ram) {
+    const rec = defaultJavaConfig(effectiveJavaOptions, ram)
     if(!Object.prototype.hasOwnProperty.call(config.javaConfig, serverid)) {
         config.javaConfig[serverid] = defaultJavaConfig(effectiveJavaOptions, ram)
+    }
+    const cfg = config.javaConfig[serverid]
+    if(cfg.own == null) {
+        // Configs from before the shared defaults: a pack keeps what was
+        // changed on it, everything else follows the defaults.
+        cfg.own = {
+            memory: cfg.minRAM !== rec.minRAM || cfg.maxRAM !== rec.maxRAM,
+            jvm: cfg.jvmOptions.join(' ') !== rec.jvmOptions.join(' '),
+            window: false
+        }
+        cfg.window = null
+    }
+    // Refreshed on every load, the pack can change its recommendation.
+    cfg.recommended = {
+        minRAM: rec.minRAM,
+        maxRAM: rec.maxRAM,
+        jvmOptions: rec.jvmOptions,
+        floor: exports.getAbsoluteMinRAM(ram)
     }
 }
 
 /**
- * Retrieve the minimum amount of memory for JVM initialization. This value
+ * @param {string} ram Memory with its unit, e.g. '4G' or '3584M'.
+ * @returns {number} The memory in gigabytes.
+ */
+function ramGB(ram){
+    return ram.endsWith('M') ? Number(ram.substring(0, ram.length-1))/1024 : Number.parseFloat(ram)
+}
+
+/**
+ * @param {number} gb Memory in gigabytes.
+ * @returns {string} The memory with its unit, in megabytes if it isn't whole.
+ */
+function ramString(gb){
+    return gb%1 > 0 ? gb*1024 + 'M' : gb + 'G'
+}
+
+exports.ramGB = ramGB
+exports.ramString = ramString
+
+/**
+ * The memory a pack launches with: its own, the shared default or what it
+ * recommends, in that order.
+ */
+function packMemory(serverid){
+    const cfg = config.javaConfig[serverid]
+    if(cfg.own?.memory || cfg.recommended == null) {
+        return { minRAM: cfg.minRAM, maxRAM: cfg.maxRAM }
+    }
+    return exports.getInheritedMemory(serverid)
+}
+
+/**
+ * The memory a pack gets when it doesn't set its own.
+ *
+ * @param {string} serverid The server id.
+ * @returns {{minRAM: string, maxRAM: string}} The shared default or what the pack recommends.
+ */
+exports.getInheritedMemory = function(serverid){
+    const cfg = config.javaConfig[serverid]
+    if(cfg.recommended == null) {
+        return { minRAM: cfg.minRAM, maxRAM: cfg.maxRAM }
+    }
+    const shared = config.settings.game.memory
+    if(shared == null) {
+        return { minRAM: cfg.recommended.minRAM, maxRAM: cfg.recommended.maxRAM }
+    }
+    // The pack's minimum still applies to the shared default.
+    const floor = cfg.recommended.floor
+    const max = Math.max(ramGB(shared.maxRAM), floor)
+    const min = Math.min(Math.max(ramGB(shared.minRAM), floor), max)
+    return { minRAM: ramString(min), maxRAM: ramString(max) }
+}
+
+/**
+ * Whether a pack sets a group of settings itself instead of following the
+ * shared defaults.
+ *
+ * @param {string} serverid The server id.
+ * @param {'memory' | 'jvm' | 'window' | 'gpu'} group The group of settings.
+ * @returns {boolean} True if the pack uses its own values.
+ */
+exports.getPackOwn = function(serverid, group){
+    return config.javaConfig[serverid].own?.[group] === true
+}
+
+/**
+ * @param {string} serverid The server id.
+ * @param {'memory' | 'jvm' | 'window' | 'gpu'} group The group of settings.
+ * @param {boolean} own True to use the pack's own values.
+ */
+exports.setPackOwn = function(serverid, group, own){
+    const cfg = config.javaConfig[serverid]
+    cfg.own = { ...cfg.own, [group]: own }
+}
+
+/**
+ * @param {string} serverid The server id.
+ * @returns {{minRAM: string, maxRAM: string, jvmOptions: string[], floor: number}} What the pack recommends.
+ */
+exports.getRecommendedJava = function(serverid){
+    const cfg = config.javaConfig[serverid]
+    return cfg.recommended ?? { minRAM: cfg.minRAM, maxRAM: cfg.maxRAM, jvmOptions: cfg.jvmOptions, floor: 0 }
+}
+
+/**
+ * @param {string} serverid The server id.
+ * @returns {{minRAM: string, maxRAM: string}} The pack's own memory, used while getPackOwn(id, 'memory').
+ */
+exports.getOwnMemory = function(serverid){
+    const cfg = config.javaConfig[serverid]
+    return { minRAM: cfg.minRAM, maxRAM: cfg.maxRAM }
+}
+
+/**
+ * @param {string} serverid The server id.
+ * @returns {string[]} The pack's own JVM options, used while getPackOwn(id, 'jvm').
+ */
+exports.getOwnJVMOptions = function(serverid){
+    return config.javaConfig[serverid].jvmOptions
+}
+
+/**
+ * @returns {{minRAM: string, maxRAM: string} | null} The memory for packs without their own, or null for what each recommends.
+ */
+exports.getDefaultMemory = function(){
+    return config.settings.game.memory
+}
+
+/**
+ * @param {{minRAM: string, maxRAM: string} | null} memory The shared memory, or null for what each pack recommends.
+ */
+exports.setDefaultMemory = function(memory){
+    config.settings.game.memory = memory
+}
+
+/**
+ * @returns {string[] | null} The JVM options for packs without their own, or null for what each recommends.
+ */
+exports.getDefaultJVMOptions = function(){
+    return config.settings.game.jvmOptions
+}
+
+/**
+ * @param {string[] | null} jvmOptions The shared JVM options, or null for what each pack recommends.
+ */
+exports.setDefaultJVMOptions = function(jvmOptions){
+    config.settings.game.jvmOptions = jvmOptions
+}
+
+/**
+ * The game window a pack launches with: its own or the shared one.
+ *
+ * @param {string} serverid The server id.
+ * @returns {{resWidth: number, resHeight: number, fullscreen: boolean}} The window.
+ */
+exports.getGameWindow = function(serverid){
+    const cfg = config.javaConfig[serverid]
+    if(cfg?.own?.window && cfg.window != null) {
+        return cfg.window
+    }
+    return exports.getInheritedGameWindow()
+}
+
+/**
+ * @returns {{resWidth: number, resHeight: number, fullscreen: boolean}} The window for packs without their own.
+ */
+exports.getInheritedGameWindow = function(){
+    const game = config.settings.game
+    return { resWidth: game.resWidth, resHeight: game.resHeight, fullscreen: game.fullscreen }
+}
+
+/**
+ * @param {string} serverid The server id.
+ * @param {{resWidth: number, resHeight: number, fullscreen: boolean}} window The pack's own window, used while getPackOwn(id, 'window').
+ */
+exports.setOwnGameWindow = function(serverid, window){
+    config.javaConfig[serverid].window = window
+}
+
+/**
+ * The graphics card a pack launches on: its own choice or the shared one.
+ *
+ * @param {string} serverid The server id.
+ * @returns {'auto' | 'integrated' | 'discrete'} The card.
+ */
+exports.getGameGpu = function(serverid){
+    const cfg = config.javaConfig[serverid]
+    if(cfg?.own?.gpu && cfg.gpu != null) {
+        return cfg.gpu
+    }
+    return exports.getDefaultGpu()
+}
+
+/**
+ * @returns {'auto' | 'integrated' | 'discrete'} The card for packs without their own.
+ */
+exports.getDefaultGpu = function(){
+    return config.settings.game.gpu
+}
+
+/**
+ * @param {'auto' | 'integrated' | 'discrete'} gpu The card for packs without their own.
+ */
+exports.setDefaultGpu = function(gpu){
+    config.settings.game.gpu = gpu
+}
+
+/**
+ * @param {string} serverid The server id.
+ * @param {'auto' | 'integrated' | 'discrete'} gpu The pack's own card, used while getPackOwn(id, 'gpu').
+ */
+exports.setOwnGameGpu = function(serverid, gpu){
+    config.javaConfig[serverid].gpu = gpu
+}
+
+/**
+ * Retrieve the minimum amount of memory the pack launches with. This value
  * contains the units of memory. For example, '5G' = 5 GigaBytes, '1024M' = 
  * 1024 MegaBytes, etc.
  * 
@@ -608,11 +828,11 @@ exports.ensureJavaConfig = function(serverid, effectiveJavaOptions, ram) {
  * @returns {string} The minimum amount of memory for JVM initialization.
  */
 exports.getMinRAM = function(serverid){
-    return config.javaConfig[serverid].minRAM
+    return packMemory(serverid).minRAM
 }
 
 /**
- * Set the minimum amount of memory for JVM initialization. This value should
+ * Set the pack's own minimum memory, used while getPackOwn(id, 'memory'). This value should
  * contain the units of memory. For example, '5G' = 5 GigaBytes, '1024M' = 
  * 1024 MegaBytes, etc.
  * 
@@ -624,7 +844,7 @@ exports.setMinRAM = function(serverid, minRAM){
 }
 
 /**
- * Retrieve the maximum amount of memory for JVM initialization. This value
+ * Retrieve the maximum amount of memory the pack launches with. This value
  * contains the units of memory. For example, '5G' = 5 GigaBytes, '1024M' = 
  * 1024 MegaBytes, etc.
  * 
@@ -632,11 +852,11 @@ exports.setMinRAM = function(serverid, minRAM){
  * @returns {string} The maximum amount of memory for JVM initialization.
  */
 exports.getMaxRAM = function(serverid){
-    return config.javaConfig[serverid].maxRAM
+    return packMemory(serverid).maxRAM
 }
 
 /**
- * Set the maximum amount of memory for JVM initialization. This value should
+ * Set the pack's own maximum memory, used while getPackOwn(id, 'memory'). This value should
  * contain the units of memory. For example, '5G' = 5 GigaBytes, '1024M' = 
  * 1024 MegaBytes, etc.
  * 
@@ -670,7 +890,7 @@ exports.setJavaExecutable = function(serverid, executable){
 }
 
 /**
- * Retrieve the additional arguments for JVM initialization. Required arguments,
+ * Retrieve the additional JVM arguments the pack launches with. Required arguments,
  * such as memory allocation, will be dynamically resolved and will not be included
  * in this value.
  * 
@@ -678,11 +898,26 @@ exports.setJavaExecutable = function(serverid, executable){
  * @returns {Array.<string>} An array of the additional arguments for JVM initialization.
  */
 exports.getJVMOptions = function(serverid){
-    return config.javaConfig[serverid].jvmOptions
+    const cfg = config.javaConfig[serverid]
+    if(cfg.own?.jvm || cfg.recommended == null) {
+        return cfg.jvmOptions
+    }
+    return exports.getInheritedJVMOptions(serverid)
 }
 
 /**
- * Set the additional arguments for JVM initialization. Required arguments,
+ * The JVM options a pack gets when it doesn't set its own.
+ *
+ * @param {string} serverid The server id.
+ * @returns {Array.<string>} The shared default or what the pack recommends.
+ */
+exports.getInheritedJVMOptions = function(serverid){
+    const cfg = config.javaConfig[serverid]
+    return config.settings.game.jvmOptions ?? cfg.recommended?.jvmOptions ?? cfg.jvmOptions
+}
+
+/**
+ * Set the pack's own additional JVM arguments, used while getPackOwn(id, 'jvm'). Required arguments,
  * such as memory allocation, will be dynamically resolved and should not be
  * included in this value.
  * 
@@ -811,6 +1046,25 @@ exports.getLaunchDetached = function(def = false){
  */
 exports.setLaunchDetached = function(launchDetached){
     config.settings.game.launchDetached = launchDetached
+}
+
+/**
+ * Whether a server pack's worlds are copied before the pack updates.
+ *
+ * @param {boolean} def Optional. If true, the default value will be returned.
+ * @returns {boolean}
+ */
+exports.getBackupWorlds = function(def = false){
+    return !def ? config.settings.game.backupWorlds : DEFAULT_CONFIG.settings.game.backupWorlds
+}
+
+/**
+ * Turn the copies of worlds before pack updates on or off.
+ *
+ * @param {boolean} backupWorlds Whether to make them.
+ */
+exports.setBackupWorlds = function(backupWorlds){
+    config.settings.game.backupWorlds = backupWorlds
 }
 
 // Launcher Settings

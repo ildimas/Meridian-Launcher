@@ -2,7 +2,7 @@ const remoteMain = require('@electron/remote/main')
 remoteMain.initialize()
 
 // Requirements
-const { app, BrowserWindow, ipcMain, Menu, session, shell } = require('electron')
+const { app, BrowserWindow, ipcMain, Menu, net, session, shell } = require('electron')
 const autoUpdater                       = require('electron-updater').autoUpdater
 const ejse                              = require('ejs-electron')
 const fs                                = require('fs')
@@ -10,6 +10,7 @@ const isDev                             = require('./app/assets/js/isdev')
 const path                              = require('path')
 const semver                            = require('semver')
 const { pathToFileURL }                 = require('url')
+const BrowserLogin                      = require('./app/assets/js/browserlogin')
 const { AZURE_CLIENT_ID, MSFT_OPCODE, MSFT_REPLY_TYPE, MSFT_ERROR, PROXY_OPCODE, SHELL_OPCODE } = require('./app/assets/js/ipcconstants')
 const LangLoader                        = require('./app/assets/js/langloader')
 const MacUpdater                        = require('./app/assets/js/macupdater')
@@ -236,14 +237,71 @@ let msftAuthWindow
 let msftAuthSuccess
 let msftAuthViewSuccess
 let msftAuthViewOnClose
-ipcMain.on(MSFT_OPCODE.OPEN_LOGIN, (ipcEvent, ...arguments_) => {
-    if (msftAuthWindow) {
+let msftLoginOpening = false
+let msftBrowserLogin
+ipcMain.on(MSFT_OPCODE.OPEN_LOGIN, async (ipcEvent, ...arguments_) => {
+    if (msftAuthWindow || msftBrowserLogin || msftLoginOpening) {
         ipcEvent.reply(MSFT_OPCODE.REPLY_LOGIN, MSFT_REPLY_TYPE.ERROR, MSFT_ERROR.ALREADY_OPEN, msftAuthViewOnClose)
         return
     }
-    msftAuthSuccess = false
     msftAuthViewSuccess = arguments_[0]
     msftAuthViewOnClose = arguments_[1]
+    msftLoginOpening = true
+    try {
+        if (await BrowserLogin.supported(AZURE_CLIENT_ID, net.fetch) && await openBrowserLogin(ipcEvent)) {
+            return
+        }
+        openLoginWindow(ipcEvent)
+    } finally {
+        msftLoginOpening = false
+    }
+})
+
+ipcMain.on(MSFT_OPCODE.CANCEL_LOGIN, () => {
+    if (msftBrowserLogin) {
+        msftBrowserLogin.cancel()
+    }
+})
+
+/**
+ * Sign in in the system browser, where the player's Microsoft session
+ * already is. Resolves false when the browser can't be opened: the embedded
+ * window takes over.
+ */
+async function openBrowserLogin(ipcEvent) {
+    const login = BrowserLogin.start({
+        clientId: AZURE_CLIENT_ID,
+        donePage: {
+            title: LangLoader.queryJS('index.browserLoginDoneTitle'),
+            text: LangLoader.queryJS('index.browserLoginDoneText')
+        }
+    })
+    try {
+        await shell.openExternal(await login.ready)
+    } catch (err) {
+        console.warn('Unable to sign in in the browser, using the login window.', err)
+        login.cancel()
+        return false
+    }
+    msftBrowserLogin = login
+    ipcEvent.reply(MSFT_OPCODE.REPLY_BROWSER)
+    login.result.then((queryMap) => {
+        msftBrowserLogin = undefined
+        if (queryMap == null) {
+            ipcEvent.reply(MSFT_OPCODE.REPLY_LOGIN, MSFT_REPLY_TYPE.ERROR, MSFT_ERROR.NOT_FINISHED, msftAuthViewOnClose)
+            return
+        }
+        if (win) {
+            win.show()
+            win.focus()
+        }
+        ipcEvent.reply(MSFT_OPCODE.REPLY_LOGIN, MSFT_REPLY_TYPE.SUCCESS, queryMap, msftAuthViewSuccess)
+    })
+    return true
+}
+
+function openLoginWindow(ipcEvent) {
+    msftAuthSuccess = false
     msftAuthWindow = new BrowserWindow({
         title: LangLoader.queryJS('index.microsoftLoginTitle'),
         backgroundColor: '#222222',
@@ -281,7 +339,7 @@ ipcMain.on(MSFT_OPCODE.OPEN_LOGIN, (ipcEvent, ...arguments_) => {
 
     msftAuthWindow.removeMenu()
     msftAuthWindow.loadURL(`https://login.microsoftonline.com/consumers/oauth2/v2.0/authorize?prompt=select_account&client_id=${AZURE_CLIENT_ID}&response_type=code&scope=XboxLive.signin%20offline_access&redirect_uri=https://login.microsoftonline.com/common/oauth2/nativeclient`)
-})
+}
 
 // Microsoft Auth Logout
 let msftLogoutWindow

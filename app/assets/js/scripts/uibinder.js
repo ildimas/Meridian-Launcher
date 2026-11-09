@@ -22,6 +22,8 @@ const VIEWS = {
     loginOptions: '#loginOptionsContainer',
     login: '#loginContainer',
     settings: '#settingsContainer',
+    pack: '#packContainer',
+    version: '#versionContainer',
     welcome: '#welcomeContainer',
     waiting: '#waitingContainer'
 }
@@ -154,9 +156,11 @@ async function switchView(current, next, currentFadeTime = 500, nextFadeTime = 5
     const nxt = document.querySelector(next)
     const outMs = Math.min(currentFadeTime, VIEW_OUT_MS)
     const inMs = Math.min(nextFadeTime, VIEW_IN_MS)
-    // Settings opens like a sheet over the launcher; everything else crossfades.
-    const toSettings = next === VIEWS.settings
-    const fromSettings = current === VIEWS.settings
+    // Settings, the pack view and the version view open like a sheet over
+    // the launcher; everything else crossfades.
+    const sheets = [VIEWS.settings, VIEWS.pack, VIEWS.version]
+    const toSettings = sheets.includes(next)
+    const fromSettings = sheets.includes(current)
     // The wallpaper blurs itself under settings (see #settingsContainer in launcher.css).
     document.body.toggleAttribute('settingsOpen', toSettings)
     ThemeEngine.setBlurred(toSettings)
@@ -276,6 +280,16 @@ async function showMainUIAfterReload(state){
 
     const view = Object.values(VIEWS).includes(state.view) ? state.view : VIEWS.landing
     currentView = view
+    if(view === VIEWS.version){
+        mpOnVersionShow()
+        document.body.setAttribute('settingsOpen', '')
+        ThemeEngine.setBlurred(true)
+    }
+    if(view === VIEWS.pack){
+        await preparePackView()
+        document.body.setAttribute('settingsOpen', '')
+        ThemeEngine.setBlurred(true)
+    }
     if(view === VIEWS.settings){
         await prepareSettings()
         document.body.setAttribute('settingsOpen', '')
